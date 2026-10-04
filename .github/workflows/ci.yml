@@ -99,27 +99,24 @@ jobs:
             echo "::warning::Building with a placeholder Firebase config. This bundle is unsigned "
             echo "::warning::and must not be uploaded. Add the secret under "
             echo "::warning::Settings -> Secrets and variables -> Actions to build against the real project."
-            cat > android/app/google-services.json <<'JSON'
-            {
-              "project_info": {
-                "project_number": "000000000000",
-                "project_id": "datedawn",
-                "storage_bucket": "datedawn.firebasestorage.app"
-              },
-              "client": [
-                {
-                  "client_info": {
-                    "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                    "android_client_info": { "package_name": "com.datedawn.app" }
-                  },
-                  "oauth_client": [],
-                  "api_key": [ { "current_key": "placeholder" } ],
-                  "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
-                }
-              ],
-              "configuration_version": "1"
-            }
-            JSON
+            printf '%s\n' \
+              '{' \
+              '  "project_info": {' \
+              '    "project_number": "000000000000",' \
+              '    "project_id": "datedawn",' \
+              '    "storage_bucket": "datedawn.firebasestorage.app"' \
+              '  },' \
+              '  "client": [{' \
+              '    "client_info": {' \
+              '      "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",' \
+              '      "android_client_info": { "package_name": "com.datedawn.app" }' \
+              '    },' \
+              '    "oauth_client": [],' \
+              '    "api_key": [{ "current_key": "placeholder" }],' \
+              '    "services": { "appinvite_service": { "other_platform_oauth_client": [] } }' \
+              '  }],' \
+              '  "configuration_version": "1"' \
+              '}' > android/app/google-services.json
             echo "google-services.json placeholder written ($(wc -c < android/app/google-services.json) bytes)"
           fi
           test -s android/app/google-services.json
