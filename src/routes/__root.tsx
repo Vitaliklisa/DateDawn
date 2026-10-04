@@ -39,6 +39,12 @@ export const Route = createRootRoute({
         <HeadContent />
       </head>
       <body className="bg-canvas text-fg">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-surface focus:px-4 focus:py-3 focus:text-fg focus:ring-2 focus:ring-accent"
+        >
+          Skip to content
+        </a>
         <PreviewHostBridge />
         <AuthProvider>
           <Outlet />

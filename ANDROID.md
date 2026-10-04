@@ -1,12 +1,12 @@
-# Data Dawn — Android app
+# Date Dawn — Android app
 
-Data Dawn is the Flutter app: a countdown app for Android, iOS and web, backed by Firebase (auth + Firestore). See **[docs/PUBLISHING_CHECKLIST.md](./docs/PUBLISHING_CHECKLIST.md)** for the store submission path.
+Date Dawn is the Flutter app: a countdown app for Android, iOS and web, backed by Firebase (auth + Firestore). See **[docs/PUBLISHING_CHECKLIST.md](./docs/PUBLISHING_CHECKLIST.md)** for the store submission path.
 
-> **Naming.** The app is **Data Dawn**; the Firebase project and package id are **`datedawn`** / **`com.datedawn.app`**. `com.datedawn.app` is permanent once the first Play bundle is uploaded — see the publishing checklist before you build an upload.
+> **Naming.** The app is **Date Dawn**; the Firebase project and package id are **`datedawn`** / **`com.datedawn.app`**. `com.datedawn.app` is permanent once the first Play bundle is uploaded — see the publishing checklist before you build an upload.
 
 ## Architecture
 
-Data Dawn is a **pure Flutter** app: the UI, countdown maths, and every Firebase
+Date Dawn is a **pure Flutter** app: the UI, countdown maths, and every Firebase
 call run on the device. There is no server component and no web app to load, so
 the APK/AAB is fully self-contained and works offline except for sign-in and
 Firestore sync.
@@ -24,12 +24,13 @@ lib/
 ```
 
 ## Two modes
-| | Debug | Release |
-|---|---|---|
-| Command | `flutter run` / `flutter build apk --debug` | `flutter build appbundle --release` |
-| Signing | Debug key | Your upload key (`android/key.properties`) |
-| Backend | The Firebase project in `lib/firebase_config.dart` | Same |
-| Use for | Development, testing on a device | Google Play upload |
+
+|         | Debug                                              | Release                                    |
+| ------- | -------------------------------------------------- | ------------------------------------------ |
+| Command | `flutter run` / `flutter build apk --debug`        | `flutter build appbundle --release`        |
+| Signing | Debug key                                          | Your upload key (`android/key.properties`) |
+| Backend | The Firebase project in `lib/firebase_config.dart` | Same                                       |
+| Use for | Development, testing on a device                   | Google Play upload                         |
 
 ## One-time setup (already done in this repo)
 
@@ -38,6 +39,11 @@ lib/
 - `flutterfire configure --project=datedawn` run once, to generate
   `lib/firebase_options.dart`, `android/app/google-services.json` and
   `ios/Runner/GoogleService-Info.plist`
+
+`lib/firebase_options.dart` contains public Firebase client identifiers and is
+tracked so every build initializes Firebase with the same valid options.
+Platform service files and signing keys remain local/secret and are not
+committed.
 
 ## The NDK version must match the plugins
 
@@ -104,7 +110,7 @@ Firebase's opaque "API key not valid".
 2. Copy `build/app/outputs/flutter-apk/app-debug.apk` to the phone (USB, cloud
    storage, or `adb install`).
 3. Tap the file → allow "Install unknown apps" for your file manager/browser.
-4. Open **Data Dawn** from the home screen.
+4. Open **Date Dawn** from the home screen.
 
 Or, phone plugged in over USB with USB debugging on:
 
@@ -127,7 +133,7 @@ flutter pub run flutter_native_splash:create
   background and splash use the app's dark canvas so there is no white flash on
   launch.
 - **Rename note:** the icon and splash artwork still carries the old clock mark.
-  Regenerate from the new Data Dawn artwork before the store screenshots are
+  Regenerate from the new Date Dawn artwork before the store screenshots are
   taken, so the listing and the installed app match.
 
 ## Push notifications — current status
@@ -135,7 +141,7 @@ flutter pub run flutter_native_splash:create
 **Wired:** `flutter_local_notifications` is a dependency and the Android manifest
 permits network access. There is no FCM sender yet.
 
-**Not yet wired — the last mile:** actually *sending* a push. That needs FCM
+**Not yet wired — the last mile:** actually _sending_ a push. That needs FCM
 credentials from the `datedawn` Firebase project:
 
 1. In the Firebase console, add an **Android app** to the `datedawn` project with
@@ -166,10 +172,13 @@ flutterfire configure --project=datedawn
 ```
 
 This writes `lib/firebase_options.dart`, `android/app/google-services.json` and
-`ios/Runner/GoogleService-Info.plist`. `lib/firebase_config.dart` remains the
-hand-maintained fallback so the app still builds before that command is run.
+`ios/Runner/GoogleService-Info.plist`. In Firebase Console → Authentication →
+Sign-in method, enable Anonymous, Google, and Email/Password; the app cannot
+create guest sessions or authenticate accounts until those providers are on.
 
-**Google Sign-In in release builds:** add the release keystore's SHA-1 and SHA-256
-to the Firebase Android app (Project settings → Your apps). Without them,
-Google Sign-In works in debug and fails in the Play build — a classic pre-launch
-bug.
+**Google Sign-In:** Android also needs a Web OAuth client ID. If it is not
+included in `google-services.json`, pass it as
+`--dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>` when building. Add both
+the debug and release signing SHA-1/SHA-256 fingerprints to the Firebase Android
+app (Project settings → Your apps). Without the provider, client ID, or matching
+fingerprints, Google sign-in is unavailable even though the button is present.

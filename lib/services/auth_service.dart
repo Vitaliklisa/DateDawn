@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../firebase_config.dart';
+
 /// The signed-in identity, normalised so the UI never touches Firebase types.
 @immutable
 class AppUser {
@@ -79,6 +81,7 @@ class AuthService {
 
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
+  Future<void>? _googleSignInInitialization;
 
   /// Fires on every sign-in/sign-out. `null` means signed out.
   Stream<AppUser?> authStateChanges() => _auth
@@ -148,6 +151,10 @@ class AuthService {
         return AppUser.fromFirebase(credential.user!);
       }
 
+      await (_googleSignInInitialization ??= _googleSignIn.initialize(
+        serverClientId:
+            googleServerClientId.isEmpty ? null : googleServerClientId,
+      ));
       final account = await _googleSignIn.authenticate();
       final auth = account.authentication;
       final credential = GoogleAuthProvider.credential(
@@ -157,6 +164,19 @@ class AuthService {
       return AppUser.fromFirebase(result.user!);
     } on FirebaseAuthException catch (e) {
       throw _mapException(e);
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.clientConfigurationError) {
+        throw AuthFailure(
+          'Google sign-in needs an Android web client ID. Set '
+          'GOOGLE_SERVER_CLIENT_ID and add this app’s signing SHA-1 to Firebase.',
+          code: e.code.name,
+        );
+      }
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        throw const AuthFailure('Sign-in cancelled.', code: 'cancelled');
+      }
+      throw AuthFailure('Google sign-in failed. Please try again.',
+          code: e.code.name);
     } on AuthFailure {
       rethrow;
     } catch (e) {
@@ -259,6 +279,24 @@ class AuthService {
         return const AuthFailure(
           'That sign-in method is not enabled for this project yet.',
           code: 'operation-not-allowed',
+        );
+      case 'configuration-not-found':
+        return const AuthFailure(
+          'Firebase Authentication is not configured for this app yet. Enable '
+          'Anonymous, Google, and Email/Password sign-in in the Firebase console.',
+          code: 'configuration-not-found',
+        );
+      case 'internal-error':
+        if (e.message?.contains('CONFIGURATION_NOT_FOUND') ?? false) {
+          return const AuthFailure(
+            'Firebase Authentication is not configured for this app yet. Enable '
+            'Anonymous, Google, and Email/Password sign-in in the Firebase console.',
+            code: 'configuration-not-found',
+          );
+        }
+        return AuthFailure(
+          e.message ?? 'Something went wrong signing you in.',
+          code: e.code,
         );
       case 'network-request-failed':
         return const AuthFailure('No connection. Check your network and retry.',

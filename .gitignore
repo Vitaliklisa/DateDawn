@@ -10,7 +10,6 @@ build/
 
 # --- Firebase: generated per developer by `flutterfire configure` ---
 # These are per-project and per-platform; regenerate rather than commit.
-lib/firebase_options.dart
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 macos/Runner/GoogleService-Info.plist

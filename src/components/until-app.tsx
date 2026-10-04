@@ -12,7 +12,6 @@ import {
   SunIcon,
   MoonIcon,
   CheckIcon,
-  UserIcon,
   LogoutIcon,
 } from "lucide-animated";
 import { pickFeatured, type CountdownEvent } from "@/lib/events";
@@ -26,11 +25,7 @@ import { CountdownFace } from "@/components/countdown-face";
 import { EventComposer } from "@/components/event-composer";
 import { ArrivalCelebration } from "@/components/arrival-celebration";
 import { InvitationsBanner } from "@/components/invitations-banner";
-import {
-  EventContextMenu,
-  duplicateDraft,
-  shareEvent,
-} from "@/components/event-context-menu";
+import { EventContextMenu, duplicateDraft, shareEvent } from "@/components/event-context-menu";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -84,44 +79,39 @@ function EventRow({
 }) {
   const past = new Date(event.at).getTime() <= now.getTime();
   return (
-    <EventContextMenu
-      event={event}
-      onDuplicate={onDuplicate}
-      onDelete={onDelete}
-      onShare={onShare}
-    >
-    <button
-      type="button"
-      onClick={onSelect}
-      // Long-press (touch) and right-click (mouse) both open the action menu via
-      // the wrapping Radix ContextMenu — see event-context-menu.tsx.
-      className={cn(
-        "flex min-h-14 w-full items-center justify-between gap-3 rounded-md px-4 py-3 text-left transition-colors duration-(--motion-quick)",
-        "select-none touch-manipulation",
-        active ? "bg-surface-2" : "bg-surface hover:bg-surface-2",
-      )}
-    >
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-medium text-fg">{event.title}</span>
-        <span className="block truncate text-xs text-muted">
-          {format(new Date(event.at), "MMM d, yyyy · h:mm a")}
-        </span>
-      </span>
-      <span
+    <EventContextMenu event={event} onDuplicate={onDuplicate} onDelete={onDelete} onShare={onShare}>
+      <button
+        type="button"
+        onClick={onSelect}
+        // Long-press (touch) and right-click (mouse) both open the action menu via
+        // the wrapping Radix ContextMenu — see event-context-menu.tsx.
         className={cn(
-          "flex shrink-0 items-center gap-1.5 text-xs",
-          past ? "text-accent" : "text-subtle",
+          "flex min-h-14 w-full items-center justify-between gap-3 rounded-md px-4 py-3 text-left transition-colors duration-(--motion-quick)",
+          "select-none touch-manipulation",
+          active ? "bg-surface-2" : "bg-surface hover:bg-surface-2",
         )}
       >
-        {past ? <HistoryIcon size={13} /> : <CalendarDaysIcon size={13} />}
-        {past ? "Passed" : "Upcoming"}
-      </span>
-    </button>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium text-fg">{event.title}</span>
+          <span className="block truncate text-xs text-muted">
+            {format(new Date(event.at), "MMM d, yyyy · h:mm a")}
+          </span>
+        </span>
+        <span
+          className={cn(
+            "flex shrink-0 items-center gap-1.5 text-xs",
+            past ? "text-accent" : "text-subtle",
+          )}
+        >
+          {past ? <HistoryIcon size={13} /> : <CalendarDaysIcon size={13} />}
+          {past ? "Passed" : "Upcoming"}
+        </span>
+      </button>
     </EventContextMenu>
   );
 }
 
-function EmptyState({ onCompose }: { onCompose: () => void }) {
+function EmptyState({ onCompose, signedIn }: { onCompose: () => void; signedIn: boolean }) {
   return (
     <section className="flex min-h-0 flex-1 flex-col">
       {/* No header here: HomeView already renders the brand row (with the
@@ -137,12 +127,27 @@ function EmptyState({ onCompose }: { onCompose: () => void }) {
           Pick a future moment — a wedding, a launch, a trip home. Date Dawn counts the years,
           months, days and hours left, then celebrates when it arrives.
         </p>
+        {!signedIn ? (
+          <div className="app-rise app-rise-3 rounded-md border border-border bg-surface p-4">
+            <div className="flex items-center gap-2.5 text-sm font-semibold text-fg">
+              <HistoryIcon size={18} className="text-accent" />
+              Keep them everywhere
+            </div>
+            <p className="mt-2 text-[13px] leading-relaxed text-muted">
+              Sign in to sync your countdowns across phone, tablet and web — and to share them with
+              the people counting down with you.
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-3">
+              <Link to="/login">Sign in</Link>
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <div className="px-6 pb-[var(--app-inset-bottom)]">
         <Button className="w-full" onClick={onCompose}>
           <PlusIcon size={18} className="text-accent-fg" />
-          Create event
+          {signedIn ? "Create countdown" : "Get started"}
         </Button>
       </div>
     </section>
@@ -180,22 +185,21 @@ function UserButton() {
   // to be reachable (see ThemeItems).
   if (!user) {
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="rounded-full" aria-label="Menu">
-            <UserIcon size={16} />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem asChild>
-            <Link to="/login" className="flex items-center gap-2">
-              <UserIcon size={14} className="mr-2" />
-              Sign in
-            </Link>
-          </DropdownMenuItem>
-          <ThemeItems />
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-1">
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/login">Sign in</Link>
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Appearance">
+              <SunIcon size={16} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <ThemeItems />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     );
   }
 
@@ -238,6 +242,7 @@ function HomeView({
   onDuplicate,
   onDelete,
   onShare,
+  signedIn,
 }: {
   featured: CountdownEvent | null;
   events: CountdownEvent[];
@@ -249,6 +254,7 @@ function HomeView({
   onDuplicate: (event: CountdownEvent) => void;
   onDelete: (id: string) => void;
   onShare: (event: CountdownEvent) => void;
+  signedIn: boolean;
 }) {
   const others = featured ? events.filter((event) => event.id !== featured.id) : events;
 
@@ -262,7 +268,7 @@ function HomeView({
         <div className="px-6 pb-2">
           <InvitationsBanner onAccepted={onInviteAccepted} />
         </div>
-        <EmptyState onCompose={onCompose} />
+        <EmptyState onCompose={onCompose} signedIn={signedIn} />
       </div>
     );
   }
@@ -327,7 +333,7 @@ function HomeView({
         {others.length > 0 ? (
           <div className="mt-8 mb-4">
             <p className="mb-3 text-xs font-medium tracking-label text-subtle uppercase">
-              Other events
+              Other countdowns
             </p>
             <ul className="flex flex-col gap-2">
               {others.map((event) => (
@@ -353,7 +359,7 @@ function HomeView({
       <div className="sticky bottom-0 mt-4 bg-bg/95 px-6 pt-3 pb-[var(--app-inset-bottom)] backdrop-blur">
         <Button className="w-full" onClick={onCompose}>
           <PlusIcon size={18} className="text-accent-fg" />
-          New event
+          New countdown
         </Button>
       </div>
     </div>
@@ -419,10 +425,7 @@ export function UntilApp() {
     };
   }, [user?.id, isPending]);
 
-  const featured = useMemo(
-    () => pickFeatured(events, selectedId, now),
-    [events, selectedId, now],
-  );
+  const featured = useMemo(() => pickFeatured(events, selectedId, now), [events, selectedId, now]);
 
   const editing = editingId ? (events.find((event) => event.id === editingId) ?? null) : null;
 
@@ -488,6 +491,7 @@ export function UntilApp() {
         if (result === "copied") toast.success("Copied to clipboard");
         if (result === "failed") toast.error("Could not share this event");
       }}
+      signedIn={Boolean(user)}
       onCompose={() => {
         setEditingId(null);
         setView("compose");

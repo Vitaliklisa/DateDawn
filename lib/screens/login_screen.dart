@@ -358,7 +358,7 @@ class _ButtonSpinner extends StatelessWidget {
   }
 }
 
-/// The Google mark, drawn from paths so no image asset or brand kit is needed.
+/// The four-color Google G, drawn as the official four filled paths.
 class _GoogleGlyph extends StatelessWidget {
   const _GoogleGlyph();
 
@@ -375,42 +375,64 @@ class _GoogleGlyph extends StatelessWidget {
 class _GooglePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 1;
-    const stroke = 2.6;
+    canvas.save();
+    canvas.scale(size.width / 25, size.height / 25);
 
-    final colors = <Color, double>{
-      const Color(0xFF4285F4): -0.5,
-      const Color(0xFF34A853): 2.2,
-      const Color(0xFFFBBC05): 3.4,
-      const Color(0xFFEA4335): 4.4,
-    };
+    void fill(Color color, Path path) {
+      canvas.drawPath(path, Paint()..color = color);
+    }
 
-    colors.forEach((color, start) {
-      final paint = Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.butt;
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius - stroke / 2),
-        start,
-        1.5,
-        false,
-        paint,
-      );
-    });
-
-    // The horizontal bar of the "G".
-    final bar = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(center.dx - 0.5, center.dy + 1.4),
-      Offset(center.dx + radius - stroke / 2, center.dy + 1.4),
-      bar,
+    fill(
+      const Color(0xFF4285F4),
+      Path()
+        ..moveTo(22.56, 12.25)
+        ..cubicTo(22.56, 11.47, 22.49, 10.72, 22.36, 10)
+        ..lineTo(12, 10)
+        ..lineTo(12, 14.26)
+        ..lineTo(17.92, 14.26)
+        ..cubicTo(17.66, 15.63, 16.88, 16.79, 15.71, 17.57)
+        ..lineTo(15.71, 20.34)
+        ..lineTo(19.28, 20.34)
+        ..cubicTo(21.36, 18.42, 22.56, 15.6, 22.56, 12.25)
+        ..close(),
     );
+    fill(
+      const Color(0xFF34A853),
+      Path()
+        ..moveTo(12, 24)
+        ..cubicTo(14.97, 24, 17.46, 23.02, 19.28, 21.34)
+        ..lineTo(15.71, 18.57)
+        ..cubicTo(14.73, 19.23, 13.48, 19.63, 12, 19.63)
+        ..cubicTo(9.14, 19.63, 6.71, 17.7, 5.84, 15.1)
+        ..lineTo(2.18, 17.94)
+        ..cubicTo(3.99, 21.54, 7.7, 24, 12, 24)
+        ..close(),
+    );
+    fill(
+      const Color(0xFFFBBC05),
+      Path()
+        ..moveTo(5.84, 14.09)
+        ..cubicTo(5.57, 13.23, 5.42, 12.32, 5.42, 11.37)
+        ..cubicTo(5.42, 10.42, 5.57, 9.51, 5.84, 8.65)
+        ..lineTo(5.84, 5.81)
+        ..lineTo(2.18, 5.81)
+        ..cubicTo(0.65, 8.89, 0.65, 13.85, 2.18, 16.93)
+        ..lineTo(5.84, 14.09)
+        ..close(),
+    );
+    fill(
+      const Color(0xFFEA4335),
+      Path()
+        ..moveTo(12, 4.75)
+        ..cubicTo(13.62, 4.75, 15.06, 5.31, 16.21, 6.39)
+        ..lineTo(19.36, 3.24)
+        ..cubicTo(17.46, 1.46, 15.03, 0.5, 12, 0.5)
+        ..cubicTo(7.7, 0.5, 3.99, 2.96, 2.18, 6.56)
+        ..lineTo(5.84, 9.4)
+        ..cubicTo(6.71, 6.8, 9.14, 4.75, 12, 4.75)
+        ..close(),
+    );
+    canvas.restore();
   }
 
   @override

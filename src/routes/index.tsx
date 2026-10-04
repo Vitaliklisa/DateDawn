@@ -5,7 +5,7 @@ export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
   return (
-    <main className="min-h-dvh bg-canvas">
+    <main id="main-content" tabIndex={-1} className="min-h-dvh bg-canvas">
       <UntilApp />
     </main>
   );

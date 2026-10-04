@@ -94,34 +94,37 @@ jobs:
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
             echo "google-services.json restored from secret ($(wc -c < android/app/google-services.json) bytes)"
-            exit 0
+          else
+            echo "::warning title=google-services.json::GOOGLE_SERVICES_JSON secret is not set. "
+            echo "::warning::Building with a placeholder Firebase config. This bundle is unsigned "
+            echo "::warning::and must not be uploaded. Add the secret under "
+            echo "::warning::Settings -> Secrets and variables -> Actions to build against the real project."
+            cat > android/app/google-services.json <<'JSON'
+            {
+              "project_info": {
+                "project_number": "000000000000",
+                "project_id": "datedawn",
+                "storage_bucket": "datedawn.firebasestorage.app"
+              },
+              "client": [
+                {
+                  "client_info": {
+                    "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                    "android_client_info": { "package_name": "com.datedawn.app" }
+                  },
+                  "oauth_client": [],
+                  "api_key": [ { "current_key": "placeholder" } ],
+                  "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+                }
+              ],
+              "configuration_version": "1"
+            }
+            JSON
+            echo "google-services.json placeholder written ($(wc -c < android/app/google-services.json) bytes)"
           fi
-          echo "::warning title=google-services.json::GOOGLE_SERVICES_JSON secret is not set. "
-          echo "::warning::Building with a placeholder Firebase config. This bundle is unsigned "
-          echo "::warning::and must not be uploaded. Add the secret under "
-          echo "::warning::Settings -> Secrets and variables -> Actions to build against the real project."
-          cat > android/app/google-services.json <<'JSON'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "datedawn",
-              "storage_bucket": "datedawn.firebasestorage.app"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": { "package_name": "com.datedawn.app" }
-                },
-                "oauth_client": [],
-                "api_key": [ { "current_key": "placeholder" } ],
-                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
-              }
-            ],
-            "configuration_version": "1"
-          }
-          JSON
-          echo "google-services.json placeholder written ($(wc -c < android/app/google-services.json) bytes)"
+          test -s android/app/google-services.json
+          python3 -m json.tool android/app/google-services.json > /dev/null
+          echo "google-services.json is present and valid JSON"
 
       # Flutter's release step shells out to the NDK's `llvm-strip`. The runner
       # image ships an Android SDK without cmdline-tools, which is what made the
@@ -150,7 +153,11 @@ jobs:
       # pipeline is what catches a missing keep-rule before upload rather than in
       # the Play Console.
       - name: Build app bundle
-        run: flutter build appbundle --release
+        env:
+          GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}
+        run: |
+          flutter build appbundle --release \
+            --dart-define=GOOGLE_SERVER_CLIENT_ID="$GOOGLE_SERVER_CLIENT_ID"
 
       - name: Upload bundle
         uses: actions/upload-artifact@v4
