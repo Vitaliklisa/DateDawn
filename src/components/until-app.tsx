@@ -60,7 +60,7 @@ function BrandMark() {
   return (
     <div className="flex items-center gap-2 text-muted">
       <ClockIcon ref={clock} size={19} animateOnHover className="text-accent" />
-      <span className="text-xs font-medium tracking-brand text-fg uppercase">Until</span>
+      <span className="text-xs font-medium tracking-brand text-fg uppercase">Date Dawn</span>
     </div>
   );
 }
@@ -134,8 +134,8 @@ function EmptyState({ onCompose }: { onCompose: () => void }) {
           Name a day.
         </h1>
         <p className="app-rise app-rise-3 max-w-xs text-base text-muted">
-          Pick a future moment — a wedding, a launch, a trip home. Until counts the years, months,
-          days and hours left, then celebrates when it arrives.
+          Pick a future moment — a wedding, a launch, a trip home. Date Dawn counts the years,
+          months, days and hours left, then celebrates when it arrives.
         </p>
       </div>
 

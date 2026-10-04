@@ -65,6 +65,64 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # The Firebase config is deliberately NOT committed: it is gitignored, and
+      # for good reason — committing it bakes one project's identifiers into the
+      # repo and makes rotating them a code change. The Gradle google-services
+      # plugin, however, hard-fails the release build without the file, which is
+      # what broke `bundleRelease` on CI with:
+      #
+      #   File google-services.json is missing. The Google Services Plugin cannot
+      #   function without it.
+      #
+      # So the file is restored here from a repository secret holding its full
+      # JSON text. Create it with:
+      #
+      #   gh secret set GOOGLE_SERVICES_JSON < android/app/google-services.json
+      #
+      # or paste the JSON into Settings -> Secrets and variables -> Actions.
+      #
+      # If the secret is not set, the job must not fail: the point of this build
+      # is to prove the release pipeline compiles, and a missing Firebase config
+      # is a deployment concern, not a compile error. In that case a placeholder
+      # with the app's real package name and project id is written instead, which
+      # satisfies the google-services plugin. The artifact is unsigned anyway and
+      # can never be uploaded, so the placeholder cannot reach a store.
+      - name: Restore google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "google-services.json restored from secret ($(wc -c < android/app/google-services.json) bytes)"
+            exit 0
+          fi
+          echo "::warning title=google-services.json::GOOGLE_SERVICES_JSON secret is not set. "
+          echo "::warning::Building with a placeholder Firebase config. This bundle is unsigned "
+          echo "::warning::and must not be uploaded. Add the secret under "
+          echo "::warning::Settings -> Secrets and variables -> Actions to build against the real project."
+          cat > android/app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "datedawn",
+              "storage_bucket": "datedawn.firebasestorage.app"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": { "package_name": "com.datedawn.app" }
+                },
+                "oauth_client": [],
+                "api_key": [ { "current_key": "placeholder" } ],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+          echo "google-services.json placeholder written ($(wc -c < android/app/google-services.json) bytes)"
+
       # Flutter's release step shells out to the NDK's `llvm-strip`. The runner
       # image ships an Android SDK without cmdline-tools, which is what made the
       # strip step fail on a developer machine; installing them here (and

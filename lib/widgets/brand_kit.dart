@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../core/countdown.dart';
 import '../core/theme.dart';
 
-/// The "Data Dawn" wordmark with its clock glyph. The second hand sweeps once
+/// The "Date Dawn" wordmark with its clock glyph. The second hand sweeps once
 /// on mount — the same greeting the web app's animated icon gives.
 class BrandMark extends StatefulWidget {
   const BrandMark({super.key, this.onTap});
@@ -62,7 +62,7 @@ class _BrandMarkState extends State<BrandMark>
             ),
             const SizedBox(width: 8),
             Text(
-              'DATA DAWN',
+              'DATE DAWN',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,

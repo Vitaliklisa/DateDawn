@@ -113,7 +113,7 @@ class _EmptyHome extends ConsumerWidget {
         Text('Name a day.', style: Theme.of(context).textTheme.headlineLarge),
         const SizedBox(height: 12),
         Text(
-          'Pick a future moment — a wedding, a launch, a trip home. Data Dawn '
+          'Pick a future moment — a wedding, a launch, a trip home. Date Dawn '
           'counts the years, months, days and hours left, then celebrates when '
           'it arrives.',
           style: TextStyle(fontSize: 15, height: 1.5, color: colors.muted),

@@ -131,7 +131,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       _creating
                           ? 'Create your account'
-                          : 'Welcome to Data Dawn',
+                          : 'Welcome to Date Dawn',
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 10),

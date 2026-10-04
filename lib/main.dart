@@ -148,7 +148,7 @@ class DataDawnApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
-      title: 'Data Dawn',
+      title: 'Date Dawn',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.build(brightness: Brightness.light),
       darkTheme: AppTheme.build(brightness: Brightness.dark),

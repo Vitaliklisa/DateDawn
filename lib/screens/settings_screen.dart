@@ -54,7 +54,7 @@ class SettingsScreen extends ConsumerWidget {
                         Text(
                           user.displayName?.isNotEmpty == true
                               ? user.displayName!
-                              : 'Data Dawn user',
+                              : 'Date Dawn user',
                           style: const TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w600),
                         ),

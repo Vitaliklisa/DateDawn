@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Data Dawn</string>
-    <string name="title_activity_main">Data Dawn</string>
+    <string name="app_name">Date Dawn</string>
+    <string name="title_activity_main">Date Dawn</string>
     <string name="package_name">com.datedawn.app</string>
     <string name="custom_url_scheme">com.datedawn.app</string>
 </resources>

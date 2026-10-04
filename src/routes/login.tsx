@@ -56,7 +56,7 @@ function Login() {
           <div className="flex size-12 items-center justify-center rounded-xl bg-surface text-accent">
             <ClockIcon size={28} />
           </div>
-          <h1 className="font-display text-4xl tracking-tight text-fg">Until</h1>
+          <h1 className="font-display text-4xl tracking-tight text-fg">Date Dawn</h1>
           <p className="text-muted">Sign in to save and share your countdowns.</p>
         </div>
 

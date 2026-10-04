@@ -4,7 +4,7 @@ import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { themeBootstrapScript } from "@/hooks/use-theme";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Until";
+const APP_NAME = "Date Dawn";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -21,6 +21,7 @@ export const Route = createRootRoute({
         content: "Count the years, months, days, and hours until a day that matters.",
       },
       { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: APP_NAME },
       { name: "mobile-web-app-capable", content: "yes" },
     ],
     links: [
