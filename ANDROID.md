@@ -45,6 +45,42 @@ tracked so every build initializes Firebase with the same valid options.
 Platform service files and signing keys remain local/secret and are not
 committed.
 
+### Firebase API keys are public client identifiers
+
+The `apiKey` values in `lib/firebase_options.dart`, Android's
+`google-services.json`, and iOS's `GoogleService-Info.plist` are Firebase
+client keys. Firebase requires them in client apps; they identify the project
+and do **not** grant access to Firestore or Authentication data by themselves.
+Do not remove them from the Flutter configuration or replace them with build
+secrets: compiled web and mobile apps still need to send these values.
+
+In [Google Cloud API credentials](https://console.cloud.google.com/apis/credentials?project=datedawn),
+review each Firebase-created Android, iOS, and web key:
+
+- Restrict each key to the Firebase APIs needed by this project. Keep the
+  Firebase-managed API allowlist intact; do not add unrelated or billable APIs
+  (especially the Generative Language API) to these client keys.
+- Set application restrictions for the matching app: Android package
+  `com.datedawn.app` and its debug/upload/Play signing certificate fingerprints;
+  iOS bundle ID `com.datedawn.app`; and the web production hostname. Add only
+  the preview or local development origins that you actually use.
+- If Firebase Auth password sign-in is enabled, review the
+  [Identity Toolkit quota](https://console.cloud.google.com/apis/api/identitytoolkit.googleapis.com/quotas?project=datedawn)
+  to make abusive sign-in attempts harder.
+
+Firestore access is governed by [firestore.rules](./firestore.rules), not by
+whether an API key is hidden. Keep Firebase Security Rules in place and consider
+rolling out Firebase App Check after registering the Android, Apple, and web
+apps and verifying its metrics. Do not enforce App Check before supported
+versions of all clients are sending valid App Check tokens.
+
+The supplied Android and iOS Firebase config files match this app's Firebase
+project and application IDs; they contain no service-account private key or
+OAuth client secret. Never publish a service-account JSON, private key, or
+Google OAuth client secret. Rotate those credentials immediately if one is
+ever exposed. A Firebase client API key alone does not need to be rotated just
+because it appears in client config or source control.
+
 ## The NDK version must match the plugins
 
 The Firebase, `share_plus`, `google_sign_in_android`, `jni` and

@@ -1,2 +1,0 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/esm-Bw-MaSIG.js","assets/index-CbLGoSY4.js","assets/dist-CgbWuuq4.js"])))=>i.map(i=>d[i]);
-import{t as e}from"./index-CbLGoSY4.js";async function t(){let{GoogleSignIn:t,ErrorCode:n}=await e(async()=>{let{GoogleSignIn:e,ErrorCode:t}=await import(`./esm-Bw-MaSIG.js`);return{GoogleSignIn:e,ErrorCode:t}},__vite__mapDeps([0,1,2]));throw Error(`Native Google sign-in is not configured in this build.`)}export{t as signInWithNativeGoogle};

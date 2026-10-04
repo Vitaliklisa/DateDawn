@@ -1,2 +1,0 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/web-MLoDkqD5.js","assets/dist-CgbWuuq4.js"])))=>i.map(i=>d[i]);
-import{t as e}from"./index-CbLGoSY4.js";import{n as t}from"./dist-CgbWuuq4.js";var n;(function(e){e.NoCredentialAvailable=`NO_CREDENTIAL_AVAILABLE`,e.ProviderConfigurationError=`PROVIDER_CONFIGURATION_ERROR`,e.SignInCanceled=`SIGN_IN_CANCELED`})(n||={});var r=t(`GoogleSignIn`,{web:()=>e(()=>import(`./web-MLoDkqD5.js`).then(e=>new e.GoogleSignInWeb),__vite__mapDeps([0,1]))});export{n as ErrorCode,r as GoogleSignIn};
