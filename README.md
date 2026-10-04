@@ -1,8 +1,14 @@
-# Data Dawn — Flutter + Firebase
+# Date Dawn — Flutter + Firebase
 
 Count down to the moments that matter. A Flutter app for **Android, iOS and
-web**, backed entirely by the **free Firebase tier** (Authentication +
-Cloud Firestore). No server to run, no hosting bill.
+web**, backed by Firebase Authentication and Cloud Firestore. Android, iOS,
+and web all use the same Flutter/Dart app in `lib/`; there is no separate React
+web interface.
+
+Vercel builds the web app from this same Dart source with the pinned Flutter
+SDK. Run `flutter build web --release` to build it locally. Before deploying,
+add the Vercel site hostname (for example, `date-dawn.vercel.app`) to Firebase
+Authentication's authorized domains so web sign-in works.
 
 ---
 

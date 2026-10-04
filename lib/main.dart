@@ -58,7 +58,7 @@ Future<void> main() async {
   }
 
   _trace('calling runApp');
-  runApp(const ProviderScope(child: DataDawnApp()));
+  runApp(const ProviderScope(child: DateDawnApp()));
   _trace('runApp returned (Dart frame scheduled)');
 }
 
@@ -139,8 +139,8 @@ class _MissingConfigApp extends StatelessWidget {
   }
 }
 
-class DataDawnApp extends ConsumerWidget {
-  const DataDawnApp({super.key});
+class DateDawnApp extends ConsumerWidget {
+  const DateDawnApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -154,10 +154,17 @@ class DataDawnApp extends ConsumerWidget {
       darkTheme: AppTheme.build(brightness: Brightness.dark),
       themeMode: themeMode,
       routerConfig: router,
-      // The first frame is the point at which the engine swaps the native launch
-      // window for the Flutter surface. Logging it makes a "stuck on splash"
-      // report answerable from logcat alone.
-      builder: (context, child) => _FirstFrameLogger(child: child!),
+      builder: (context, child) => _FirstFrameLogger(
+        child: ColoredBox(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: child!,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
