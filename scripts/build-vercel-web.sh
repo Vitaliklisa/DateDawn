@@ -8,6 +8,13 @@ FLUTTER_HOME="${FLUTTER_HOME:-$HOME/.cache/flutter/$FLUTTER_VERSION}"
 FLUTTER_ARCHIVE="$HOME/.cache/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
 FLUTTER_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
 
+# Vercel's restored Flutter cache can be owned by a different build user.
+# Trust only this SDK checkout, without changing the machine's global Git config.
+GIT_CONFIG_INDEX="${GIT_CONFIG_COUNT:-0}"
+export "GIT_CONFIG_KEY_${GIT_CONFIG_INDEX}=safe.directory"
+export "GIT_CONFIG_VALUE_${GIT_CONFIG_INDEX}=$FLUTTER_HOME"
+export GIT_CONFIG_COUNT=$((GIT_CONFIG_INDEX + 1))
+
 if ! command -v flutter >/dev/null 2>&1 ||
   ! flutter --version --machine |
     grep -Eq "\"frameworkVersion\"[[:space:]]*:[[:space:]]*\"$FLUTTER_VERSION\""; then
