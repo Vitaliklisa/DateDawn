@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launch placeholder: a solid brand canvas with the clock mark centred.
+
+  The background layer is a flat colour rather than `@drawable/background`.
+  That drawable is a small PNG, and `android:gravity="fill"` stretched it to
+  the window — which on a tall phone left a visible rectangle edge around the
+  artwork instead of a seamless full-screen splash. A colour fills every screen
+  size exactly and matches `@color/colorPrimary` (#0b0b0a), so the hand-off from
+  splash to the Flutter canvas has no visible seam or white flash.
+-->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item>
-        <bitmap android:gravity="fill" android:src="@drawable/background"/>
-    </item>
+    <item android:drawable="@color/colorPrimary" />
     <item>
         <bitmap android:gravity="center" android:src="@drawable/splash"/>
     </item>

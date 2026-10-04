@@ -28,13 +28,33 @@
     <!-- Referenced by AndroidManifest.xml. -->
     <style name="AppTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">@color/colorPrimary</item>
+        <item name="android:forceDarkAllowed">false</item>
     </style>
     <style name="AppTheme.NoActionBar" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:background">@null</item>
     </style>
+    <!--
+      Applied to MainActivity (see AndroidManifest.xml).
+
+      `android:windowBackground` is the correct attribute here — NOT
+      `android:background`. A theme's `android:background` is applied to the
+      window's content view and is never cleared when Flutter attaches, so the
+      launch bitmap stays painted over the Flutter surface forever: the app
+      shows the splash and never draws a frame (FlutterRenderer logs
+      "Width is zero. 0,0"). `windowBackground` is only the placeholder shown
+      until the first Flutter frame, which is what we want.
+    -->
     <style name="AppTheme.NoActionBarLaunch" parent="@android:style/Theme.Black.NoTitleBar">
-        <item name="android:background">@drawable/launch_background</item>
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <!--
+          Do NOT add `android:background` here. A theme's `android:background`
+          is applied to the window's content view and is never cleared when
+          Flutter attaches, so the launch drawable stays painted over the Flutter
+          surface and the app shows the splash forever without ever drawing a
+          Dart frame.
+        -->
     </style>
 </resources>

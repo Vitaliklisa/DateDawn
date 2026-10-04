@@ -1,0 +1,6 @@
+GitHub Pages runs Jekyll by default, which would ignore files and folders whose
+names begin with an underscore and can rewrite output unexpectedly. These pages
+are plain static HTML with a single stylesheet and need no processing, so the
+build step is disabled here.
+
+Do not delete this file.

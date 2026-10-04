@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Brand colors for the native shell, mirroring src/styles.css:
-    canvas #0b0b0a · fg #f3f1ea · accent #6fd0b6
-  Capacitor's own styles.xml references @color/colorPrimary etc., so these names
-  must exist here even though the WebView paints the actual UI.
+  Brand colors for the native shell.
+
+  `colorPrimary` is the launch canvas AND the colour `launch_background` paints
+  under the centred clock mark. It MUST be the same value as the splash PNG's own
+  background, otherwise the bitmap shows as a visible rectangle: the PNG is
+  #0E1113 (see flutter_native_splash.yaml), so anything darker (#0b0b0a) frames it
+  with an edge — exactly the box that appeared on the emulator screenshot.
+
+  Keep `colorPrimary` and `flutter_native_splash.yaml`'s `color` in lockstep; a
+  palette change has to move both.
 -->
 <resources>
-    <color name="colorPrimary">#0b0b0a</color>
-    <color name="colorPrimaryDark">#0b0b0a</color>
+    <color name="colorPrimary">#0E1113</color>
+    <color name="colorPrimaryDark">#0E1113</color>
     <color name="colorAccent">#6fd0b6</color>
 </resources>

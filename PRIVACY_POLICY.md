@@ -1,8 +1,14 @@
 # Privacy Policy
 
+> **This file is the source text.** The version that Google Play and the App
+> Store actually review is the published page:
+> `https://vitaliklisa.github.io/DateDawn/privacy.html`
+> (source: `docs/privacy.html`). Edit that page — not this file — and keep the
+> two in step if you change either.
+
 This privacy policy explains how Data Dawn collects, uses, stores, and protects information when you use the app.
 
-Data Dawn is operated by the Data Dawn developer (`support@example.com`). This policy applies to the Data Dawn mobile applications on Google Play and the Apple App Store, and to the Data Dawn web app.
+Data Dawn is operated by the Data Dawn developer (`vhomenko119@gmail.com`). This policy applies to the Data Dawn mobile applications on Google Play and the Apple App Store, and to the Data Dawn web app.
 
 ## 1. Information we collect
 
@@ -73,7 +79,10 @@ We may update this Privacy Policy from time to time. Updates will be reflected i
 If you have questions about this policy or your data, contact:
 
 Developer: Data Dawn Support
-Email: support@example.com
-Website: https://example.com
+Email: vhomenko119@gmail.com
+Website: https://vitaliklisa.github.io/DateDawn/
 
-Replace the support email and website with your real production contact details before publishing to the App Store or Google Play. App Store Connect and Google Play Console both require this page to be reachable at a public URL while signed out, and they cross-check it against the Data Safety / App Privacy forms.
+App Store Connect and Google Play Console both require the policy page to be
+reachable at a public URL while signed out, and they cross-check it against the
+Data Safety / App Privacy forms. The published page is `docs/privacy.html`;
+changes must be made there.

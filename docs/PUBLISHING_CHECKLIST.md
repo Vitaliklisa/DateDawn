@@ -55,17 +55,38 @@ This checklist covers the required setup before publishing **Data Dawn** to Goog
 
 ## 3. Privacy policy and support — the website you need
 
-Both stores require a **live public web page**, not a file in the repo. `PRIVACY_POLICY.md` in this repo is the source text; it must be published at a real URL, and `support@example.com` / `https://example.com` in it must be replaced with real values **before** submission — placeholder contacts are a common rejection.
+Both stores require a **live public web page**, not a file in the repo. The site
+is built and checked in at `docs/`, and GitHub Pages serves it directly — no
+build step, no separate host, no cost.
 
-You need three public URLs. The cheapest way to host all three is **GitHub Pages** (free) on the repo you already have:
+**The three URLs (live now, once Pages is switched on):**
 
-1. Enable Pages: repo → **Settings → Pages** → Source: *Deploy from a branch* → `main` / `/docs`.
-2. Your URLs become:
-   - Privacy: `https://<username>.github.io/<repo>/PRIVACY_POLICY.html`
-   - Support: `https://<username>.github.io/<repo>/SUPPORT.html`
-   - Marketing/home: `https://<username>.github.io/<repo>/`
+| Purpose | URL |
+|---|---|
+| Marketing / home | `https://vitaliklisa.github.io/DateDawn/` |
+| Privacy policy | `https://vitaliklisa.github.io/DateDawn/privacy.html` |
+| Support / help | `https://vitaliklisa.github.io/DateDawn/support.html` |
+| Contact email | `vhomenko119@gmail.com` |
 
-A support email alone is not sufficient for a **Paid** App Store app or for apps collecting data — Apple wants a URL where a user can get help. A one-page site with a short app description, a contact email and a couple of links is enough.
+### Turning Pages on (one-time, ~1 minute)
+
+1. Repo → **Settings → Pages**.
+2. **Source**: *Deploy from a branch*.
+3. **Branch**: `main`, **Folder**: `/docs`. Save.
+4. Wait ~1 minute, then load the home URL above.
+
+`docs/.nojekyll` is checked in so Pages serves the files verbatim instead of
+running them through Jekyll.
+
+> **Repo name note.** These URLs assume the repository stays named `DateDawn`.
+> Renaming it again changes every URL, and any URL already submitted to a store
+> console breaks on rename. If you rename the repo, update this table, the
+> `docs/*.html` pages and both store consoles in the same sitting.
+
+> **Do not delete `docs/*.html`.** Google Play and App Store Connect both fetch
+these URLs during review, and the privacy policy URL is also required by the
+Data safety / App Privacy forms. If the page 404s at review time, the submission
+is rejected.
 
 ### What the policy must disclose for *this* app
 - Firebase Authentication and Cloud Firestore as the data processors
@@ -73,6 +94,13 @@ A support email alone is not sufficient for a **Paid** App Store app or for apps
 - The exact data collected: name, email, event titles/descriptions/dates, circle membership, invitations, device push token
 - Retention and deletion (what happens when a user deletes their account)
 - **Data Safety form must match this policy.** Apple and Google both cross-check the policy against the questionnaire, and a mismatch is a rejection (Apple Guideline 5.1.1, Google's Data safety policy).
+
+### Account deletion URL
+
+Both stores require a **public URL** where a user can request account deletion
+(Google: *App content → Data deletion*; Apple: guideline 5.1.1(v)).
+`docs/support.html` is that page — it documents the in-app path
+(*Settings → Delete account*) and the email fallback. Point both consoles at it.
 
 ## 4. The sign-in wall (the most common rejection for this kind of app)
 
@@ -130,7 +158,31 @@ Take them from a **release build on a real device or a clean emulator**, signed 
 
 - Regenerate native config for the **renamed** Firebase project and package: `flutterfire configure --project=datedawn`. This writes `lib/firebase_options.dart`, `android/app/google-services.json`, and `ios/Runner/GoogleService-Info.plist`.
 - The Android app in Firebase must be registered with package name **`com.datedawn.app`** — a mismatch produces a silent auth failure on device.
-- Add the **release SHA-1 and SHA-256** of your upload keystore to the Firebase Android app, or Google Sign-In fails in release builds while working in debug.
+- Add the release **SHA-1 and SHA-256** of your upload keystore to the Firebase Android app, or Google Sign-In fails in release builds while working in debug. Firebase takes exactly these two — **there is no SHA-512 field**, so do not go looking for one.
+
+  Extract them from the keystore with:
+  ```powershell
+  & "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot\bin\keytool.exe" `
+    -list -v -keystore "$env:USERPROFILE\datedawn-upload.jks" -alias upload
+  ```
+
+  **This project's fingerprints** (verify they still match before pasting):
+
+  | Key | SHA-1 | SHA-256 |
+  |---|---|---|
+  | Upload (`datedawn-upload.jks`) | `0F:1A:9C:9B:82:EE:DD:04:77:96:01:EE:26:E3:C1:49:0B:42:CE:AB` | `6A:71:15:B9:09:94:1A:9F:88:17:B1:B7:9E:16:2E:42:E2:04:BC:69:75:46:0E:C1:9C:9A:35:A1:7A:DE:94:D8` |
+  | Debug (`~/.android/debug.keystore`) | `0B:A5:C0:B1:31:D2:0B:21:C8:90:81:B7:36:87:AF:86:04:5C:3B:E2` | `69:66:12:6C:08:77:B3:6D:94:A1:FB:30:8A:9E:09:CE:B1:F3:FB:57:1D:23:EF:8B:DD:C8:71:E6:0A:7D:F9:37` |
+
+  Register **both**, and add both to the same Firebase Android app. Debug and
+  release are signed by different keys, so a build that works with one will fail
+  Google Sign-In with the other until both are listed.
+
+  > **If you enable Play App Signing**, Google re-signs your bundle with a key it
+  > holds, and that key — not your upload key — becomes the one the installed app
+  > is signed with. Copy the **App signing key certificate** SHA-1/SHA-256 from
+  > Play Console → *Release → Setup → App signing* into Firebase as well, or
+  > Google Sign-In breaks in the Play-distributed build only.
+
 - Review `firestore.rules` before opening to the public — rules are the only thing protecting the data, and the config in `lib/firebase_config.dart` is public by design.
 - Test sign-in, event creation, invitations, notifications and cross-device sync **on real devices**, signed in with two different accounts.
 
@@ -154,96 +206,15 @@ TestFlight (internal first, then external beta review) → App Review submission
 
 App Review typically answers within 24–48 hours. Google's first review of a new account can take **up to 7 days**.
 
-## 2. Required app metadata
-
-### For both stores
-- App name and description
-- Icon set and splash assets
-- Privacy policy URL
-- Support URL
-- Contact email
-- App category
-- Screenshots for each device size
-- Data safety / privacy disclosures
-
-### Required for App Store
-- App Privacy section must be completed
-- Upload screenshot set for required iPhone/iPad sizes
-- Apple Developer signing certificates and provisioning profiles
-
-### Required for Play Store
-- Data safety form
-- Content rating questionnaire
-- Target audience declaration
-- App content declaration
-
-## 3. Privacy policy and support
-
-Before publishing, create a live privacy policy page and add the URL to both stores.
-
-Example requirements:
-- clear explanation of Firebase usage
-- Google Sign-In usage disclosure
-- Firestore data storage disclosure
-- notification use disclosure if enabled
-- support contact email and website
-
-## 4. App signing and release build
-
-### Android
-1. Generate a release keystore
-2. Store the key in a secure location
-3. Configure `android/key.properties`
-4. Build the release bundle:
-   ```bash
-   flutter build appbundle --release
-   ```
-5. Upload the `.aab` file to Google Play Console
-
-### iOS
-1. Configure Apple Developer certificates and provisioning profiles
-2. Set the bundle identifier in Xcode
-3. Enable required capabilities
-4. Archive the app and upload to App Store Connect
-5. Submit for review
-
-## 5. Firebase and security checks
-
-- confirm Firebase config is generated for Android and iOS
-- verify GoogleService-Info.plist and google-services.json are correct
-- update Firestore rules and auth rules before public release
-- test sign-in flows, event creation, notifications, and data sync on real devices
-
-## 6. Pre-launch validation
-
-Before production release, verify:
-- sign-in works
-- events save and sync
-- notifications work when enabled
-- app functions on both Android and iPhone devices
-- no privacy or policy errors remain
-- screenshots match the final app state
-
-## 7. Production promotion
-
-### Google Play
-- Internal testing
-- Closed testing
-- Open testing
-- Production release
-
-### App Store
-- TestFlight validation
-- App Review submission
-- Production release after approval
-
 ## 10. Final URL checklist
 
-Fill these in and use them consistently in both consoles, the policy page and the app:
+These are live once GitHub Pages is enabled (see §3). Fill them into both
+consoles, the policy page and the store listings — they must match exactly.
 
-- Privacy Policy: `_______________________________`
-- Support / Help: `_______________________________`
-- Marketing / home: `_______________________________`
-- Contact Email: `_______________________________`
+- Privacy Policy: `https://vitaliklisa.github.io/DateDawn/privacy.html`
+- Support / Help: `https://vitaliklisa.github.io/DateDawn/support.html`
+- Account deletion: `https://vitaliklisa.github.io/DateDawn/support.html`
+- Marketing / home: `https://vitaliklisa.github.io/DateDawn/`
+- Contact Email: `vhomenko119@gmail.com`
 
 Every one of these must be live and load without a sign-in before you submit.

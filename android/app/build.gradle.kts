@@ -1,12 +1,37 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
+    // START: FlutterFire Configuration
+    id("com.google.gms.google-services")
+    // END: FlutterFire Configuration
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Release signing is read from android/key.properties, which is deliberately
+// gitignored (it holds the upload-key password). When the file is absent — a
+// fresh clone or CI — the release build falls back to the debug key so that
+// `flutter build apk --release` still compiles and can be smoke-tested. A Play
+// upload MUST use the real key, so the build prints a loud warning when it is
+// falling back.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val hasUploadKey = keystorePropertiesFile.exists()
+if (hasUploadKey) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+}
+
 android {
     namespace = "com.datedawn.app"
-    compileSdk = flutter.compileSdkVersion
+    // 36 is the highest version any current plugin requires
+    // (`flutter_local_notifications`, `google_sign_in_android`, `share_plus` and
+    // `shared_preferences_android` all compile against 36; `jni`/`jni_flutter`
+    // need 35). Android SDKs are backward compatible, so compiling against the
+    // highest one is always the fix — compiling against a lower one fails
+    // `:app:checkDebugAarMetadata` with "requires libraries and applications that
+    // depend on it to compile against version 36 or later".
+    compileSdk = 36
     // Pinned rather than taken from `flutter.ndkVersion`: an explicit version
     // makes Gradle fetch the NDK it needs (including `llvm-strip`, which the
     // release pipeline uses to strip native debug symbols) instead of failing
@@ -38,7 +63,9 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // Play requires a recent targetSdk for new uploads; 36 keeps the app
+        // eligible and matches what the plugins are compiled against.
+        targetSdk = 36
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
         // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
@@ -47,14 +74,33 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        // Only declared when key.properties exists; declaring it with missing
+        // values would fail configuration on every debug build too.
+        if (hasUploadKey) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Release builds are signed with the upload key configured in
-            // key.properties. That file is deliberately not committed (see
-            // .gitignore), so CI falls back to the debug key: it proves the
-            // release build compiles without shipping a real signing key to a
-            // build server. Play uploads must use the real key locally.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasUploadKey) {
+                signingConfigs.getByName("release")
+            } else {
+                // No upload key on this machine: sign with the debug key so the
+                // build still produces an installable artifact for smoke testing.
+                // This bundle CANNOT be uploaded to Play — Play rejects it.
+                logger.warn(
+                    "[datedawn] android/key.properties not found: release build is " +
+                        "signed with the DEBUG key. Do not upload this to Play."
+                )
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

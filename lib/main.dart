@@ -13,12 +13,22 @@ import 'services/auth_service.dart';
 import 'services/event_repository.dart';
 
 Future<void> main() async {
+  // Launch breadcrumbs.
+  //
+  // The launch path is: Android window (launch_background) -> Flutter engine ->
+  // Dart `main` -> first frame, at which point the engine removes the splash.
+  // When the app "hangs on the splash", the cause is one of those stages, and
+  // these lines make it unambiguous which: filter logcat for `datedawn` to see
+  // exactly how far Dart got. Compiled out of release builds entirely.
+  _trace('main() entered');
   WidgetsFlutterBinding.ensureInitialized();
+  _trace('binding ready');
 
   // On web the config must be supplied in code; on Android/iOS the native files
   // cover it. If web is missing its keys, show a page that says exactly what to
   // run rather than letting Firebase throw an opaque "API key not valid".
   if (kIsWeb && !hasWebFirebaseConfig) {
+    _trace('web config missing: showing setup page');
     runApp(const _MissingConfigApp());
     return;
   }
@@ -27,9 +37,35 @@ Future<void> main() async {
   // configure` generates: android/app/google-services.json,
   // ios/Runner/GoogleService-Info.plist, and `firebaseOptions` for web.
   // See `lib/firebase_config.dart` and the README.
-  await Firebase.initializeApp(options: firebaseOptions);
+  //
+  // On Android the google-services Gradle plugin registers `[DEFAULT]` during
+  // process start, before Dart runs. `Firebase.apps` does not always see that
+  // natively-created app, so calling `initializeApp` throws
+  // `[core/duplicate-app]` and — because `main` awaits it — the app never gets
+  // past the splash screen. The app is already usable in that case, so the
+  // duplicate is the one error worth swallowing.
+  try {
+    if (Firebase.apps.isEmpty) {
+      _trace('initializing Firebase');
+      await Firebase.initializeApp(options: firebaseOptions);
+      _trace('Firebase ready');
+    } else {
+      _trace('Firebase already initialised (native config)');
+    }
+  } on FirebaseException catch (e) {
+    if (e.code != 'duplicate-app') rethrow;
+    _trace('duplicate-app ignored');
+  }
 
+  _trace('calling runApp');
   runApp(const ProviderScope(child: DataDawnApp()));
+  _trace('runApp returned (Dart frame scheduled)');
+}
+
+/// Launch breadcrumb. No-op in release builds, where `kDebugMode` is false and
+/// the whole call is tree-shaken away.
+void _trace(String message) {
+  if (kDebugMode) debugPrint('[datedawn] $message');
 }
 
 /// Shown on web when `flutterfire configure` has not been run yet.
@@ -118,8 +154,35 @@ class DataDawnApp extends ConsumerWidget {
       darkTheme: AppTheme.build(brightness: Brightness.dark),
       themeMode: themeMode,
       routerConfig: router,
+      // The first frame is the point at which the engine swaps the native launch
+      // window for the Flutter surface. Logging it makes a "stuck on splash"
+      // report answerable from logcat alone.
+      builder: (context, child) => _FirstFrameLogger(child: child!),
     );
   }
+}
+
+/// Logs once, on the first frame the engine actually presents.
+class _FirstFrameLogger extends StatefulWidget {
+  const _FirstFrameLogger({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_FirstFrameLogger> createState() => _FirstFrameLoggerState();
+}
+
+class _FirstFrameLoggerState extends State<_FirstFrameLogger> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _trace('first frame rendered — UI is live');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 /// Overrides used by tests and by `main` before Firebase is reachable, so the
