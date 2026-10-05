@@ -7,10 +7,8 @@ import '../providers/app_providers.dart';
 
 /// Sign in / create account across Android, iOS and web with Firebase Auth.
 ///
-/// Two paths only, both free and both supported on every target: Google, and
-/// email + password. A guest can also step straight into the app and upgrade to
-/// a real account later without losing their countdowns — the uid is preserved
-/// by `linkAnonymousWithEmail`.
+/// Both supported sign-in paths are available on every target: Google and
+/// email + password. An authenticated account is required to use the app.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -69,19 +67,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         context,
         () => ref.read(authServiceProvider).signInWithGoogle(),
         successMessage: 'Signed in with Google.',
-      );
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _guest() async {
-    setState(() => _busy = true);
-    try {
-      await runAction(
-        context,
-        () => ref.read(authServiceProvider).signInAnonymously(),
-        successMessage: 'You are in. Sign in later to sync.',
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -245,11 +230,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: _busy ? null : _google,
                       icon: const _GoogleGlyph(),
                       label: const Text('Continue with Google'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: _busy ? null : _guest,
-                      child: const Text('Continue as guest'),
                     ),
                     const SizedBox(height: 24),
                     Wrap(

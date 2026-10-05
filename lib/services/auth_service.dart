@@ -185,34 +185,6 @@ class AuthService {
     }
   }
 
-  /// Continue without an account — the countdowns stay on this device only.
-  Future<AppUser> signInAnonymously() async {
-    try {
-      final credential = await _auth.signInAnonymously();
-      return AppUser.fromFirebase(credential.user!);
-    } on FirebaseAuthException catch (e) {
-      throw _mapException(e);
-    }
-  }
-
-  /// Turns an anonymous visitor into a real account without losing their data:
-  /// the uid is preserved, so every countdown they already created stays theirs.
-  Future<AppUser> linkAnonymousWithEmail({
-    required String email,
-    required String password,
-  }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw const AuthFailure('No guest session to upgrade.');
-    try {
-      final credential =
-          EmailAuthProvider.credential(email: email.trim(), password: password);
-      final result = await user.linkWithCredential(credential);
-      return AppUser.fromFirebase(result.user!);
-    } on FirebaseAuthException catch (e) {
-      throw _mapException(e);
-    }
-  }
-
   Future<void> sendPasswordReset(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email.trim());
@@ -283,14 +255,14 @@ class AuthService {
       case 'configuration-not-found':
         return const AuthFailure(
           'Firebase Authentication is not configured for this app yet. Enable '
-          'Anonymous, Google, and Email/Password sign-in in the Firebase console.',
+          'Google and Email/Password sign-in in the Firebase console.',
           code: 'configuration-not-found',
         );
       case 'internal-error':
         if (e.message?.contains('CONFIGURATION_NOT_FOUND') ?? false) {
           return const AuthFailure(
             'Firebase Authentication is not configured for this app yet. Enable '
-            'Anonymous, Google, and Email/Password sign-in in the Firebase console.',
+            'Google and Email/Password sign-in in the Firebase console.',
             code: 'configuration-not-found',
           );
         }

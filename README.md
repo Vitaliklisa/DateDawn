@@ -90,9 +90,9 @@ The flow end to end:
 |---|---|---|
 | UI | Flutter 3.22+ | One codebase → Android, iOS, web |
 | State | Riverpod | Testable, no `BuildContext` plumbing |
-| Routing | go_router | Deep links work on web and mobile |
+| Routing | go_router | All app routes require a signed-in account on web and mobile |
 | Auth | Firebase Authentication | Free, unlimited for email/password and Google |
-| Data | Cloud Firestore | Free Spark tier, realtime sync, offline cache |
+| Data | Supabase selected; current event repository still uses Cloud Firestore | Supabase client is initialized; migrate the existing event/sharing repository before moving production data |
 | Dates | intl | Locale-aware formatting |
 
 ### Firebase free-tier limits (Spark plan)
@@ -131,11 +131,16 @@ confirm that:
 1. **Authentication → Sign-in method** has enabled:
    - **Email/Password**
    - **Google**
-   - **Anonymous** (optional — lets people try the app before signing up)
 2. **Firestore Database** exists (production mode). The region cannot be
    changed later, so pick one close to your users.
 3. **Authentication → Settings → Authorized domains** contains `localhost` and
    your production domain — Google sign-in on web is refused otherwise.
+
+Every route except `/login` requires a non-anonymous Firebase account. There is
+no guest path. Supabase is initialized from `lib/supabase_config.dart`; the
+existing countdown, circle, and invitation reads/writes are still implemented
+against Firestore and need a separate schema/repository migration before
+Supabase becomes the app's active data store.
 
 ### 3. Connect the app to the project
 
@@ -478,7 +483,7 @@ lib/
     circles.dart        Circle, CircleMember, CircleInvitation, InvitationResponse
     theme.dart          design tokens (dark + light)
   services/
-    auth_service.dart   Firebase Auth: Google, email/password, anonymous, linking
+    auth_service.dart   Firebase Auth: Google and email/password
     event_repository.dart  Firestore reads/writes, merged visibility query
   providers/
     app_providers.dart  Riverpod wiring: auth, events, clock, theme
@@ -489,7 +494,7 @@ lib/
     invitations_screen.dart   invitations awaiting your answer
     circles_screen.dart       create circles, invite members
     notifications_screen.dart answers to invitations you sent
-    login_screen.dart         sign in / register / guest
+    login_screen.dart         required sign in / register
     settings_screen.dart      account + appearance
   widgets/
     countdown_face.dart       the four tiles + ticking line

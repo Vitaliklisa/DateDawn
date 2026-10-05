@@ -1,6 +1,6 @@
 # Date Dawn — Android app
 
-Date Dawn is the Flutter app: a countdown app for Android, iOS and web, backed by Firebase (auth + Firestore). See **[docs/PUBLISHING_CHECKLIST.md](./docs/PUBLISHING_CHECKLIST.md)** for the store submission path.
+Date Dawn is the Flutter app: a countdown app for Android, iOS and web. Firebase Authentication is required on every platform; Supabase is initialized as the selected database client, while the existing event repository still uses Firestore pending its migration. See **[docs/PUBLISHING_CHECKLIST.md](./docs/PUBLISHING_CHECKLIST.md)** for the store submission path.
 
 > **Naming.** The app is **Date Dawn**; the Firebase project and package id are **`datedawn`** / **`com.datedawn.app`**. `com.datedawn.app` is permanent once the first Play bundle is uploaded — see the publishing checklist before you build an upload.
 
@@ -209,9 +209,9 @@ flutterfire configure --project=datedawn
 
 This writes `lib/firebase_options.dart`, `android/app/google-services.json` and
 `ios/Runner/GoogleService-Info.plist`. In Firebase Console → Authentication →
-Sign-in method, enable Anonymous (required for guest access), Google, and
-Email/Password. The app cannot create guest sessions or authenticate accounts
-until those providers are on. The Android Google Services Gradle plugin only
+Sign-in method, enable Google and Email/Password. The app requires a
+non-anonymous account to access any route except sign-in. The Android Google
+Services Gradle plugin only
 loads app configuration; it does not enable Firebase Authentication providers.
 
 **Google Sign-In:** Enable the Google provider in Firebase Console →

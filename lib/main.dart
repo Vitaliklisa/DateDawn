@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Riverpod 3 moved `Override` out of the main entrypoint; it lives in `misc`.
 import 'package:flutter_riverpod/misc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/theme.dart';
 import 'firebase_config.dart';
@@ -11,6 +12,7 @@ import 'providers/app_providers.dart';
 import 'router.dart';
 import 'services/auth_service.dart';
 import 'services/event_repository.dart';
+import 'supabase_config.dart';
 
 Future<void> main() async {
   // Launch breadcrumbs.
@@ -23,6 +25,11 @@ Future<void> main() async {
   _trace('main() entered');
   WidgetsFlutterBinding.ensureInitialized();
   _trace('binding ready');
+
+  await Supabase.initialize(
+    url: supabaseUrl,
+    publishableKey: supabasePublishableKey,
+  );
 
   // On web the config must be supplied in code; on Android/iOS the native files
   // cover it. If web is missing its keys, show a page that says exactly what to

@@ -30,19 +30,31 @@ class Routes {
 final _rootKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: _rootKey,
     initialLocation: Routes.home,
-    // The redirect guard keeps the sign-in screen reachable while signed out
-    // but never blocks the countdown list: a visitor can browse and create
-    // locally, and is only asked to sign in when they share or sync.
     redirect: (context, state) {
       final auth = ref.read(activeAuthStateProvider);
-      if (auth.isLoading) return null;
-      final signedIn = auth.value != null;
       final goingToLogin = state.matchedLocation == Routes.login;
 
-      if (signedIn && goingToLogin) return Routes.home;
+      if (auth.isLoading) {
+        return goingToLogin ? null : _loginLocation(state.uri);
+      }
+
+      final user = auth.value;
+      final signedIn = user != null && !user.isAnonymous;
+
+      if (!signedIn && !goingToLogin) return _loginLocation(state.uri);
+      if (signedIn && goingToLogin) {
+        final destination = state.uri.queryParameters['from'];
+        if (destination != null &&
+            destination.startsWith('/') &&
+            !destination.startsWith('//') &&
+            destination != Routes.login) {
+          return destination;
+        }
+        return Routes.home;
+      }
       return null;
     },
     routes: [
@@ -108,4 +120,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  ref.listen(activeAuthStateProvider, (_, __) => router.refresh());
+  ref.onDispose(router.dispose);
+  return router;
 });
+
+String _loginLocation(Uri destination) => Uri(
+      path: Routes.login,
+      queryParameters: {'from': destination.toString()},
+    ).toString();

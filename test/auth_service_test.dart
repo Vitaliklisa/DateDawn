@@ -6,10 +6,15 @@ import 'package:datedawn/services/auth_service.dart';
 class _MockFirebaseAuth extends Mock implements FirebaseAuth {}
 
 void main() {
-  group('AuthService guest sign-in', () {
+  group('AuthService email sign-in', () {
     test('explains when Firebase Authentication is not configured', () async {
       final auth = _MockFirebaseAuth();
-      when(() => auth.signInAnonymously()).thenThrow(
+      when(
+        () => auth.signInWithEmailAndPassword(
+          email: 'user@example.com',
+          password: 'password',
+        ),
+      ).thenThrow(
         FirebaseAuthException(
           code: 'internal-error',
           message:
@@ -18,7 +23,10 @@ void main() {
       );
 
       await expectLater(
-        AuthService(auth: auth).signInAnonymously(),
+        AuthService(auth: auth).signInWithEmail(
+          email: 'user@example.com',
+          password: 'password',
+        ),
         throwsA(
           isA<AuthFailure>()
               .having((error) => error.code, 'code', 'configuration-not-found')
@@ -26,7 +34,7 @@ void main() {
                 (error) => error.message,
                 'message',
                 contains(
-                  'Enable Anonymous, Google, and Email/Password sign-in',
+                  'Enable Google and Email/Password sign-in',
                 ),
               ),
         ),
