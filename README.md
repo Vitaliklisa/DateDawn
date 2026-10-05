@@ -31,10 +31,13 @@ Authentication's authorized domains so web sign-in works.
 - **Notes** on a shared countdown, so the people counting down together can
   leave each other messages.
 - **Duplicate** a countdown a year on — useful for annual events.
-- **Dark and light**, following the device by default.
+- **Dark and light**, saved on the device and synchronized to the signed-in
+  account through Supabase.
 - **A real route for every section** — Home, Invitations, Circles, Notifications,
   and Settings are directly addressable, with persistent desktop navigation and
   mobile bottom navigation. Sign-in is required before entering any section.
+- **Realtime inbox notifications** — Supabase Realtime updates the inbox and
+  unread badge while keeping the existing Firestore invitation-response feed.
 
 ---
 
@@ -145,6 +148,14 @@ existing countdown, circle, and invitation reads/writes are still implemented
 against Firestore and need a separate schema/repository migration before
 Supabase becomes the app's active data store.
 
+Theme preferences use local device storage as the immediate fallback and sync
+to `public.user_settings` for signed-in users. Inbox notifications are loaded
+from `public.notifications` and updated live over Supabase Realtime. Apply
+`supabase/schema.sql` to the project to create these tables and enable the
+Realtime publication. The current Firebase-to-Supabase `x-user-id` bridge is
+development-only; do not put sensitive data in Supabase until the production
+identity exchange and RLS policies described in that schema are enabled.
+
 ### 3. Connect the app to the project
 
 ```bash
@@ -162,11 +173,11 @@ flutterfire configure --project=datedawn
 - `ios/Runner/GoogleService-Info.plist`
 - and registers the web app
 
-Until you run it, the app **compiles, analyzes and passes its tests**, and
-Android/iOS are already pointed at the right project. Only the **web** build
-needs the generated keys: open it in a browser and it will show a page telling
-you to run `flutterfire configure --project=datedawn` rather than failing
-with an opaque Firebase error.
+The generated Android, iOS, and web configuration for `datedawn` is already
+checked in. Run `flutterfire configure --project=datedawn` again only when
+adding another Firebase platform or refreshing project configuration. The iOS
+Google sign-in URL scheme must continue to match `REVERSED_CLIENT_ID` in
+`ios/Runner/GoogleService-Info.plist`.
 
 To keep web keys out of the source instead, pass them at build time (they are
 public identifiers, so either way is safe):

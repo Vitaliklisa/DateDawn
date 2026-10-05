@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 // Riverpod 3 moved `Override` out of the main entrypoint; it lives in `misc`.
 import 'package:flutter_riverpod/misc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -26,9 +27,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _trace('binding ready');
 
+  await dotenv.load(fileName: '.env', isOptional: true);
   await Supabase.initialize(
-    url: supabaseUrl,
-    publishableKey: supabasePublishableKey,
+    url: resolvedSupabaseUrl,
+    publishableKey: resolvedSupabasePublishableKey,
   );
 
   // On web the config must be supplied in code; on Android/iOS the native files

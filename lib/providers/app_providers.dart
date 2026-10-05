@@ -3,17 +3,23 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/circles.dart';
 import '../core/models.dart';
+import '../core/notifications.dart';
 import '../services/auth_service.dart';
 import '../services/event_repository.dart';
+import '../services/supabase_service.dart';
 
 /// Overridden in `main()` (and in tests) with a ready-to-use instance.
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
 final eventRepositoryProvider =
     Provider<EventRepository>((ref) => EventRepository());
+
+final supabaseServiceProvider =
+    Provider<SupabaseService>((ref) => SupabaseService());
 
 /// The signed-in user, or `null`. `AsyncValue.loading` covers the first frame,
 /// before Firebase has restored the persisted session.
@@ -79,10 +85,22 @@ final responsesProvider = StreamProvider<List<InvitationResponse>>((ref) {
   return ref.watch(eventRepositoryProvider).watchResponses(user.id);
 });
 
-/// How many answers are still unread, for the badge on the home screen.
+/// Supabase's persistent inbox, delivered as a live stream and scoped to the
+/// current Firebase identity.
+final appNotificationsProvider = StreamProvider<List<AppNotification>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  final service = ref.watch(supabaseServiceProvider);
+  service.setCurrentUserId(user?.id);
+  if (user == null) return Stream.value(const []);
+  return service.watchNotifications(user.id);
+});
+
+/// Unread Firebase responses and Supabase inbox items for navigation badges.
 final unreadResponseCountProvider = Provider<int>((ref) {
   final responses = ref.watch(responsesProvider).value ?? const [];
-  return responses.where((r) => !r.read).length;
+  final notifications = ref.watch(appNotificationsProvider).value ?? const [];
+  return responses.where((r) => !r.read).length +
+      notifications.where((n) => !n.isRead).length;
 });
 
 /// Everything awaiting the signed-in user's answer: countdown invites and
@@ -152,19 +170,132 @@ final clockProvider = StreamProvider<DateTime>((ref) {
       const Duration(seconds: 1), (_) => DateTime.now()).asBroadcastStream();
 });
 
-/// Theme mode, persisted per device (not per account — appearance is a device
-/// preference, and requiring a sign-in to pick light/dark would be odd).
+/// Theme mode loads from device storage immediately, then syncs to the signed-in
+/// account when Supabase is available.
 ///
 /// Riverpod 3 retired `StateNotifierProvider`; `Notifier` is its successor and
 /// removes the `state`-vs-`super` split that used to bite here.
 class ThemeModeController extends Notifier<ThemeMode> {
-  @override
-  ThemeMode build() => ThemeMode.dark;
+  static const _preferenceKey = 'theme_mode';
 
-  void set(ThemeMode mode) => state = mode;
+  String? _userId;
+  int _accountRevision = 0;
+  int _choiceRevision = 0;
+  Future<void> _remoteWrites = Future<void>.value();
+
+  @override
+  ThemeMode build() {
+    final user = ref.read(currentUserProvider);
+    _userId = user?.id;
+    ref.listen<AppUser?>(currentUserProvider, (previous, next) {
+      _onUserChanged(next?.id);
+    });
+    unawaited(_restore(user?.id, _accountRevision, _choiceRevision));
+    return ThemeMode.dark;
+  }
+
+  void set(ThemeMode mode) {
+    state = mode;
+    final choiceRevision = ++_choiceRevision;
+    final accountRevision = _accountRevision;
+    final userId = _userId;
+    unawaited(_saveLocally(mode, choiceRevision));
+    if (userId != null) {
+      _queueRemoteSave(
+        userId,
+        mode,
+        accountRevision,
+      );
+    }
+  }
 
   void toggle() =>
-      state = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+      set(state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
+
+  void _onUserChanged(String? userId) {
+    if (_userId == userId) return;
+    _userId = userId;
+    final revision = ++_accountRevision;
+    ref.read(supabaseServiceProvider).setCurrentUserId(userId);
+    unawaited(_restore(userId, revision, _choiceRevision));
+  }
+
+  Future<void> _restore(
+    String? userId,
+    int accountRevision,
+    int choiceRevision,
+  ) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final localMode =
+          themeModeFromWire(preferences.getString(_preferenceKey));
+      if (accountRevision != _accountRevision) return;
+
+      if (localMode != null && choiceRevision == _choiceRevision) {
+        state = localMode;
+      }
+
+      if (userId == null) return;
+      final service = ref.read(supabaseServiceProvider)
+        ..setCurrentUserId(userId);
+      await _syncRemote(userId, accountRevision, choiceRevision, service);
+    } catch (error, stackTrace) {
+      debugPrint('[datedawn] Could not restore theme preference: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  Future<void> _syncRemote(
+    String userId,
+    int accountRevision,
+    int choiceRevision,
+    SupabaseService service,
+  ) async {
+    try {
+      final remoteMode = await service.fetchThemeMode(userId);
+      if (accountRevision != _accountRevision || _userId != userId) return;
+
+      if (choiceRevision != _choiceRevision) {
+        _queueRemoteSave(userId, state, accountRevision);
+        return;
+      }
+
+      if (remoteMode != null) {
+        state = remoteMode;
+        await _saveLocally(remoteMode, _choiceRevision);
+      } else {
+        _queueRemoteSave(userId, state, accountRevision);
+      }
+    } catch (error, stackTrace) {
+      debugPrint('[datedawn] Could not sync theme preference: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  Future<void> _saveLocally(ThemeMode mode, int choiceRevision) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      if (choiceRevision != _choiceRevision) return;
+      await preferences.setString(_preferenceKey, themeModeToWire(mode));
+    } catch (error, stackTrace) {
+      debugPrint('[datedawn] Could not save local theme preference: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  void _queueRemoteSave(
+    String userId,
+    ThemeMode mode,
+    int accountRevision,
+  ) {
+    _remoteWrites = _remoteWrites.then((_) async {
+      if (accountRevision != _accountRevision || _userId != userId) return;
+      await ref.read(supabaseServiceProvider).saveThemeMode(userId, mode);
+    }).catchError((Object error, StackTrace stackTrace) {
+      debugPrint('[datedawn] Could not save theme to Supabase: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    });
+  }
 }
 
 final themeModeProvider =
