@@ -183,8 +183,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
       if (mounted) {
-        setState(
-            () => _error = 'Could not save: $e');
+        setState(() => _error = 'Could not save: $e');
       }
     } finally {
       if (mounted) setState(() => _busy = false);

@@ -85,10 +85,8 @@ class EventRepository {
   /// Sorting and soft-delete filtering are handled in memory so no manual
   /// composite index configuration is required in Cloud Firestore.
   Stream<List<CountdownEvent>> watchEvents(String userId) {
-    final created = _events
-        .where('createdBy', isEqualTo: userId)
-        .limit(100)
-        .snapshots();
+    final created =
+        _events.where('createdBy', isEqualTo: userId).limit(100).snapshots();
 
     final shared = _db
         .collectionGroup('participants')
@@ -137,9 +135,8 @@ class EventRepository {
         final end = i + 30 > wanted.length ? wanted.length : i + 30;
         final chunk = wanted.sublist(i, end);
         try {
-          final snap = await _events
-              .where(FieldPath.documentId, whereIn: chunk)
-              .get();
+          final snap =
+              await _events.where(FieldPath.documentId, whereIn: chunk).get();
           for (final doc in snap.docs) {
             if (doc.data()['deletedAt'] == null) {
               fetched[doc.id] = _fromDoc(doc);
