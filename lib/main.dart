@@ -164,12 +164,7 @@ class DateDawnApp extends ConsumerWidget {
       builder: (context, child) => _FirstFrameLogger(
         child: ColoredBox(
           color: Theme.of(context).scaffoldBackgroundColor,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: child!,
-            ),
-          ),
+          child: SizedBox.expand(child: child!),
         ),
       ),
     );

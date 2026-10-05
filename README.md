@@ -32,6 +32,9 @@ Authentication's authorized domains so web sign-in works.
   leave each other messages.
 - **Duplicate** a countdown a year on — useful for annual events.
 - **Dark and light**, following the device by default.
+- **A real route for every section** — Home, Invitations, Circles, Notifications,
+  and Settings are directly addressable, with persistent desktop navigation and
+  mobile bottom navigation. Sign-in is required before entering any section.
 
 ---
 

@@ -20,10 +20,6 @@ class NotificationsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
-        ),
         title: const Text('Notifications'),
         actions: [
           if ((responses.value ?? const []).any((r) => !r.read))

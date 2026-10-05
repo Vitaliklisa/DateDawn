@@ -248,101 +248,146 @@ class _HeroHome extends ConsumerWidget {
             ),
           ),
         ),
-        ListView(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 120),
-          children: [
-            const _TopBar(),
-            const SizedBox(height: 12),
-            const InvitationsInbox(),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  arrived
-                      ? Icons.celebration_rounded
-                      : Icons.hourglass_bottom_rounded,
-                  size: 14,
-                  color: arrived ? colors.accent : colors.subtle,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  arrived ? 'ARRIVED' : 'COUNTING DOWN',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: arrived ? colors.accent : colors.subtle,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 1000) {
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 120),
+                children: [
+                  const _TopBar(),
+                  const SizedBox(height: 12),
+                  const InvitationsInbox(),
+                  const SizedBox(height: 8),
+                  _FeaturedContent(
+                    featured: featured,
+                    arrived: arrived,
+                    now: now,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => showEventActionsSheet(
+                            context,
+                            ref,
+                            event: featured,
+                            onDeleted: () => ref
+                                .read(selectedEventIdProvider.notifier)
+                                .set(null),
+                          ),
+                          icon: const Icon(Icons.more_horiz_rounded, size: 18),
+                          label: const Text('Options'),
+                        ),
                       ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(featured.title,
-                style: Theme.of(context).textTheme.headlineLarge),
-            if (featured.description.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                featured.description,
-                style:
-                    TextStyle(fontSize: 14, height: 1.45, color: colors.muted),
-              ),
-            ],
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Icon(Icons.schedule_rounded, size: 14, color: colors.subtle),
-                const SizedBox(width: 7),
-                Text(
-                  formatMomentFull(featured.at),
-                  style: TextStyle(fontSize: 13, color: colors.subtle),
-                ),
-              ],
-            ),
-            const SizedBox(height: 26),
-            if (arrived)
-              ArrivalCelebration(
-                title: featured.title,
-                description: featured.description,
-              )
-            else
-              CountdownFace(target: featured.at, now: now),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => showEventActionsSheet(
-                      context,
-                      ref,
-                      event: featured,
-                      onDeleted: () =>
-                          ref.read(selectedEventIdProvider.notifier).set(null),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () => context
+                              .push('${Routes.eventDetail}/${featured.id}'),
+                          icon: const Icon(Icons.tune_rounded, size: 18),
+                          label: const Text('Open'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (others.isNotEmpty) ...[
+                    const SizedBox(height: 34),
+                    Text(
+                      'OTHER COUNTDOWNS',
+                      style: Theme.of(context).textTheme.labelSmall,
                     ),
-                    icon: const Icon(Icons.more_horiz_rounded, size: 18),
-                    label: const Text('Options'),
-                  ),
+                    const SizedBox(height: 12),
+                    for (final event in others) ...[
+                      _EventRow(event: event, now: now),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                ],
+              );
+            }
+
+            return Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(32, 22, 32, 8),
+                  child: _TopBar(),
                 ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () =>
-                        context.push('${Routes.eventDetail}/${featured.id}'),
-                    icon: const Icon(Icons.tune_rounded, size: 18),
-                    label: const Text('Open'),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        flex: 7,
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(40, 38, 36, 120),
+                          children: [
+                            _FeaturedContent(
+                              featured: featured,
+                              arrived: arrived,
+                              now: now,
+                            ),
+                            const SizedBox(height: 28),
+                            Row(
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () => showEventActionsSheet(
+                                    context,
+                                    ref,
+                                    event: featured,
+                                    onDeleted: () => ref
+                                        .read(selectedEventIdProvider.notifier)
+                                        .set(null),
+                                  ),
+                                  icon: const Icon(Icons.more_horiz_rounded,
+                                      size: 18),
+                                  label: const Text('Options'),
+                                ),
+                                const SizedBox(width: 12),
+                                FilledButton.icon(
+                                  onPressed: () => context.push(
+                                      '${Routes.eventDetail}/${featured.id}'),
+                                  icon:
+                                      const Icon(Icons.tune_rounded, size: 18),
+                                  label: const Text('Open countdown'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: 1,
+                        margin: const EdgeInsets.only(top: 22, bottom: 22),
+                        color: colors.border,
+                      ),
+                      Expanded(
+                        flex: 4,
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(28, 24, 32, 120),
+                          children: [
+                            const InvitationsInbox(),
+                            if (others.isNotEmpty) ...[
+                              const SizedBox(height: 32),
+                              Text(
+                                'OTHER COUNTDOWNS',
+                                style: Theme.of(context).textTheme.labelSmall,
+                              ),
+                              const SizedBox(height: 12),
+                              for (final event in others) ...[
+                                _EventRow(event: event, now: now),
+                                const SizedBox(height: 8),
+                              ],
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
-            if (others.isNotEmpty) ...[
-              const SizedBox(height: 34),
-              Text(
-                'OTHER COUNTDOWNS',
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-              const SizedBox(height: 12),
-              for (final event in others) ...[
-                _EventRow(event: event, now: now),
-                const SizedBox(height: 8),
-              ],
-            ],
-          ],
+            );
+          },
         ),
         Positioned(
           left: 0,
@@ -367,6 +412,74 @@ class _HeroHome extends ConsumerWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _FeaturedContent extends StatelessWidget {
+  const _FeaturedContent({
+    required this.featured,
+    required this.arrived,
+    required this.now,
+  });
+
+  final CountdownEvent featured;
+  final bool arrived;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              arrived
+                  ? Icons.celebration_rounded
+                  : Icons.hourglass_bottom_rounded,
+              size: 14,
+              color: arrived ? colors.accent : colors.subtle,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              arrived ? 'ARRIVED' : 'COUNTING DOWN',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: arrived ? colors.accent : colors.subtle,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(featured.title, style: Theme.of(context).textTheme.headlineLarge),
+        if (featured.description.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            featured.description,
+            style: TextStyle(fontSize: 14, height: 1.45, color: colors.muted),
+          ),
+        ],
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Icon(Icons.schedule_rounded, size: 14, color: colors.subtle),
+            const SizedBox(width: 7),
+            Text(
+              formatMomentFull(featured.at),
+              style: TextStyle(fontSize: 13, color: colors.subtle),
+            ),
+          ],
+        ),
+        const SizedBox(height: 26),
+        if (arrived)
+          ArrivalCelebration(
+            title: featured.title,
+            description: featured.description,
+          )
+        else
+          CountdownFace(target: featured.at, now: now),
       ],
     );
   }
