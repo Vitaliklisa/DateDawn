@@ -209,12 +209,22 @@ flutterfire configure --project=datedawn
 
 This writes `lib/firebase_options.dart`, `android/app/google-services.json` and
 `ios/Runner/GoogleService-Info.plist`. In Firebase Console → Authentication →
-Sign-in method, enable Anonymous, Google, and Email/Password; the app cannot
-create guest sessions or authenticate accounts until those providers are on.
+Sign-in method, enable Anonymous (required for guest access), Google, and
+Email/Password. The app cannot create guest sessions or authenticate accounts
+until those providers are on. The Android Google Services Gradle plugin only
+loads app configuration; it does not enable Firebase Authentication providers.
 
-**Google Sign-In:** Android also needs a Web OAuth client ID. If it is not
-included in `google-services.json`, pass it as
+**Google Sign-In:** Enable the Google provider in Firebase Console →
+Authentication → Sign-in method. Android also needs a Web OAuth client ID. The
+downloaded `google-services.json` should contain a Web OAuth client (`client_type`
+`3`); if it does not, finish enabling Google in the Firebase project and
+download the updated file. If the Web client ID is not included in
+`google-services.json`, pass it as
 `--dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>` when building. Add both
 the debug and release signing SHA-1/SHA-256 fingerprints to the Firebase Android
-app (Project settings → Your apps). Without the provider, client ID, or matching
-fingerprints, Google sign-in is unavailable even though the button is present.
+app (Project settings → Your apps). For web, add `datedawn.vercel.app` to
+Authentication → Settings → Authorized domains. For iOS, add the
+`REVERSED_CLIENT_ID` from `GoogleService-Info.plist` as a URL scheme under
+`CFBundleURLTypes` in `ios/Runner/Info.plist`. Without the provider, OAuth
+client, platform fingerprints/scheme, or authorized domain, Google sign-in is
+unavailable even though the button is present.
