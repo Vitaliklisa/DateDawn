@@ -124,14 +124,18 @@ class _EventActionsSheet extends ConsumerWidget {
                 label: 'Delete',
                 destructive: true,
                 onTap: () async {
-                  // Capture the messenger before the sheet closes: after the
-                  // `await`, this widget is gone from the tree and `context`
-                  // would be unsafe to read from.
+                  // Capture what survives the sheet before closing it: once the
+                  // sheet is popped this widget is gone from the tree and its
+                  // `context` is unsafe to read from.
+                  final navigator = Navigator.of(context);
                   final messenger = ScaffoldMessenger.of(context);
-                  Navigator.of(context).pop();
+                  if (user == null) return;
 
+                  // Confirm first, then close. Closing the sheet first used to
+                  // race the dialog against the deactivated sheet context.
                   final confirmed = await _confirmDelete(context);
-                  if (!confirmed || user == null) return;
+                  if (!confirmed) return;
+                  navigator.pop();
 
                   try {
                     await ref.read(eventRepositoryProvider).deleteEvent(

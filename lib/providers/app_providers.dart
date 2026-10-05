@@ -52,11 +52,25 @@ final currentUserProvider = Provider<AppUser?>((ref) {
   return ref.watch(activeAuthStateProvider).value;
 });
 
+/// Whether Firebase has finished restoring the persisted session.
+///
+/// `activeAuthStateProvider.value` is `null` both while that restore is in
+/// flight *and* when the visitor is genuinely signed out. Anything that reads
+/// data by uid must wait for this, or a page refresh briefly looks like an
+/// empty account and the user's countdowns appear to have vanished.
+final authResolvedProvider = Provider<bool>((ref) {
+  final auth = ref.watch(activeAuthStateProvider);
+  return !auth.isLoading && !auth.isRefreshing;
+});
+
 /// All countdowns visible to the signed-in user, nearest first.
 ///
-/// A local-only visitor (no account) gets an empty list rather than an error:
-/// there is nothing to sync, and the UI invites them to sign in.
+/// Stays in `loading` until the session has been restored, so the home screen
+/// shows its spinner rather than an empty list during the first frames after a
+/// refresh. A local-only visitor (no account) gets an empty list rather than an
+/// error: there is nothing to sync, and the UI invites them to sign in.
 final eventsProvider = StreamProvider<List<CountdownEvent>>((ref) {
+  if (!ref.watch(authResolvedProvider)) return const Stream.empty();
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(const []);
   return ref.watch(eventRepositoryProvider).watchEvents(user.id);

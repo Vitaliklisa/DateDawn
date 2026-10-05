@@ -10,6 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Web-only: `usePathUrlStrategy` gives real, hash-free routes on web.
+  flutter_web_plugins:
+    sdk: flutter
 
   # Firebase — the whole free-tier backend: auth + shared data + analytics.
   firebase_core: ^4.15.0

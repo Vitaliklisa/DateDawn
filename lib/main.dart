@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // Riverpod 3 moved `Override` out of the main entrypoint; it lives in `misc`.
 import 'package:flutter_riverpod/misc.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/theme.dart';
@@ -25,6 +26,10 @@ Future<void> main() async {
   // exactly how far Dart got. Compiled out of release builds entirely.
   _trace('main() entered');
   WidgetsFlutterBinding.ensureInitialized();
+  // Use real, hash-free paths on web (`https://…/invitations` rather than
+  // `https://…/#/invitations`). Vercel rewrites every path back to the app
+  // shell, so deep links resolve on a cold load too. A no-op off the web.
+  usePathUrlStrategy();
   _trace('binding ready');
 
   await dotenv.load(fileName: '.env', isOptional: true);

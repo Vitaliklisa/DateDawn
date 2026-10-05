@@ -141,8 +141,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     final existing = widget.event;
 
     try {
+      CountdownEvent? created;
       if (existing == null) {
-        await repository.createEvent(
+        created = await repository.createEvent(
           userId: user.id,
           email: user.email,
           title: title,
@@ -178,7 +179,16 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
             content: Text(
                 existing == null ? 'Countdown created.' : 'Changes saved.')),
       );
-      context.pop();
+      if (created != null) {
+        // A brand-new countdown gets its own page, so the creator lands on the
+        // thing they just made — with its edit and delete actions in reach —
+        // instead of being dropped back on the home screen guessing whether it
+        // saved at all. `replace` keeps Back on the home screen rather than
+        // bouncing into the now-stale composer.
+        context.pushReplacement('/event/${created.id}');
+      } else {
+        context.pop();
+      }
     } on DataFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {

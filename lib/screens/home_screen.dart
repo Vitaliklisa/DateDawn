@@ -21,11 +21,17 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(activeAuthStateProvider);
+    final authResolved = ref.watch(authResolvedProvider);
     final eventsAsync = ref.watch(eventsProvider);
     final featured = ref.watch(featuredEventProvider);
     final now = ref.watch(clockProvider).value ?? DateTime.now();
 
-    if (auth.isLoading) return const _LoadingScaffold();
+    // Cover both the signed-out visitor (whose `eventsProvider` is a constant
+    // empty list) and the first frames after a refresh, before the persisted
+    // session has been restored — otherwise the user's own countdowns look like
+    // they were never saved.
+    final loading = auth.isLoading || !authResolved;
+    if (loading && eventsAsync.value == null) return const _LoadingScaffold();
 
     final events = eventsAsync.value ?? const <CountdownEvent>[];
     final hasError = eventsAsync.hasError;
@@ -503,9 +509,7 @@ class _EventRow extends ConsumerWidget {
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          ref.read(selectedEventIdProvider.notifier).set(event.id);
-        },
+        onTap: () => context.push('${Routes.eventDetail}/${event.id}'),
         onLongPress: () => showEventActionsSheet(context, ref, event: event),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -540,6 +544,17 @@ class _EventRow extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               StatusChip(isPast: past),
+              // A visible overflow keeps edit and delete one tap away, even when
+              // the list is long enough that a long-press is not discoverable
+              // (and impossible on a laptop trackpad).
+              IconButton(
+                tooltip: 'Options',
+                iconSize: 20,
+                color: colors.subtle,
+                onPressed: () =>
+                    showEventActionsSheet(context, ref, event: event),
+                icon: const Icon(Icons.more_horiz_rounded),
+              ),
             ],
           ),
         ),
@@ -569,31 +584,31 @@ class _TopBar extends ConsumerWidget {
               _BadgedIconButton(
                 tooltip: 'Circles',
                 icon: Icons.groups_outlined,
-                onPressed: () => context.push(Routes.circles),
+                onPressed: () => context.go(Routes.circles),
               ),
               _BadgedIconButton(
                 tooltip: 'Invitations',
                 icon: Icons.mail_outline_rounded,
                 count: pendingInvites,
-                onPressed: () => context.push(Routes.invitations),
+                onPressed: () => context.go(Routes.invitations),
               ),
               _BadgedIconButton(
                 tooltip: 'Notifications',
                 icon: Icons.notifications_none_rounded,
                 count: unreadResponses,
-                onPressed: () => context.push(Routes.notifications),
+                onPressed: () => context.go(Routes.notifications),
               ),
             ],
             IconButton(
               tooltip: 'Settings',
-              onPressed: () => context.push(Routes.settings),
+              onPressed: () => context.go(Routes.settings),
               icon: const Icon(Icons.settings_outlined, size: 20),
             ),
             if (user != null)
               Padding(
                 padding: const EdgeInsets.only(left: 2),
                 child: GestureDetector(
-                  onTap: () => context.push(Routes.settings),
+                  onTap: () => context.go(Routes.settings),
                   child: UserAvatar(
                       initials: user.initials, photoUrl: user.photoUrl),
                 ),
