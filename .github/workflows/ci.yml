@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  ANDROID_HOME: /usr/local/lib/android/sdk
+
 # Cancel an in-progress run when a newer commit lands on the same branch.
 # Without this, pushing twice leaves the first run burning CI minutes on code
 # nobody is waiting for.
@@ -64,6 +67,14 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Cache Android SDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/android/sdk/ndk
+            /usr/local/lib/android/sdk/platform-tools
+          key: android-sdk-${{ runner.os }}-ndk-28.2.13676358
 
       # The Firebase config is deliberately NOT committed: it is gitignored, and
       # for good reason — committing it bakes one project's identifiers into the
