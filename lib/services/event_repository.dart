@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../core/circles.dart';
 import '../core/countdown.dart';
 import '../core/models.dart';
+import 'auth_service.dart';
 
 /// Why a write was refused, in words a user can act on.
 class DataFailure implements Exception {
@@ -77,16 +78,15 @@ class EventRepository {
   /// 3. `sharedWithCircleIds` containing any of my circles — also id-only, for
   ///    the same reason (a `array-contains-any` query cannot also be ordered by
   ///    `at` without a composite index per circle count).
+  /// Live stream of every event the user created, was invited to, or can see
+  /// through a circle they belong to.
   ///
-  /// Results are de-duplicated by id and sorted by time, so the merged list
-  /// reads "closest first" as a single list.
+  /// Merges owned events, participant shares, and circle shares.
+  /// Sorting and soft-delete filtering are handled in memory so no manual
+  /// composite index configuration is required in Cloud Firestore.
   Stream<List<CountdownEvent>> watchEvents(String userId) {
     final created = _events
         .where('createdBy', isEqualTo: userId)
-        // Soft-deleted rows are hidden at the query level; Firestore has no
-        // `!=`, so the filter is "never stamped" rather than "not true".
-        .where('deletedAt', isNull: true)
-        .orderBy('at')
         .limit(100)
         .snapshots();
 
@@ -112,7 +112,7 @@ class EventRepository {
     // their first use in Dart.
     void emit() {
       // Owned events win on id collision: they are the authoritative copy and
-      // are already ordered by the query.
+      // are ordered in memory.
       final byId = <String, CountdownEvent>{
         for (final e in latestOwned) e.id: e
       };
@@ -139,10 +139,11 @@ class EventRepository {
         try {
           final snap = await _events
               .where(FieldPath.documentId, whereIn: chunk)
-              .where('deletedAt', isNull: true)
               .get();
           for (final doc in snap.docs) {
-            fetched[doc.id] = _fromDoc(doc);
+            if (doc.data()['deletedAt'] == null) {
+              fetched[doc.id] = _fromDoc(doc);
+            }
           }
         } catch (_) {
           // A chunk that fails (offline, permission) is skipped rather than
@@ -155,11 +156,6 @@ class EventRepository {
     }
 
     /// Queries every event shared with any circle the user belongs to.
-    ///
-    /// Runs once per circle rather than one `array-contains-any` query: the
-    /// `any` form cannot be combined with an `orderBy` on `at` without an
-    /// index whose shape depends on how many circles are passed, whereas a
-    /// single-value `array-contains` uses the plain composite index.
     Future<void> fetchCircleShared() async {
       if (latestCircleIds.isEmpty) return;
       try {
@@ -167,7 +163,6 @@ class EventRepository {
           latestCircleIds.map(
             (circleId) => _events
                 .where('sharedWithCircleIds', arrayContains: circleId)
-                .where('deletedAt', isNull: true)
                 .get(),
           ),
         );
@@ -175,6 +170,7 @@ class EventRepository {
         final ids = <String>{...latestSharedIds};
         for (final snap in snaps) {
           for (final doc in snap.docs) {
+            if (doc.data()['deletedAt'] != null) continue;
             // Owned events are already in `latestOwned`; skip re-fetching them.
             if (latestOwned.any((e) => e.id == doc.id)) continue;
             ids.add(doc.id);
@@ -188,7 +184,10 @@ class EventRepository {
     }
 
     final subOwned = created.listen((snap) {
-      latestOwned = snap.docs.map(_fromDoc).toList();
+      latestOwned = snap.docs
+          .where((doc) => doc.data()['deletedAt'] == null)
+          .map(_fromDoc)
+          .toList();
       emit();
     }, onError: controller.addError);
 
@@ -302,6 +301,10 @@ class EventRepository {
       'createdBy': userId,
       'createdAt': Timestamp.fromDate(now),
       'updatedAt': Timestamp.fromDate(now),
+      // The owner feed explicitly queries `deletedAt == null`; writing the
+      // value is required because Firestore null filters do not match a field
+      // that is absent from the document.
+      'deletedAt': null,
       if (validCircleIds.isNotEmpty) 'sharedWithCircleIds': validCircleIds,
     });
     batch.set(_events.doc(id).collection('participants').doc(userId), {
@@ -503,11 +506,11 @@ class EventRepository {
     if (normalised.isEmpty) return Stream.value(const []);
     return _invitations
         .where('inviteeEmail', isEqualTo: normalised)
-        .where('status', isEqualTo: InviteStatus.pending.name)
         .snapshots()
         .map((snap) => snap.docs
             .map((d) => Invitation.fromDoc(d.id, d.data()))
-            .where((invite) => !invite.isExpired)
+            .where((invite) =>
+                invite.status == InviteStatus.pending && !invite.isExpired)
             .toList());
   }
 
@@ -747,11 +750,11 @@ class EventRepository {
     if (normalised.isEmpty) return Stream.value(const []);
     return _circleInvitations
         .where('inviteeEmail', isEqualTo: normalised)
-        .where('status', isEqualTo: InviteStatus.pending.name)
         .snapshots()
         .map((snap) => snap.docs
             .map((d) => CircleInvitation.fromDoc(d.id, d.data()))
-            .where((invite) => !invite.isExpired)
+            .where((invite) =>
+                invite.status == InviteStatus.pending && !invite.isExpired)
             .toList());
   }
 
@@ -828,6 +831,22 @@ class EventRepository {
       'sharedWithCircleIds': circleIds,
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
+  }
+
+  /// Syncs the user's public profile into the `users` collection so email lookup
+  /// for invitations works cleanly.
+  Future<void> syncUserProfile(AppUser user) async {
+    if (user.id.isEmpty || user.email.isEmpty) return;
+    try {
+      await _db.collection('users').doc(user.id).set({
+        'email': user.email.toLowerCase(),
+        if (user.displayName != null) 'displayName': user.displayName,
+        if (user.photoUrl != null) 'photoUrl': user.photoUrl,
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      }, SetOptions(merge: true));
+    } catch (_) {
+      // Profile sync is best-effort
+    }
   }
 
   /// Uses the users collection to turn an email address into an account, so an

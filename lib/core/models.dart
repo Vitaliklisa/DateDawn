@@ -152,6 +152,7 @@ class CountdownEvent {
     required this.createdBy,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
     this.participants = const [],
     this.notes = const [],
     this.circleId,
@@ -165,6 +166,7 @@ class CountdownEvent {
   final String createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? deletedAt;
   final List<Participant> participants;
   final List<EventNote> notes;
 
@@ -228,6 +230,7 @@ class CountdownEvent {
       createdBy: (map['createdBy'] as String?) ?? '',
       createdAt: _parseDate(map['createdAt']) ?? DateTime.now(),
       updatedAt: _parseDate(map['updatedAt']) ?? DateTime.now(),
+      deletedAt: _parseDate(map['deletedAt']),
       circleId: circleId,
       sharedWithCircleIds: circles.toList(),
       participants: rawParticipants is Map

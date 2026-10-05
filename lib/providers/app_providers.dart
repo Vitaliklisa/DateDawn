@@ -31,7 +31,19 @@ final supabaseServiceProvider =
 /// across hot restart.
 final activeAuthStateProvider = StreamProvider<AppUser?>((ref) {
   ref.keepAlive();
-  return ref.watch(authServiceProvider).authStateChanges();
+  return ref.watch(authServiceProvider).authStateChanges().map((user) {
+    if (user != null) {
+      unawaited(ref.read(eventRepositoryProvider).syncUserProfile(user));
+      if (SupabaseService.isAvailable) {
+        unawaited(ref.read(supabaseServiceProvider).upsertProfile(
+              userId: user.id,
+              fullName: user.displayName,
+              avatarUrl: user.photoUrl,
+            ));
+      }
+    }
+    return user;
+  });
 }, isAutoDispose: true);
 
 /// Just the user, with loading collapsed to `null` for widgets that only need

@@ -181,10 +181,10 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       context.pop();
     } on DataFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(
-            () => _error = 'Could not save. Check your connection and retry.');
+            () => _error = 'Could not save: $e');
       }
     } finally {
       if (mounted) setState(() => _busy = false);

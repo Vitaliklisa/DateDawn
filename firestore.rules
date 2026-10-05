@@ -148,6 +148,7 @@ service cloud.firestore {
             userId == uid()
             || isAdmin(eventId)
             || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data)
+            || getAfter(/databases/$(database)/documents/events/$(eventId)).data.createdBy == request.auth.uid
           );
 
         // An invitee may flip their OWN row from pending to accepted — that is
