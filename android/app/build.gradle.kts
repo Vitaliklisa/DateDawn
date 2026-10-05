@@ -101,6 +101,22 @@ android {
                 )
                 signingConfigs.getByName("debug")
             }
+
+            // R8: shrink and obfuscate the Java/Kotlin code, stripping the unused
+            // parts of the play-services/Firebase graph. Flutter enables this by
+            // default, but it is stated explicitly so the intent (and the
+            // keep-rules file below) cannot be lost in a future edit.
+            isMinifyEnabled = true
+
+            // Also strip resources Play Services ships but the app never
+            // references. This is where a large share of the AAB size goes, and
+            // it needs the keep rules in proguard-rules.pro to be safe.
+            isShrinkResources = true
+
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

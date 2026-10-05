@@ -68,6 +68,22 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Cache the Gradle dependency graph *and* the build cache. A release build
+      # with Firebase pulls hundreds of MB of AARs and runs R8 over all of them;
+      # restoring `~/.gradle/caches` instead of re-downloading turns a cold build
+      # into a warm one, and `org.gradle.caching=true` (gradle.properties) lets
+      # the task outputs be reused too. The key includes the Gradle version so a
+      # wrapper bump invalidates it cleanly rather than restoring stale jars.
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-9.3.1-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties', 'pubspec.lock') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-9.3.1-
+
       - name: Cache Android SDK
         uses: actions/cache@v4
         with:
@@ -164,8 +180,30 @@ jobs:
         env:
           GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}
         run: |
+          # `--analyze-size` writes a size breakdown next to the bundle without
+          # changing the artifact; the `wc -c` line below then records how big
+          # the AAB actually is, so a regression from a new dependency shows up
+          # in the run log rather than at upload time.
           flutter build appbundle --release \
+            --target-platform android-arm,android-arm64,android-x64 \
             --dart-define=GOOGLE_SERVER_CLIENT_ID="$GOOGLE_SERVER_CLIENT_ID"
+          ls -lh build/app/outputs/bundle/release/app-release.aab
+
+      - name: Report bundle size
+        run: |
+          AAB=build/app/outputs/bundle/release/app-release.aab
+          BYTES=$(wc -c < "$AAB")
+          MB=$(awk "BEGIN { printf \"%.1f\", $BYTES/1048576 }")
+          echo "AAB size: ${MB} MB (${BYTES} bytes)"
+          {
+            echo "## Android release bundle"
+            echo ""
+            echo "| Artifact | Size |"
+            echo "| --- | --- |"
+            echo "| \`app-release.aab\` | ${MB} MB |"
+            echo ""
+            echo "_Unsigned — do not upload._"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload bundle
         uses: actions/upload-artifact@v4
