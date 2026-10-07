@@ -42,6 +42,19 @@ class SupabaseService {
     }
   }
 
+  /// Marks the client ready. Called by `main()` once `Supabase.initialize`
+  /// resolves, so an early call (before init finishes) is skipped rather than
+  /// throwing on a half-built client.
+  static bool _ready = false;
+  static void markReady() => _ready = true;
+
+  /// True only when the client is both present and fully initialised.
+  ///
+  /// Prefer this over [isAvailable] on the write paths: with the background
+  /// initialisation in `main()`, the instance can exist a moment before it is
+  /// usable, and a write attempted in that window would throw.
+  static bool get isReady => _ready && isAvailable;
+
   SupabaseClient get client => _client;
 
   /// Sets the uid every subsequent Supabase request is tagged with.
@@ -238,6 +251,10 @@ class SupabaseService {
   ///
   /// This is how one user tells another something happened — "your friend
   /// joined your circle". The recipient's client receives it over Realtime.
+  ///
+  /// A failure is swallowed: notifications ride on top of a Firestore write
+  /// that has already succeeded, so a missing table or an offline device must
+  /// never turn a completed action into an error.
   Future<void> sendNotification({
     required String userId,
     required String title,
@@ -245,12 +262,19 @@ class SupabaseService {
     NotificationKind type = NotificationKind.system,
   }) async {
     if (userId.isEmpty) return;
-    await _client.from('notifications').insert({
-      'user_id': userId,
-      'title': title,
-      'body': body,
-      'type': type.name,
-    });
+    try {
+      await _client.from('notifications').insert({
+        'user_id': userId,
+        'title': title,
+        'body': body,
+        'type': type.name,
+      });
+    } catch (error) {
+      debugPrint(
+        '[datedawn] Could not write a Supabase notification: '
+        '${_describe(error)}',
+      );
+    }
   }
 
   // ---------------------------------------------------------------------------

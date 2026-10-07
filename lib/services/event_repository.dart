@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../core/circles.dart';
 import '../core/countdown.dart';
 import '../core/models.dart';
+import '../core/notifications.dart';
 import 'auth_service.dart';
 
 /// Why a write was refused, in words a user can act on.
@@ -17,6 +18,12 @@ class DataFailure implements Exception {
   @override
   String toString() => message;
 }
+
+/// The message shown when someone tries to invite their own address or account.
+///
+/// One constant so the countdown and circle flows word it identically.
+const String cannotInviteSelfMessage =
+    'You cannot invite yourself — you are already on this.';
 
 /// All reads and writes for countdowns, backed by Cloud Firestore.
 ///
@@ -46,12 +53,29 @@ class DataFailure implements Exception {
 /// to a circle it was shared with. The rules file is the authority; this service
 /// deliberately mirrors it so the client fails fast with a readable message.
 class EventRepository {
-  EventRepository({FirebaseFirestore? firestore, Uuid? uuid})
-      : _db = firestore ?? FirebaseFirestore.instance,
+  EventRepository({
+    FirebaseFirestore? firestore,
+    Uuid? uuid,
+    this.notificationSink,
+  })  : _db = firestore ?? FirebaseFirestore.instance,
         _uuid = uuid ?? const Uuid();
 
   final FirebaseFirestore _db;
   final Uuid _uuid;
+
+  /// Delivers an in-app notification to a recipient, best-effort.
+  ///
+  /// Wired to Supabase in `app_providers.dart`. It is injected rather than
+  /// imported so this class stays a Firestore-only data layer (and stays
+  /// testable without a Supabase client). A failure here must never fail the
+  /// user's action — the countdown was already shared, the inbox line is a
+  /// courtesy — so callers wrap it and swallow errors.
+  final Future<void> Function({
+    required String userId,
+    required String title,
+    required String body,
+    required NotificationKind kind,
+  })? notificationSink;
 
   CollectionReference<Map<String, dynamic>> get _events =>
       _db.collection('events');
@@ -108,7 +132,14 @@ class EventRepository {
 
     // Declared before the fetchers because local functions must appear above
     // their first use in Dart.
-    void emit() {
+    //
+    // The first emission is held back when it would be empty: the owned-events
+    // listener fires before the shared/circle feeds have answered, so emitting
+    // `[]` there made the home screen flash its "nothing here" state on every
+    // load. Once *any* feed has produced data (or the caller has received one
+    // real list), emissions pass through unchanged.
+    bool emittedAnything = false;
+    void emit({bool force = false}) {
       // Owned events win on id collision: they are the authoritative copy and
       // are ordered in memory.
       final byId = <String, CountdownEvent>{
@@ -117,39 +148,76 @@ class EventRepository {
       fetchedShared.forEach((id, event) => byId.putIfAbsent(id, () => event));
 
       final merged = byId.values.toList()..sort((a, b) => a.at.compareTo(b.at));
+      if (merged.isEmpty && !emittedAnything && !force) return;
+      emittedAnything = true;
       if (!controller.isClosed) controller.add(merged);
     }
 
     /// Runs the `whereIn` queries for whatever ids are missing from
     /// `fetchedShared`. Both the participant feed and the circle feed write into
     /// `latestSharedIds`, so one collect-and-fetch pass covers both.
+    ///
+    /// The chunks run in parallel: fetching them in sequence made a user with
+    /// more than 30 shared countdowns wait one round-trip per chunk, which is
+    /// exactly the "why is this so slow" case. A re-entrancy guard collapses
+    /// the overlapping calls that the two feeds trigger together.
+    bool fetching = false;
+    bool fetchAgain = false;
     Future<void> fetchShared() async {
-      final wanted = latestSharedIds
-          .where((id) => !fetchedShared.containsKey(id))
-          .toList();
-      if (wanted.isEmpty) return;
+      if (fetching) {
+        // A fetch is already in flight; run one more afterwards so ids that
+        // arrived meanwhile are not missed.
+        fetchAgain = true;
+        return;
+      }
+      fetching = true;
+      try {
+        do {
+          fetchAgain = false;
+          final wanted = latestSharedIds
+              .where((id) => !fetchedShared.containsKey(id))
+              .toList();
+          if (wanted.isEmpty) break;
 
-      // `whereIn` accepts 30 values per query; chunk to stay inside that.
-      final fetched = <String, CountdownEvent>{};
-      for (var i = 0; i < wanted.length; i += 30) {
-        final end = i + 30 > wanted.length ? wanted.length : i + 30;
-        final chunk = wanted.sublist(i, end);
-        try {
-          final snap =
-              await _events.where(FieldPath.documentId, whereIn: chunk).get();
-          for (final doc in snap.docs) {
-            if (doc.data()['deletedAt'] == null) {
-              fetched[doc.id] = _fromDoc(doc);
+          // `whereIn` accepts 30 values per query; chunk to stay inside that.
+          final chunks = <List<String>>[];
+          for (var i = 0; i < wanted.length; i += 30) {
+            final end = i + 30 > wanted.length ? wanted.length : i + 30;
+            chunks.add(wanted.sublist(i, end));
+          }
+
+          final snaps = await Future.wait(
+            chunks.map(
+              (chunk) async {
+                try {
+                  return await _events
+                      .where(FieldPath.documentId, whereIn: chunk)
+                      .get();
+                } catch (_) {
+                  // A chunk that fails (offline, permission) is skipped rather
+                  // than killing the whole stream.
+                  return null;
+                }
+              },
+            ),
+          );
+          if (disposed) return;
+
+          final fetched = <String, CountdownEvent>{};
+          for (final snap in snaps) {
+            if (snap == null) continue;
+            for (final doc in snap.docs) {
+              if (doc.data()['deletedAt'] == null) {
+                fetched[doc.id] = _fromDoc(doc);
+              }
             }
           }
-        } catch (_) {
-          // A chunk that fails (offline, permission) is skipped rather than
-          // killing the whole stream.
-        }
+          fetchedShared = {...fetchedShared, ...fetched};
+          emit();
+        } while (fetchAgain);
+      } finally {
+        fetching = false;
       }
-      if (disposed) return;
-      fetchedShared = {...fetchedShared, ...fetched};
-      emit();
     }
 
     /// Queries every event shared with any circle the user belongs to.
@@ -186,6 +254,15 @@ class EventRepository {
           .map(_fromDoc)
           .toList();
       emit();
+      // If this first owned snapshot is empty, the held-back emission above
+      // would leave the UI on its spinner forever for a genuinely empty
+      // account. Give the shared and circle feeds a moment to answer, then
+      // force a settle so "no countdowns" is shown rather than "still loading".
+      if (!emittedAnything) {
+        unawaited(Future<void>.delayed(const Duration(milliseconds: 600), () {
+          if (!disposed) emit(force: true);
+        }));
+      }
     }, onError: controller.addError);
 
     final subShared = shared.listen((snap) {
@@ -194,10 +271,11 @@ class EventRepository {
           if (doc.reference.parent.parent != null)
             doc.reference.parent.parent!.id,
       };
-      // Keep any ids discovered by the circle feed, which shares this set.
-      latestSharedIds = ids;
+      // Union with anything the circle feed already discovered. Replacing the
+      // set here used to drop circle-shared ids whenever the participant feed
+      // re-emitted, which made a shared countdown flicker out of the list.
+      latestSharedIds = {...latestSharedIds, ...ids};
       unawaited(fetchShared());
-      emit();
     }, onError: controller.addError);
 
     final subCircles = myCircles.listen((snap) {
@@ -470,10 +548,10 @@ class EventRepository {
     // the email and the uid, because a second account signed in here would slip
     // past an email-only check.
     if (inviterEmail != null && inviterEmail.trim().toLowerCase() == target) {
-      throw const DataFailure("Can't invite yourself lol");
+      throw const DataFailure(cannotInviteSelfMessage);
     }
     if (knownUserId != null && knownUserId == inviterId) {
-      throw const DataFailure("Can't invite yourself lol");
+      throw const DataFailure(cannotInviteSelfMessage);
     }
 
     // Resolve the email to an account when the caller did not already know the
@@ -488,7 +566,7 @@ class EventRepository {
       final resolvedId = match?['userId'];
       if (resolvedId != null && resolvedId.isNotEmpty) {
         if (resolvedId == inviterId) {
-          throw const DataFailure("Can't invite yourself lol");
+          throw const DataFailure(cannotInviteSelfMessage);
         }
         targetUserId = resolvedId;
         displayName ??= match?['displayName'];
@@ -509,6 +587,14 @@ class EventRepository {
         if (displayName != null) 'displayName': displayName,
         if (photoUrl != null) 'photoUrl': photoUrl,
       }, SetOptions(merge: true));
+      // Tell the invitee there is something waiting for them. This is the line
+      // that makes the Supabase inbox useful rather than permanently empty.
+      await _notify(
+        userId: targetUserId,
+        title: 'You were invited to “${event.title}”',
+        body: 'Open Invitations to accept or decline.',
+        kind: NotificationKind.invitation,
+      );
       return;
     }
 
@@ -641,6 +727,11 @@ class EventRepository {
     // no point notifying them about their own action.
     if (inviterId.isEmpty) return;
 
+    final title = eventTitle.isEmpty ? 'your countdown' : '“$eventTitle”';
+    final who = (responderName?.trim().isNotEmpty ?? false)
+        ? responderName!
+        : responderEmail;
+
     try {
       await _responses.doc(_uuid.v4()).set({
         'recipientId': inviterId,
@@ -654,6 +745,38 @@ class EventRepository {
       });
     } catch (_) {
       // The response document is a courtesy; never fail the user's action on it.
+    }
+
+    // Mirror the same event into the Supabase inbox, which is the feed the
+    // Notifications screen streams live. Without this the inbox table stayed
+    // empty — the second database looked broken because nothing ever wrote to
+    // it.
+    await _notify(
+      userId: inviterId,
+      title: accepted ? '$who joined $title' : '$who declined $title',
+      body: accepted
+          ? 'They can now follow this countdown.'
+          : 'They chose not to follow this countdown.',
+      kind: NotificationKind.invitation,
+    );
+  }
+
+  /// Sends one inbox notification, swallowing any failure.
+  ///
+  /// Notifications are a courtesy on top of a write that has already
+  /// succeeded, so a failure here must never surface as an error to the user.
+  Future<void> _notify({
+    required String userId,
+    required String title,
+    required String body,
+    NotificationKind kind = NotificationKind.system,
+  }) async {
+    final sink = notificationSink;
+    if (sink == null || userId.isEmpty) return;
+    try {
+      await sink(userId: userId, title: title, body: body, kind: kind);
+    } catch (_) {
+      // Best-effort.
     }
   }
 
@@ -769,7 +892,7 @@ class EventRepository {
     // member, and the invitation would notify your own account. Checked on the
     // email (what is typed, normalised so casing cannot slip past).
     if (inviterEmail != null && inviterEmail.trim().toLowerCase() == target) {
-      throw const DataFailure("Can't invite yourself lol");
+      throw const DataFailure(cannotInviteSelfMessage);
     }
 
     // Hydrate the member list if the caller only had the circle document
@@ -783,7 +906,7 @@ class EventRepository {
           snap.docs.map((d) => CircleMember.fromMap(d.id, d.data())).toList();
     }
     if (members.any((m) => m.userId == inviterId && m.email == target)) {
-      throw const DataFailure("Can't invite yourself lol");
+      throw const DataFailure(cannotInviteSelfMessage);
     }
     if (members.any((m) => m.email == target)) {
       throw DataFailure('$target is already in “${circle.name}”.');
@@ -804,6 +927,21 @@ class EventRepository {
       'expiresAt':
           Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
     });
+
+    // If the invitee already has an account, drop a line in their inbox so they
+    // notice without having to open the Invitations screen first.
+    final match = await lookupUserByEmail(target);
+    final inviteeId = match?['userId'];
+    if (inviteeId != null && inviteeId.isNotEmpty && inviteeId != inviterId) {
+      await _notify(
+        userId: inviteeId,
+        title: circle.isCouple
+            ? '${inviterName ?? 'Someone'} invited you to be their partner'
+            : 'You were invited to “${circle.name}”',
+        body: 'Open Invitations to accept or decline.',
+        kind: NotificationKind.circle,
+      );
+    }
   }
 
   /// Live stream of pending circle invitations addressed to this email.
@@ -855,6 +993,24 @@ class EventRepository {
     batch.update(_circleInvitations.doc(invitation.id),
         {'status': InviteStatus.accepted.name});
     await batch.commit();
+
+    // Tell the person who invited them. Best-effort: they have already joined.
+    if (invitation.invitedBy.isNotEmpty &&
+        invitation.invitedBy != userId) {
+      final who = (displayName?.trim().isNotEmpty ?? false)
+          ? displayName!
+          : email;
+      await _notify(
+        userId: invitation.invitedBy,
+        title: invitation.isCouple
+            ? '$who accepted your partner invitation'
+            : '$who joined “${invitation.circleName}”',
+        body: invitation.isCouple
+            ? 'Your countdowns now share with each other automatically.'
+            : 'You can now share countdowns with this circle in one tap.',
+        kind: NotificationKind.circle,
+      );
+    }
   }
 
   Future<void> rejectCircleInvitation(CircleInvitation invitation) async {

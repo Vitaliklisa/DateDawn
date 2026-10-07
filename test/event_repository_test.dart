@@ -65,8 +65,11 @@ void main() {
         role: ParticipantRole.viewer,
       ),
       throwsA(
-        isA<DataFailure>()
-            .having((e) => e.message, 'message', "Can't invite yourself lol"),
+        isA<DataFailure>().having(
+          (e) => e.message,
+          'message',
+          cannotInviteSelfMessage,
+        ),
       ),
     );
   });
@@ -88,15 +91,17 @@ void main() {
         inviterEmail: 'alex@example.com',
         email: 'alex@example.com',
       ),
-      throwsA(
-        isA<DataFailure>()
-            .having((e) => e.message, 'message', "Can't invite yourself lol"),
-      ),
-    );
-  });
+          throwsA(
+            isA<DataFailure>().having(
+              (e) => e.message,
+              'message',
+              cannotInviteSelfMessage,
+            ),
+          ),
+        );
+      });
 
-  test('a couple circle auto-shares a new countdown with the partner',
-      () async {
+      test('a couple circle auto-shares a new countdown with the partner', () async {
     final firestore = FakeFirebaseFirestore();
     final repository = EventRepository(firestore: firestore);
 
@@ -146,5 +151,50 @@ void main() {
 
     final samSees = await firstNonEmpty(repository.watchEvents('sam'));
     expect(samSees.map((e) => e.id), contains(created.id));
+  });
+
+  test('joining a circle writes an inbox notification for the inviter',
+      () async {
+    final firestore = FakeFirebaseFirestore();
+    final sent = <({String userId, String title})>[];
+    final repository = EventRepository(
+      firestore: firestore,
+      notificationSink: ({
+        required userId,
+        required title,
+        required body,
+        required kind,
+      }) async {
+        sent.add((userId: userId, title: title));
+      },
+    );
+
+    final circle = await repository.createCircle(
+      ownerId: 'alex',
+      ownerEmail: 'alex@example.com',
+      name: 'Family',
+    );
+    await repository.inviteToCircle(
+      circle: circle,
+      inviterId: 'alex',
+      inviterEmail: 'alex@example.com',
+      email: 'sam@example.com',
+      inviterName: 'Alex',
+    );
+
+    final invites =
+        await repository.watchCircleInvitations('sam@example.com').first;
+    await repository.acceptCircleInvitation(
+      invitation: invites.single,
+      userId: 'sam',
+      email: 'sam@example.com',
+      displayName: 'Sam Taylor',
+    );
+
+    // The whole point of the fix: the Supabase inbox is actually written to.
+    expect(sent, isNotEmpty);
+    expect(sent.last.userId, 'alex');
+    expect(sent.last.title, contains('Sam Taylor'));
+    expect(sent.last.title, contains('Family'));
   });
 }

@@ -15,8 +15,29 @@ import '../services/supabase_service.dart';
 /// Overridden in `main()` (and in tests) with a ready-to-use instance.
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
-final eventRepositoryProvider =
-    Provider<EventRepository>((ref) => EventRepository());
+final eventRepositoryProvider = Provider<EventRepository>((ref) {
+  return EventRepository(
+    // Deliver inbox notifications through Supabase. Injected here rather than
+    // imported into the repository so the data layer stays Firestore-only and
+    // remains testable without a Supabase client. Guarded on availability, so
+    // an unconfigured project simply produces no notifications instead of
+    // throwing on every invite.
+    notificationSink: ({
+      required userId,
+      required title,
+      required body,
+      required kind,
+    }) async {
+      if (!SupabaseService.isReady) return;
+      await ref.read(supabaseServiceProvider).sendNotification(
+            userId: userId,
+            title: title,
+            body: body,
+            type: kind,
+          );
+    },
+  );
+});
 
 final supabaseServiceProvider =
     Provider<SupabaseService>((ref) => SupabaseService());
@@ -34,7 +55,7 @@ final activeAuthStateProvider = StreamProvider<AppUser?>((ref) {
   return ref.watch(authServiceProvider).authStateChanges().map((user) {
     if (user != null) {
       unawaited(ref.read(eventRepositoryProvider).syncUserProfile(user));
-      if (SupabaseService.isAvailable) {
+      if (SupabaseService.isReady) {
         unawaited(ref.read(supabaseServiceProvider).upsertProfile(
               userId: user.id,
               fullName: user.displayName,

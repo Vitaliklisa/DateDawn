@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +16,7 @@ import 'providers/app_providers.dart';
 import 'router.dart';
 import 'services/auth_service.dart';
 import 'services/event_repository.dart';
+import 'services/supabase_service.dart';
 import 'supabase_config.dart';
 
 Future<void> main() async {
@@ -33,10 +36,14 @@ Future<void> main() async {
   _trace('binding ready');
 
   await dotenv.load(fileName: '.env', isOptional: true);
-  await Supabase.initialize(
-    url: resolvedSupabaseUrl,
-    publishableKey: resolvedSupabasePublishableKey,
-  );
+
+  // Supabase is a *secondary* backend: it owns theme sync, the notification
+  // inbox and avatars, none of which the first screen needs. Awaiting it here
+  // used to gate `runApp` on a network round-trip, so a slow or unreachable
+  // Supabase delayed every cold start (and a failure threw before the app ever
+  // mounted). Initialise it in the background instead, with a timeout, so the
+  // countdowns — which live in Firestore — render immediately either way.
+  unawaited(_initSupabase());
 
   // On web the config must be supplied in code; on Android/iOS the native files
   // cover it. If web is missing its keys, show a page that says exactly what to
@@ -80,6 +87,26 @@ Future<void> main() async {
 /// the whole call is tree-shaken away.
 void _trace(String message) {
   if (kDebugMode) debugPrint('[datedawn] $message');
+}
+
+/// Brings up the secondary Supabase client without blocking the first frame.
+///
+/// Deliberately fire-and-forget: the countdown data lives in Firestore, so the
+/// app is fully usable before this resolves. A failure (offline, bad key, an
+/// unreachable project) is logged and swallowed — `SupabaseService.isAvailable`
+/// already guards every Supabase call, so the UI degrades to local-only instead
+/// of crashing on launch.
+Future<void> _initSupabase() async {
+  try {
+    await Supabase.initialize(
+      url: resolvedSupabaseUrl,
+      publishableKey: resolvedSupabasePublishableKey,
+    ).timeout(const Duration(seconds: 8));
+    SupabaseService.markReady();
+    _trace('Supabase ready');
+  } catch (error) {
+    _trace('Supabase unavailable, continuing without it: $error');
+  }
 }
 
 /// Shown on web when `flutterfire configure` has not been run yet.

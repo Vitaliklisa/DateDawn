@@ -481,9 +481,16 @@ so an accidental delete is recoverable and participant/note history is not
 orphaned. Every read filters `deletedAt == null`.
 
 **Inviting by email.** If the email already has an account, a participant row is
-written immediately (pending). If not, the invitation waits in `invitations`
-until someone signs up with that address, at which point it surfaces as a banner
-they can accept.
+written immediately (pending) and an inbox notification is sent. If not, the
+invitation waits in `invitations` until someone signs up with that address, at
+which point it surfaces as a banner they can accept. You cannot invite your own
+address or account — the flow refuses it with a readable message.
+
+**Notifications.** Invitations, acceptances, declines and circle joins also
+write a row to the Supabase `notifications` table, which the Notifications
+screen streams live over Realtime. A failure there is logged and swallowed: the
+Firestore write has already succeeded, so the inbox line is a courtesy, not a
+precondition.
 
 ---
 
