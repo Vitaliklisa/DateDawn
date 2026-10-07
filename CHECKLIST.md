@@ -25,6 +25,13 @@ implemented in this branch; the "Verify" column is what to look at.
 
 ## 3. Database ("isn't working")
 
+> **Root cause found (verified against the live project):** the Cloud Firestore
+> API was **never enabled** in the `datedawn` Firebase project, and the Supabase
+> schema was **never applied**. No code change could have fixed the persistence
+> problem on its own — there was no database to write to. Run
+> `node scripts/check-backend.mjs` to see the current state, then enable
+> Firestore and run `supabase/schema.sql` once.
+
 | # | Problem | Fix | Verify |
 |---|---|---|---|
 | 3.1 | **Nothing ever wrote to the Supabase `notifications` table.** `sendNotification` existed but had no callers, so the inbox was permanently empty. | Invitations, acceptances, declines and circle joins now write an inbox row through an injected `notificationSink`. | `event_repository.dart` → `_notify()`; `app_providers.dart` → `notificationSink`. |
@@ -82,3 +89,103 @@ is tested against an in-memory fake; the real indexes, rules and Supabase
 schema must be deployed with the commands in §3. If something still fails after
 deploying, the log line will name it (`[datedawn] Could not write a Supabase
 notification: …`).
+---
+
+# 6. Migration: Firebase Auth + Supabase data
+
+Identity stays on Firebase. All countdown data now lives in Supabase Postgres.
+
+| Concern | Before | Now |
+|---|---|---|
+| Sign-in | Firebase Auth | **Firebase Auth** (unchanged) |
+| Countdowns, circles, invitations, notes | Cloud Firestore | **Supabase Postgres** |
+| Notification inbox, theme sync, avatars | Supabase | **Supabase** (now actually written to) |
+| How Supabase knows who you are | `x-user-id` header (client-claimed) | **Verified Firebase ID token** |
+
+## The identity bridge
+
+`main.dart` gives the Supabase client an `accessToken` callback returning the
+current Firebase ID token. Supabase verifies it against the Firebase project
+registered under Third-Party Auth and exposes the Firebase uid as `auth.uid()`.
+
+The old `x-user-id` header is **gone**. That mattered: it was a claim the client
+made about itself, so any caller could have sent any uid. A token is a
+signature-verified statement, so `auth.uid()` cannot be forged.
+
+## Why RLS is now the whole security model
+
+Authorisation lives in Postgres policies (`supabase/schema.sql`), not in client
+code. The client cannot widen its own access — a crafted request is refused by
+the database. That is a real improvement over the Firestore rules, which the
+client had to mirror by hand.
+
+## Performance
+
+The old Firestore read merged **three** feeds client-side, and each shared event
+cost a second round-trip after its id was discovered — a waterfall per load. The
+new read is **one** query: the `events` RLS policy already means "I created it,
+or I am an accepted participant, or it is shared with a circle I am in", and
+Postgres applies it per row. Fewer round-trips, and no merge logic to get wrong.
+
+## Files
+
+| File | What it is |
+|---|---|
+| `lib/main.dart` | Supabase init with the `accessToken` callback |
+| `lib/services/auth_service.dart` | Force-refreshes the ID token after sign-in so the `role` claim is present |
+| `lib/services/event_repository.dart` | Rewritten against Postgres (was Firestore) |
+| `lib/core/models.dart`, `lib/core/circles.dart` | Added `fromRow` parsers for the Postgres row shape |
+| `supabase/schema.sql` | Tables, helpers, `auth.uid()` RLS, Realtime, storage |
+| `firebase/functions/index.js` | Blocking Auth functions that stamp `role: 'authenticated'` |
+| `firebase/functions/backfill-role.js` | One-off script for accounts that already exist |
+| `scripts/check-backend.mjs` | Probes both backends, says what is missing |
+| `scripts/validate-schema.mjs` | Parses the schema with the real Postgres grammar |
+
+## Before it works — 3 dashboard steps
+
+Run `node scripts/check-backend.mjs` at any point to see what is still missing.
+
+**1. Register Firebase with Supabase.**
+Supabase dashboard -> Authentication -> Third-Party Auth -> add Firebase ->
+project id `datedawn`.
+Without this Supabase cannot verify the token and every request is anonymous.
+
+**2. Stamp the `role` claim (the one people miss).**
+Firebase ID tokens carry no `role` claim, so Supabase assigns the `anon` Postgres
+role — and every policy grants to `authenticated` only. The symptom is
+`permission denied` on every query even though you are signed in.
+
+```bash
+cd firebase/functions
+npm install
+firebase deploy --only functions
+```
+
+Then, for accounts that already exist:
+
+```bash
+# Firebase console -> Project settings -> Service accounts -> Generate new private key
+# Save as firebase/functions/service-account.json (gitignored - never commit it)
+node backfill-role.js
+```
+
+**3. Run the schema.**
+Supabase dashboard -> SQL Editor -> paste all of `supabase/schema.sql` -> Run.
+
+## Verification
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | 74/74 passing |
+| `dart format --set-exit-if-changed lib test` | exit 0 |
+| `flutter build web` | `√ Built build\web` |
+| `node scripts/validate-schema.mjs` | 146 statements, all valid SQL |
+
+### What is NOT verified
+
+- **The live backend.** I have no credentials for the Firebase or Supabase
+  projects, so no query has been run against the real database. The row parsers
+  and guard rails are unit-tested; the SQL is grammar-checked but never executed.
+- **RLS under a real session.** The policies are derived from the Firestore rules
+  that were the shipped authority, but no signed-in user has exercised them yet.

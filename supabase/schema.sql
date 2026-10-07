@@ -1,94 +1,118 @@
--- ============================================================================
---  Date Dawn — Supabase schema for the Option B "two worlds" integration.
+﻿-- ============================================================================
+--  Date Dawn - Supabase schema (Firebase Auth, Supabase data)
 -- ============================================================================
 --
 --  HOW THIS FITS THE APP
 --  ---------------------
---  Date Dawn keeps Firebase Auth + Firestore as the source of truth for
---  countdowns, circles and invitations. Supabase runs ALONGSIDE it and owns
---  exactly two things:
+--  Firebase Authentication is the only identity provider. Supabase stores the
+--  data. The two are joined by the Firebase ID token: the Flutter client hands
+--  it to Supabase on every request (see the `accessToken` callback in
+--  `lib/main.dart`), Supabase verifies it against the Firebase project
+--  registered under Authentication -> Third-Party Auth, and exposes the
+--  Firebase uid as `auth.uid()`.
 --
---    1. `user_settings`   — appearance, synced across a user's devices.
---    2. `notifications`   — an in-app notification inbox, pushed live over
---                           Supabase Realtime.
+--  Every table below therefore keys on the FIREBASE uid, and every policy is
+--  written against `auth.uid()`. There is no `x-user-id` header and no
+--  client-supplied identity anywhere: the uid in `auth.uid()` is read from a
+--  signature-verified JWT and cannot be forged.
 --
---  Plus Supabase Storage for avatar uploads.
+--  BEFORE THIS SCHEMA WILL WORK
+--  ----------------------------
+--  1. Supabase dashboard -> Authentication -> Third-Party Auth -> add Firebase,
+--     with the Firebase project id (`datedawn`).
+--  2. Firebase must stamp `role: 'authenticated'` on every token, or Supabase
+--     assigns the `anon` Postgres role and every policy below denies. This is
+--     done by a blocking Auth function - see `firebase/functions/index.js`.
+--     Existing accounts need the one-off backfill in
+--     `firebase/functions/backfill-role.js`.
+--  3. Run this file in the Supabase SQL editor.
 --
---  The single hard problem in a two-backend setup is identity: Firebase issues
---  the user id, Supabase issues its own `auth.uid()`. Every table below is
---  keyed on the FIREBASE uid (a `text` column), not on Supabase's `uuid`, so
---  the two systems agree on who a row belongs to without a mapping table.
---
---  SECURITY — READ THIS
---  --------------------
---  Because the app authenticates with Firebase, Postgres cannot verify the
---  caller itself: there is no Supabase JWT on the request. A "the client sends
---  its own uid" policy is therefore NOT a real access control — any user could
---  send someone else's uid.
---
---  So this file is split into two clearly-marked halves:
---
---    PART 1 (dev / demo): permissive policies that make the app work today.
---    PART 2 (production):  the locked-down policies, which require the
---                          Firebase->Supabase token exchange described in
---                          docs/SUPABASE_INTEGRATION.md. Flip to PART 2 when
---                          that is in place.
---
---  Run PART 1 to start. Read PART 2 before you put real user data in here.
+--  Run the whole file top to bottom; it is idempotent.
 -- ============================================================================
 
 
 -- ============================================================================
---  PART 1 — SCHEMA
+--  PART 1 - TABLES
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
---  profiles
+--  events - one countdown
 -- ---------------------------------------------------------------------------
---  The public half of an account: a display name and an avatar. Mirrors the
---  Firebase `users` collection so a Supabase-only feature (avatar upload) can
---  resolve a person without reading Firestore.
+--  A countdown: a title, an optional note, the moment, and who created it.
 --
---  `id` is the Firebase uid, kept as text for that reason.
-create table if not exists public.profiles (
-  id          text primary key,
-  username    text,
-  full_name   text,
-  avatar_url  text,
+--  `deleted_at` is a soft delete, carried over from the Firestore design so an
+--  accidental delete stays recoverable and participant history is not
+--  orphaned. Every read filters `deleted_at is null`.
+create table if not exists public.events (
+  id            uuid primary key default gen_random_uuid(),
+  title         text not null check (char_length(title) between 1 and 80),
+  description   text not null default '' check (char_length(description) <= 280),
+  at            timestamptz not null,
+  created_by    text not null,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  deleted_at    timestamptz
+);
+
+comment on table public.events is
+  'One countdown. created_by is a Firebase uid. Soft-deleted via deleted_at.';
+
+create index if not exists events_created_by_idx
+  on public.events (created_by) where deleted_at is null;
+create index if not exists events_at_idx
+  on public.events (at) where deleted_at is null;
+
+
+-- ---------------------------------------------------------------------------
+--  event_participants - who can see one countdown
+-- ---------------------------------------------------------------------------
+--  `user_id` is a Firebase uid. `invite_status` mirrors the old Firestore
+--  field so the UI keeps its pending / accepted / rejected distinction; a
+--  couple-circle share writes `accepted` directly, an invitation writes
+--  `pending`.
+create table if not exists public.event_participants (
+  event_id      uuid not null references public.events (id) on delete cascade,
+  user_id       text not null,
+  email         text not null default '',
+  role          text not null default 'viewer'
+                check (role in ('admin', 'editor', 'viewer')),
+  invite_status text not null default 'pending'
+                check (invite_status in ('pending', 'accepted', 'rejected')),
+  display_name  text,
+  photo_url     text,
+  joined_at     timestamptz not null default now(),
+  primary key (event_id, user_id)
+);
+
+comment on table public.event_participants is
+  'Who can see a countdown, and with what role. user_id is a Firebase uid.';
+
+create index if not exists event_participants_user_idx
+  on public.event_participants (user_id);
+
+
+-- ---------------------------------------------------------------------------
+--  event_circles - which circles a countdown is shared with
+-- ---------------------------------------------------------------------------
+--  event_notes - messages left on a countdown
+-- ---------------------------------------------------------------------------
+create table if not exists public.event_notes (
+  id          uuid primary key default gen_random_uuid(),
+  event_id    uuid not null references public.events (id) on delete cascade,
+  user_id     text not null,
+  text        text not null check (char_length(text) between 1 and 2000),
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
 
-comment on table public.profiles is
-  'Public profile per account. id = Firebase uid.';
+create index if not exists event_notes_event_idx
+  on public.event_notes (event_id, created_at);
 
 
 -- ---------------------------------------------------------------------------
---  user_settings
+--  circles - a standing group
 -- ---------------------------------------------------------------------------
---  Appearance, one row per user. This is the table the Settings screen writes
---  to on every theme change, so the change follows the user to their other
---  devices instead of being stuck on one phone.
---
---  `theme_mode` is constrained rather than free text: the client maps the
---  string straight onto Flutter's ThemeMode, so an unexpected value would
---  crash the parse. The check makes that impossible at the source.
-create table if not exists public.user_settings (
-  user_id     text primary key,
-  theme_mode  text not null default 'system'
-              check (theme_mode in ('light', 'dark', 'system')),
-  updated_at  timestamptz not null default now()
-);
-
-comment on table public.user_settings is
-  'Per-user appearance. theme_mode is one of light | dark | system.';
-
-
--- ---------------------------------------------------------------------------
---  circles
--- ---------------------------------------------------------------------------
---  A standing group you count down with. Mirrors the Firestore `circles`
---  collection; `owner_id` is a Firebase uid.
+--  A standing group you count down with. `owner_id` is a Firebase uid.
 create table if not exists public.circles (
   id          uuid primary key default gen_random_uuid(),
   name        text not null check (char_length(name) between 1 and 60),
@@ -103,69 +127,165 @@ create index if not exists circles_owner_idx on public.circles (owner_id);
 
 
 -- ---------------------------------------------------------------------------
---  circle_members
+--  circle_members - who is in which circle
 -- ---------------------------------------------------------------------------
---  Who is in which circle. `user_id` is a Firebase uid; the row's own `id` is
---  a real uuid because it is Supabase-only.
---
---  `role` distinguishes the owner from everyone else, which is what the
---  "only the owner can invite" rule in the app relies on.
+--  The primary key makes "join" idempotent, which matters because accepting an
+--  invitation can be retried after a dropped connection.
 create table if not exists public.circle_members (
-  id         uuid primary key default gen_random_uuid(),
-  circle_id  uuid not null references public.circles (id) on delete cascade,
-  user_id    text not null,
-  role       text not null default 'member'
-             check (role in ('owner', 'admin', 'member')),
-  joined_at  timestamptz not null default now(),
-  -- A person joins a given circle once. Makes "join" idempotent, which matters
-  -- because accepting an invitation can be retried after a dropped connection.
-  unique (circle_id, user_id)
+  circle_id    uuid not null references public.circles (id) on delete cascade,
+  user_id      text not null,
+  email        text not null default '',
+  display_name text,
+  photo_url    text,
+  role         text not null default 'member'
+               check (role in ('owner', 'admin', 'member')),
+  joined_at    timestamptz not null default now(),
+  primary key (circle_id, user_id)
 );
+
+comment on table public.circle_members is
+  'Circle membership. user_id is a Firebase uid; owner is role = owner.';
 
 create index if not exists circle_members_user_idx
   on public.circle_members (user_id);
-create index if not exists circle_members_circle_idx
-  on public.circle_members (circle_id);
 
 
 -- ---------------------------------------------------------------------------
---  invitations
+--  event_circles - which circles a countdown is shared with
 -- ---------------------------------------------------------------------------
---  An invite into a circle. `sender_id` and `receiver_id` are Firebase uids.
+--  Declared after BOTH `events` and `circles` exist: it references each, so
+--  Postgres rejects it if it is created before either.
 --
---  `receiver_id` is nullable on purpose: the app invites by EMAIL, and the
---  person may not have signed in yet. Until they do, the invite is addressed
---  to `receiver_email` and is claimed on first sign-in.
-create table if not exists public.invitations (
-  id              uuid primary key default gen_random_uuid(),
-  sender_id       text not null,
-  receiver_id     text,
-  receiver_email  text,
-  circle_id       uuid not null references public.circles (id) on delete cascade,
-  status          text not null default 'pending'
-                  check (status in ('pending', 'accepted', 'declined')),
-  created_at      timestamptz not null default now(),
-  -- Answering twice should not be possible; the app flips pending -> answered
-  -- exactly once.
-  responded_at    timestamptz
+--  A join table rather than an array so the visibility rule is a plain EXISTS
+--  and does not need one index per array element.
+create table if not exists public.event_circles (
+  event_id   uuid not null references public.events (id) on delete cascade,
+  circle_id  uuid not null references public.circles (id) on delete cascade,
+  primary key (event_id, circle_id)
 );
 
-create index if not exists invitations_receiver_idx
-  on public.invitations (receiver_id);
+create index if not exists event_circles_circle_idx
+  on public.event_circles (circle_id);
+
+
+-- ---------------------------------------------------------------------------
+--  invitations - invite one person to one countdown
+-- ---------------------------------------------------------------------------
+--  `invitee_email` is what the invitation is addressed to; `invitee_id` is
+--  filled in once that email is known to have an account, so the invitee can
+--  read their own row by uid. Answering is one-way: pending -> accepted.
+create table if not exists public.invitations (
+  id            uuid primary key default gen_random_uuid(),
+  event_id      uuid not null references public.events (id) on delete cascade,
+  invited_by    text not null,
+  invitee_email text not null,
+  invitee_id    text,
+  role          text not null default 'viewer'
+                check (role in ('admin', 'editor', 'viewer')),
+  status        text not null default 'pending'
+                check (status in ('pending', 'accepted', 'rejected')),
+  event_title   text not null default '',
+  created_at    timestamptz not null default now(),
+  expires_at    timestamptz not null default now() + interval '30 days'
+);
+
 create index if not exists invitations_email_idx
-  on public.invitations (lower(receiver_email));
-create index if not exists invitations_circle_idx
-  on public.invitations (circle_id);
+  on public.invitations (lower(invitee_email)) where status = 'pending';
+create index if not exists invitations_invitee_idx
+  on public.invitations (invitee_id) where status = 'pending';
+create index if not exists invitations_event_idx
+  on public.invitations (event_id);
 
 
 -- ---------------------------------------------------------------------------
---  notifications
+--  circle_invitations - invite one person to one circle
 -- ---------------------------------------------------------------------------
---  The in-app inbox, streamed live to the client over Supabase Realtime.
---
+create table if not exists public.circle_invitations (
+  id              uuid primary key default gen_random_uuid(),
+  circle_id       uuid not null references public.circles (id) on delete cascade,
+  invited_by      text not null,
+  invited_by_name text,
+  invitee_email   text not null,
+  invitee_id      text,
+  circle_name     text not null default '',
+  is_couple       boolean not null default false,
+  role            text not null default 'member',
+  status          text not null default 'pending'
+                  check (status in ('pending', 'accepted', 'rejected')),
+  created_at      timestamptz not null default now(),
+  expires_at      timestamptz not null default now() + interval '30 days'
+);
+
+create index if not exists circle_invitations_email_idx
+  on public.circle_invitations (lower(invitee_email)) where status = 'pending';
+create index if not exists circle_invitations_invitee_idx
+  on public.circle_invitations (invitee_id) where status = 'pending';
+
+
+-- ---------------------------------------------------------------------------
+--  responses - "your friend joined / declined"
+-- ---------------------------------------------------------------------------
+create table if not exists public.responses (
+  id              uuid primary key default gen_random_uuid(),
+  recipient_id    text not null,
+  event_id        uuid,
+  event_title     text not null default 'your countdown',
+  responder_email text not null default '',
+  responder_name  text,
+  accepted        boolean not null,
+  is_read         boolean not null default false,
+  responded_at    timestamptz not null default now()
+);
+
+create index if not exists responses_recipient_idx
+  on public.responses (recipient_id, responded_at desc);
+
+
+
+
+-- ---------------------------------------------------------------------------
+--  profiles - public half of an account
+-- ---------------------------------------------------------------------------
+--  `id` is the Firebase uid. `email` is stored lowercased so an invitation can
+--  be turned into an account without reading the auth record.
+create table if not exists public.profiles (
+  id          text primary key,
+  email       text,
+  username    text,
+  full_name   text,
+  avatar_url  text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+comment on table public.profiles is
+  'Public profile per account. id = Firebase uid. email is lowercased.';
+
+-- Email lookups happen on every invite, so index it. Partial: rows written
+-- before this column existed have no email and are not worth indexing.
+create index if not exists profiles_email_idx
+  on public.profiles (lower(email)) where email is not null;
+
+
+-- ---------------------------------------------------------------------------
+--  user_settings - appearance
+-- ---------------------------------------------------------------------------
+--  `theme_mode` is constrained rather than free text: the client maps the
+--  string straight onto Flutter's ThemeMode, so an unexpected value would
+--  crash the parse. The check makes that impossible at the source.
+create table if not exists public.user_settings (
+  user_id     text primary key,
+  theme_mode  text not null default 'system'
+              check (theme_mode in ('light', 'dark', 'system')),
+  updated_at  timestamptz not null default now()
+);
+
+
+-- ---------------------------------------------------------------------------
+--  notifications - the in-app inbox
+-- ---------------------------------------------------------------------------
 --  `user_id` is the Firebase uid of the recipient. The `type` column lets the
---  UI pick an icon and, later, a destination route without parsing the body
---  text.
+--  UI pick an icon without parsing the body text.
 create table if not exists public.notifications (
   id          uuid primary key default gen_random_uuid(),
   user_id     text not null,
@@ -177,16 +297,19 @@ create table if not exists public.notifications (
   created_at  timestamptz not null default now()
 );
 
--- The inbox query is always "my notifications, newest first", so index for it.
 create index if not exists notifications_user_created_idx
   on public.notifications (user_id, created_at desc);
 
 
+-- ============================================================================
+--  PART 2 - HELPER FUNCTIONS
+-- ============================================================================
+
 -- ---------------------------------------------------------------------------
 --  updated_at maintenance
 -- ---------------------------------------------------------------------------
---  `updated_at` is set by the database rather than trusted from the client, so
---  a wrong device clock cannot corrupt the ordering.
+--  Set by the database rather than trusted from the client, so a wrong device
+--  clock cannot corrupt the ordering.
 create or replace function public.touch_updated_at()
 returns trigger
 language plpgsql
@@ -207,54 +330,42 @@ create trigger user_settings_touch_updated_at
   before update on public.user_settings
   for each row execute function public.touch_updated_at();
 
+drop trigger if exists events_touch_updated_at on public.events;
+create trigger events_touch_updated_at
+  before update on public.events
+  for each row execute function public.touch_updated_at();
+
+drop trigger if exists event_notes_touch_updated_at on public.event_notes;
+create trigger event_notes_touch_updated_at
+  before update on public.event_notes
+  for each row execute function public.touch_updated_at();
+
 
 -- ---------------------------------------------------------------------------
---  New-user bootstrap
+--  Membership / permission helpers
 -- ---------------------------------------------------------------------------
---  When someone signs up through SUPABASE auth, give them a profile and a
---  default settings row so the app never has to handle "no row yet".
---
---  Note: with Firebase Auth as the identity provider this trigger does not
---  fire — the app upserts both rows itself on first sign-in. It is here so the
---  schema is correct if you later move auth to Supabase.
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
+--  SECURITY DEFINER so a policy on one table can consult another without
+--  recursing into that table's own policy. Each fixes `search_path`, which is
+--  what makes a definer function safe to expose.
+
+-- Is the caller a member of this circle?
+create or replace function public.is_circle_member(p_circle_id uuid)
+returns boolean
+language sql
+stable
 security definer
 set search_path = public
 as $$
-begin
-  insert into public.profiles (id, full_name, avatar_url)
-  values (
-    new.id::text,
-    coalesce(new.raw_user_meta_data ->> 'full_name',
-             new.raw_user_meta_data ->> 'name'),
-    new.raw_user_meta_data ->> 'avatar_url'
-  )
-  on conflict (id) do nothing;
-
-  insert into public.user_settings (user_id, theme_mode)
-  values (new.id::text, 'system')
-  on conflict (user_id) do nothing;
-
-  return new;
-end;
+  select exists (
+    select 1 from public.circle_members m
+    where m.circle_id = p_circle_id
+      and m.user_id = auth.uid()::text
+  );
 $$;
 
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
-
-
--- ---------------------------------------------------------------------------
---  Helper: is the caller a member of this circle?
--- ---------------------------------------------------------------------------
---  Written as a `security definer` function so the membership check can read
---  `circle_members` without itself being subject to that table's RLS. Without
---  this, a policy on `circles` that queries `circle_members` would recurse
---  into the policy on `circle_members`, and Postgres would reject the query.
-create or replace function public.is_circle_member(p_circle_id uuid, p_user_id text)
+-- Can the caller see this countdown at all?
+-- Creator, an accepted participant, or a member of a circle it is shared with.
+create or replace function public.can_read_event(p_event_id uuid)
 returns boolean
 language sql
 stable
@@ -263,430 +374,458 @@ set search_path = public
 as $$
   select exists (
     select 1
-    from public.circle_members m
-    where m.circle_id = p_circle_id
-      and m.user_id = p_user_id
+    from public.events e
+    where e.id = p_event_id
+      and e.deleted_at is null
+      and (
+        e.created_by = auth.uid()::text
+        or exists (
+          select 1 from public.event_participants p
+          where p.event_id = e.id
+            and p.user_id = auth.uid()::text
+            and p.invite_status = 'accepted'
+        )
+        or exists (
+          select 1
+          from public.event_circles ec
+          join public.circle_members m on m.circle_id = ec.circle_id
+          where ec.event_id = e.id
+            and m.user_id = auth.uid()::text
+        )
+      )
+  );
+$$;
+
+-- Can the caller edit this countdown (rename / reschedule / share)?
+create or replace function public.can_edit_event(p_event_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.events e
+    where e.id = p_event_id
+      and (
+        e.created_by = auth.uid()::text
+        or exists (
+          select 1 from public.event_participants p
+          where p.event_id = e.id
+            and p.user_id = auth.uid()::text
+            and p.invite_status = 'accepted'
+            and p.role in ('admin', 'editor')
+        )
+      )
+  );
+$$;
+
+-- Can the caller manage this countdown (invite / delete)?
+create or replace function public.can_manage_event(p_event_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.events e
+    where e.id = p_event_id
+      and (
+        e.created_by = auth.uid()::text
+        or exists (
+          select 1 from public.event_participants p
+          where p.event_id = e.id
+            and p.user_id = auth.uid()::text
+            and p.invite_status = 'accepted'
+            and p.role = 'admin'
+        )
+      )
   );
 $$;
 
 
+-- ============================================================================
+--  PART 3 - ROW LEVEL SECURITY
+-- ============================================================================
+--
+--  Every policy is written against `auth.uid()`, which is the Firebase uid
+--  carried in the verified ID token. `(select auth.uid())` is used throughout
+--  rather than a bare `auth.uid()`: Postgres treats the wrapped form as a
+--  constant for the duration of the statement and evaluates it once, instead
+--  of once per row.
+--
+--  Deliberately NO `iss` / `aud` checks: hosted Supabase verifies the token
+--  against the project registered under Third-Party Auth, so those claims are
+--  already validated.
+-- ============================================================================
+
+alter table public.events             enable row level security;
+alter table public.event_participants enable row level security;
+alter table public.event_circles      enable row level security;
+alter table public.event_notes        enable row level security;
+alter table public.circles            enable row level security;
+alter table public.circle_members     enable row level security;
+alter table public.invitations        enable row level security;
+alter table public.circle_invitations enable row level security;
+alter table public.responses          enable row level security;
+alter table public.profiles           enable row level security;
+alter table public.user_settings      enable row level security;
+alter table public.notifications      enable row level security;
+
 -- ---------------------------------------------------------------------------
---  Enable RLS everywhere
+--  events
 -- ---------------------------------------------------------------------------
---  Nothing is readable without a policy. A table with RLS on and no policy is
---  closed, which is the correct default if a policy below is ever dropped.
-alter table public.profiles       enable row level security;
-alter table public.user_settings  enable row level security;
-alter table public.circles        enable row level security;
-alter table public.circle_members enable row level security;
-alter table public.invitations    enable row level security;
-alter table public.notifications  enable row level security;
+drop policy if exists "events select visible" on public.events;
+create policy "events select visible"
+  on public.events for select to authenticated
+  using (
+    created_by = (select auth.uid())::text
+    or public.can_read_event(id)
+  );
 
+-- The creator is always the caller: a client cannot create a countdown on
+-- somebody else's behalf.
+drop policy if exists "events insert own" on public.events;
+create policy "events insert own"
+  on public.events for insert to authenticated
+  with check (created_by = (select auth.uid())::text);
 
--- ============================================================================
---  PART 2 — ROW LEVEL SECURITY
--- ============================================================================
---
---  !!! READ THE SECURITY NOTE AT THE TOP OF THIS FILE !!!
---
---  These policies are written against `auth.uid()`, which is the Supabase
---  identity. In the Option B setup the app signs in with FIREBASE, so
---  `auth.uid()` is NULL on every request and these policies would deny
---  everything.
---
---  They are provided so the schema is production-ready: once the
---  Firebase -> Supabase token exchange is wired (see the integration doc),
---  Supabase will issue a JWT whose `sub` claim is the Firebase uid, `auth.uid()`
---  will resolve, and these policies become live and correct.
---
---  Until then, PART 3 below is what makes the app work. Keep PART 3 while you
---  are developing; drop it before production.
--- ============================================================================
+drop policy if exists "events update editor" on public.events;
+create policy "events update editor"
+  on public.events for update to authenticated
+  using (public.can_edit_event(id))
+  with check (public.can_edit_event(id));
 
--- ---------- profiles ----------
--- Readable by any signed-in user: an inviter needs to resolve a uid to a name
--- and avatar. Only the owner may write.
-drop policy if exists "profiles readable by authenticated" on public.profiles;
-create policy "profiles readable by authenticated"
-  on public.profiles for select
-  to authenticated
-  using (true);
+drop policy if exists "events delete owner" on public.events;
+create policy "events delete owner"
+  on public.events for delete to authenticated
+  using (created_by = (select auth.uid())::text);
 
-drop policy if exists "profiles insert own" on public.profiles;
-create policy "profiles insert own"
-  on public.profiles for insert
-  to authenticated
-  with check (auth.uid()::text = id);
+-- ---------------------------------------------------------------------------
+--  event_participants
+-- ---------------------------------------------------------------------------
+drop policy if exists "participants select visible" on public.event_participants;
+create policy "participants select visible"
+  on public.event_participants for select to authenticated
+  using (
+    user_id = (select auth.uid())::text
+    or public.can_read_event(event_id)
+  );
 
-drop policy if exists "profiles update own" on public.profiles;
-create policy "profiles update own"
-  on public.profiles for update
-  to authenticated
-  using (auth.uid()::text = id)
-  with check (auth.uid()::text = id);
+-- You may add yourself (accepting an invitation), or someone who can manage
+-- the countdown may add anyone. The creator seeds their own admin row at
+-- creation time, which the `user_id = auth.uid()` branch covers.
+drop policy if exists "participants insert self or manager" on public.event_participants;
+create policy "participants insert self or manager"
+  on public.event_participants for insert to authenticated
+  with check (
+    user_id = (select auth.uid())::text
+    or public.can_manage_event(event_id)
+  );
 
+-- An invitee may flip their OWN row pending -> accepted. Managers may change
+-- anything.
+drop policy if exists "participants update self or manager" on public.event_participants;
+create policy "participants update self or manager"
+  on public.event_participants for update to authenticated
+  using (
+    user_id = (select auth.uid())::text
+    or public.can_manage_event(event_id)
+  )
+  with check (
+    user_id = (select auth.uid())::text
+    or public.can_manage_event(event_id)
+  );
 
--- ---------- user_settings ----------
--- Strictly private: your appearance is nobody else's business.
-drop policy if exists "settings select own" on public.user_settings;
-create policy "settings select own"
-  on public.user_settings for select
-  to authenticated
-  using (auth.uid()::text = user_id);
+drop policy if exists "participants delete self or manager" on public.event_participants;
+create policy "participants delete self or manager"
+  on public.event_participants for delete to authenticated
+  using (
+    user_id = (select auth.uid())::text
+    or public.can_manage_event(event_id)
+  );
 
-drop policy if exists "settings insert own" on public.user_settings;
-create policy "settings insert own"
-  on public.user_settings for insert
-  to authenticated
-  with check (auth.uid()::text = user_id);
+-- ---------------------------------------------------------------------------
+--  event_circles
+-- ---------------------------------------------------------------------------
+drop policy if exists "event_circles select visible" on public.event_circles;
+create policy "event_circles select visible"
+  on public.event_circles for select to authenticated
+  using (public.can_read_event(event_id));
 
-drop policy if exists "settings update own" on public.user_settings;
-create policy "settings update own"
-  on public.user_settings for update
-  to authenticated
-  using (auth.uid()::text = user_id)
-  with check (auth.uid()::text = user_id);
+drop policy if exists "event_circles write editor" on public.event_circles;
+create policy "event_circles write editor"
+  on public.event_circles for all to authenticated
+  using (public.can_edit_event(event_id))
+  with check (public.can_edit_event(event_id));
 
+-- ---------------------------------------------------------------------------
+--  event_notes
+-- ---------------------------------------------------------------------------
+drop policy if exists "notes select visible" on public.event_notes;
+create policy "notes select visible"
+  on public.event_notes for select to authenticated
+  using (public.can_read_event(event_id));
 
--- ---------- circles ----------
--- You see a circle you own or belong to. You may create only a circle you own.
+drop policy if exists "notes insert participant" on public.event_notes;
+create policy "notes insert participant"
+  on public.event_notes for insert to authenticated
+  with check (
+    user_id = (select auth.uid())::text
+    and public.can_read_event(event_id)
+  );
+
+drop policy if exists "notes update own or manager" on public.event_notes;
+create policy "notes update own or manager"
+  on public.event_notes for update to authenticated
+  using (user_id = (select auth.uid())::text or public.can_manage_event(event_id));
+
+drop policy if exists "notes delete own or manager" on public.event_notes;
+create policy "notes delete own or manager"
+  on public.event_notes for delete to authenticated
+  using (user_id = (select auth.uid())::text or public.can_manage_event(event_id));
+
+-- ---------------------------------------------------------------------------
+--  circles
+-- ---------------------------------------------------------------------------
 drop policy if exists "circles select member" on public.circles;
 create policy "circles select member"
-  on public.circles for select
-  to authenticated
+  on public.circles for select to authenticated
   using (
-    owner_id = auth.uid()::text
-    or public.is_circle_member(id, auth.uid()::text)
+    owner_id = (select auth.uid())::text
+    or public.is_circle_member(id)
   );
 
 drop policy if exists "circles insert owner" on public.circles;
 create policy "circles insert owner"
-  on public.circles for insert
-  to authenticated
-  with check (owner_id = auth.uid()::text);
+  on public.circles for insert to authenticated
+  with check (owner_id = (select auth.uid())::text);
 
--- Only the owner may rename or re-describe the circle.
 drop policy if exists "circles update owner" on public.circles;
 create policy "circles update owner"
-  on public.circles for update
-  to authenticated
-  using (owner_id = auth.uid()::text)
-  with check (owner_id = auth.uid()::text);
+  on public.circles for update to authenticated
+  using (owner_id = (select auth.uid())::text)
+  with check (owner_id = (select auth.uid())::text);
 
 drop policy if exists "circles delete owner" on public.circles;
 create policy "circles delete owner"
-  on public.circles for delete
-  to authenticated
-  using (owner_id = auth.uid()::text);
+  on public.circles for delete to authenticated
+  using (owner_id = (select auth.uid())::text);
 
-
--- ---------- circle_members ----------
--- Visible to fellow members. You may add yourself (accepting an invitation) or
--- be added by the circle's owner; you may remove yourself (leaving).
+-- ---------------------------------------------------------------------------
+--  circle_members
+-- ---------------------------------------------------------------------------
 drop policy if exists "members select same circle" on public.circle_members;
 create policy "members select same circle"
-  on public.circle_members for select
-  to authenticated
-  using (public.is_circle_member(circle_id, auth.uid()::text));
+  on public.circle_members for select to authenticated
+  using (
+    user_id = (select auth.uid())::text
+    or public.is_circle_member(circle_id)
+  );
 
+-- You add yourself (accepting an invitation); the owner may add anyone (which
+-- is what a couple-circle auto-share does).
 drop policy if exists "members insert self or owner" on public.circle_members;
 create policy "members insert self or owner"
-  on public.circle_members for insert
-  to authenticated
+  on public.circle_members for insert to authenticated
   with check (
-    user_id = auth.uid()::text
+    user_id = (select auth.uid())::text
     or exists (
       select 1 from public.circles c
-      where c.id = circle_id and c.owner_id = auth.uid()::text
+      where c.id = circle_id and c.owner_id = (select auth.uid())::text
     )
   );
 
 drop policy if exists "members delete self or owner" on public.circle_members;
 create policy "members delete self or owner"
-  on public.circle_members for delete
-  to authenticated
+  on public.circle_members for delete to authenticated
   using (
-    user_id = auth.uid()::text
+    user_id = (select auth.uid())::text
     or exists (
       select 1 from public.circles c
-      where c.id = circle_id and c.owner_id = auth.uid()::text
+      where c.id = circle_id and c.owner_id = (select auth.uid())::text
     )
   );
 
-
--- ---------- invitations ----------
--- Readable by the sender and the person invited (by uid once known, or by
--- email before they have an account). Only the sender creates one, and only
--- the receiver answers it.
-drop policy if exists "invitations select sender or receiver" on public.invitations;
-create policy "invitations select sender or receiver"
-  on public.invitations for select
-  to authenticated
+-- ---------------------------------------------------------------------------
+--  invitations
+-- ---------------------------------------------------------------------------
+--  Readable by the sender and the person addressed, whether addressed by uid
+--  (known account) or by email (not signed up yet).
+drop policy if exists "invitations select sender or invitee" on public.invitations;
+create policy "invitations select sender or invitee"
+  on public.invitations for select to authenticated
   using (
-    sender_id = auth.uid()::text
-    or receiver_id = auth.uid()::text
-    or lower(receiver_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    invited_by = (select auth.uid())::text
+    or invitee_id = (select auth.uid())::text
+    or lower(invitee_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
   );
 
-drop policy if exists "invitations insert sender" on public.invitations;
-create policy "invitations insert sender"
-  on public.invitations for insert
-  to authenticated
-  with check (sender_id = auth.uid()::text);
-
--- The receiver may accept or decline; the sender may cancel.
-drop policy if exists "invitations update sender or receiver" on public.invitations;
-create policy "invitations update sender or receiver"
-  on public.invitations for update
-  to authenticated
-  using (
-    sender_id = auth.uid()::text
-    or receiver_id = auth.uid()::text
-    or lower(receiver_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
-  )
+drop policy if exists "invitations insert manager" on public.invitations;
+create policy "invitations insert manager"
+  on public.invitations for insert to authenticated
   with check (
-    sender_id = auth.uid()::text
-    or receiver_id = auth.uid()::text
-    or lower(receiver_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    invited_by = (select auth.uid())::text
+    and public.can_manage_event(event_id)
   );
 
+drop policy if exists "invitations update sender or invitee" on public.invitations;
+create policy "invitations update sender or invitee"
+  on public.invitations for update to authenticated
+  using (
+    invited_by = (select auth.uid())::text
+    or invitee_id = (select auth.uid())::text
+    or lower(invitee_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
 
--- ---------- notifications ----------
--- Strictly private: you read, update and delete only your own.
+drop policy if exists "invitations delete sender" on public.invitations;
+create policy "invitations delete sender"
+  on public.invitations for delete to authenticated
+  using (invited_by = (select auth.uid())::text);
+
+-- ---------------------------------------------------------------------------
+--  circle_invitations
+-- ---------------------------------------------------------------------------
+drop policy if exists "circle_invitations select sender or invitee" on public.circle_invitations;
+create policy "circle_invitations select sender or invitee"
+  on public.circle_invitations for select to authenticated
+  using (
+    invited_by = (select auth.uid())::text
+    or invitee_id = (select auth.uid())::text
+    or lower(invitee_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+
+drop policy if exists "circle_invitations insert owner" on public.circle_invitations;
+create policy "circle_invitations insert owner"
+  on public.circle_invitations for insert to authenticated
+  with check (
+    invited_by = (select auth.uid())::text
+    and exists (
+      select 1 from public.circles c
+      where c.id = circle_id and c.owner_id = (select auth.uid())::text
+    )
+  );
+
+drop policy if exists "circle_invitations update sender or invitee" on public.circle_invitations;
+create policy "circle_invitations update sender or invitee"
+  on public.circle_invitations for update to authenticated
+  using (
+    invited_by = (select auth.uid())::text
+    or invitee_id = (select auth.uid())::text
+    or lower(invitee_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+
+drop policy if exists "circle_invitations delete sender" on public.circle_invitations;
+create policy "circle_invitations delete sender"
+  on public.circle_invitations for delete to authenticated
+  using (invited_by = (select auth.uid())::text);
+
+-- ---------------------------------------------------------------------------
+--  responses
+-- ---------------------------------------------------------------------------
+drop policy if exists "responses select own" on public.responses;
+create policy "responses select own"
+  on public.responses for select to authenticated
+  using (recipient_id = (select auth.uid())::text);
+
+-- Anyone may write one, but only as themselves: the responder email must be
+-- their own, so an answer cannot be forged on someone else's behalf.
+drop policy if exists "responses insert self" on public.responses;
+create policy "responses insert self"
+  on public.responses for insert to authenticated
+  with check (
+    responder_email = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+
+drop policy if exists "responses update own" on public.responses;
+create policy "responses update own"
+  on public.responses for update to authenticated
+  using (recipient_id = (select auth.uid())::text);
+
+-- ---------------------------------------------------------------------------
+--  profiles
+-- ---------------------------------------------------------------------------
+drop policy if exists "profiles select authenticated" on public.profiles;
+create policy "profiles select authenticated"
+  on public.profiles for select to authenticated
+  using (true);
+
+drop policy if exists "profiles upsert own" on public.profiles;
+create policy "profiles upsert own"
+  on public.profiles for all to authenticated
+  using (id = (select auth.uid())::text)
+  with check (id = (select auth.uid())::text);
+
+-- ---------------------------------------------------------------------------
+--  user_settings
+-- ---------------------------------------------------------------------------
+drop policy if exists "settings own" on public.user_settings;
+create policy "settings own"
+  on public.user_settings for all to authenticated
+  using (user_id = (select auth.uid())::text)
+  with check (user_id = (select auth.uid())::text);
+
+-- ---------------------------------------------------------------------------
+--  notifications
+-- ---------------------------------------------------------------------------
 drop policy if exists "notifications select own" on public.notifications;
 create policy "notifications select own"
-  on public.notifications for select
-  to authenticated
-  using (user_id = auth.uid()::text);
+  on public.notifications for select to authenticated
+  using (user_id = (select auth.uid())::text);
 
--- Any signed-in user may create a notification for someone else — that is how
--- "your friend joined your circle" is delivered. Forging spam is bounded by
--- the rate limit below rather than by a policy.
+-- Any signed-in user may notify someone else - that is how "your friend joined
+-- your circle" is delivered.
 drop policy if exists "notifications insert any" on public.notifications;
 create policy "notifications insert any"
-  on public.notifications for insert
-  to authenticated
+  on public.notifications for insert to authenticated
   with check (true);
 
 drop policy if exists "notifications update own" on public.notifications;
 create policy "notifications update own"
-  on public.notifications for update
-  to authenticated
-  using (user_id = auth.uid()::text)
-  with check (user_id = auth.uid()::text);
+  on public.notifications for update to authenticated
+  using (user_id = (select auth.uid())::text);
 
 drop policy if exists "notifications delete own" on public.notifications;
 create policy "notifications delete own"
-  on public.notifications for delete
-  to authenticated
-  using (user_id = auth.uid()::text);
+  on public.notifications for delete to authenticated
+  using (user_id = (select auth.uid())::text);
 
 
 -- ============================================================================
---  PART 3 — DEV / DEMO POLICIES  (remove before production)
+--  PART 4 - REALTIME
 -- ============================================================================
---
---  The app authenticates with Firebase, so Supabase sees an ANONYMOUS request
---  and `auth.uid()` is NULL — PART 2 above would deny every read and write.
---
---  These policies grant the `anon` role access scoped by an EXPLICIT uid the
---  client passes, which is enough to develop and demo against, and is honest
---  about what it is: a convenience, not a security boundary. A determined
---  user can read or write another user's rows while these are active.
---
---  Therefore:
---    * Do not store anything sensitive here in this mode.
---    * Remove this whole section (or swap to PART 2) before production.
---
---  The client tags every request with `x-user-id`; see
---  `lib/services/supabase_service.dart`.
--- ============================================================================
-
--- The header is read through a helper so the intent is visible in each policy
--- and there is one place to change the mechanism.
-create or replace function public.request_user_id()
-returns text
-language sql
-stable
-as $$
-  select nullif(
-    current_setting('request.headers', true)::json ->> 'x-user-id',
-    ''
-  );
-$$;
-
--- ---------- profiles ----------
-drop policy if exists "dev profiles select" on public.profiles;
-create policy "dev profiles select"
-  on public.profiles for select
-  to anon, authenticated
-  using (true);
-
-drop policy if exists "dev profiles upsert own" on public.profiles;
-create policy "dev profiles upsert own"
-  on public.profiles for all
-  to anon, authenticated
-  using (id = public.request_user_id())
-  with check (id = public.request_user_id());
-
--- ---------- user_settings ----------
-drop policy if exists "dev settings own" on public.user_settings;
-create policy "dev settings own"
-  on public.user_settings for all
-  to anon, authenticated
-  using (user_id = public.request_user_id())
-  with check (user_id = public.request_user_id());
-
--- ---------- circles ----------
-drop policy if exists "dev circles member" on public.circles;
-create policy "dev circles member"
-  on public.circles for select
-  to anon, authenticated
-  using (
-    owner_id = public.request_user_id()
-    or public.is_circle_member(id, public.request_user_id())
-  );
-
-drop policy if exists "dev circles insert" on public.circles;
-create policy "dev circles insert"
-  on public.circles for insert
-  to anon, authenticated
-  with check (owner_id = public.request_user_id());
-
-drop policy if exists "dev circles update" on public.circles;
-create policy "dev circles update"
-  on public.circles for update
-  to anon, authenticated
-  using (owner_id = public.request_user_id())
-  with check (owner_id = public.request_user_id());
-
-drop policy if exists "dev circles delete" on public.circles;
-create policy "dev circles delete"
-  on public.circles for delete
-  to anon, authenticated
-  using (owner_id = public.request_user_id());
-
--- ---------- circle_members ----------
-drop policy if exists "dev members select" on public.circle_members;
-create policy "dev members select"
-  on public.circle_members for select
-  to anon, authenticated
-  using (public.is_circle_member(circle_id, public.request_user_id()));
-
-drop policy if exists "dev members insert" on public.circle_members;
-create policy "dev members insert"
-  on public.circle_members for insert
-  to anon, authenticated
-  with check (
-    user_id = public.request_user_id()
-    or exists (
-      select 1 from public.circles c
-      where c.id = circle_id and c.owner_id = public.request_user_id()
-    )
-  );
-
-drop policy if exists "dev members delete" on public.circle_members;
-create policy "dev members delete"
-  on public.circle_members for delete
-  to anon, authenticated
-  using (
-    user_id = public.request_user_id()
-    or exists (
-      select 1 from public.circles c
-      where c.id = circle_id and c.owner_id = public.request_user_id()
-    )
-  );
-
--- ---------- invitations ----------
-drop policy if exists "dev invitations select" on public.invitations;
-create policy "dev invitations select"
-  on public.invitations for select
-  to anon, authenticated
-  using (
-    sender_id = public.request_user_id()
-    or receiver_id = public.request_user_id()
-  );
-
-drop policy if exists "dev invitations insert" on public.invitations;
-create policy "dev invitations insert"
-  on public.invitations for insert
-  to anon, authenticated
-  with check (sender_id = public.request_user_id());
-
-drop policy if exists "dev invitations update" on public.invitations;
-create policy "dev invitations update"
-  on public.invitations for update
-  to anon, authenticated
-  using (
-    sender_id = public.request_user_id()
-    or receiver_id = public.request_user_id()
-  )
-  with check (
-    sender_id = public.request_user_id()
-    or receiver_id = public.request_user_id()
-  );
-
--- ---------- notifications ----------
-drop policy if exists "dev notifications select" on public.notifications;
-create policy "dev notifications select"
-  on public.notifications for select
-  to anon, authenticated
-  using (user_id = public.request_user_id());
-
-drop policy if exists "dev notifications insert" on public.notifications;
-create policy "dev notifications insert"
-  on public.notifications for insert
-  to anon, authenticated
-  with check (true);
-
-drop policy if exists "dev notifications update" on public.notifications;
-create policy "dev notifications update"
-  on public.notifications for update
-  to anon, authenticated
-  using (user_id = public.request_user_id())
-  with check (user_id = public.request_user_id());
-
-drop policy if exists "dev notifications delete" on public.notifications;
-create policy "dev notifications delete"
-  on public.notifications for delete
-  to anon, authenticated
-  using (user_id = public.request_user_id());
-
-
--- ============================================================================
---  REALTIME
--- ============================================================================
---  Realtime must be told which tables to broadcast. Adding a table to the
---  publication is what makes `onPostgresChanges` fire for it.
---
---  `notifications` is the one the app subscribes to. RLS still applies to the
---  broadcast: with PART 3 active, filtering happens client-side by user_id
---  (see the service), and with PART 2 active Postgres filters for you.
+--  Adding a table to the publication is what makes `onPostgresChanges` fire.
+--  RLS still applies to the broadcast.
 -- ============================================================================
 do $$
+declare
+  t text;
 begin
-  if not exists (
-    select 1 from pg_publication_tables
-    where pubname = 'supabase_realtime'
-      and schemaname = 'public'
-      and tablename = 'notifications'
-  ) then
-    alter publication supabase_realtime add table public.notifications;
-  end if;
+  foreach t in array array['notifications', 'events', 'event_participants']
+  loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
 end $$;
 
--- Full row data on update/delete, so a client sees WHICH row changed.
 alter table public.notifications replica identity full;
+alter table public.events replica identity full;
 
 
 -- ============================================================================
---  STORAGE — avatars bucket
+--  PART 5 - STORAGE - avatars bucket
 -- ============================================================================
---  Supabase Storage holds profile pictures. Public read (an avatar is shown to
---  other people), but writes are restricted to the owner's own folder.
---
---  Path convention: avatars/{firebase_uid}/{filename}
---  The first path segment is the uid, which is what the policies match on.
+--  Public read (an avatar is shown to other people), writes restricted to the
+--  owner's own folder: avatars/{firebase_uid}/{filename}
 -- ============================================================================
 insert into storage.buckets (id, name, public)
 values ('avatars', 'avatars', true)
@@ -698,40 +837,29 @@ create policy "avatars public read"
   to public
   using (bucket_id = 'avatars');
 
--- Dev-mode write policy: the client sends x-user-id and may only write inside
--- its own folder. Swap for the auth.uid()-based version below in production.
-drop policy if exists "avatars write own folder (dev)" on storage.objects;
-create policy "avatars write own folder (dev)"
+drop policy if exists "avatars write own folder" on storage.objects;
+create policy "avatars write own folder"
   on storage.objects for insert
-  to anon, authenticated
+  to authenticated
   with check (
     bucket_id = 'avatars'
-    and (storage.foldername(name))[1] = public.request_user_id()
+    and (storage.foldername(name))[1] = (select auth.uid())::text
   );
 
-drop policy if exists "avatars update own folder (dev)" on storage.objects;
-create policy "avatars update own folder (dev)"
+drop policy if exists "avatars update own folder" on storage.objects;
+create policy "avatars update own folder"
   on storage.objects for update
-  to anon, authenticated
+  to authenticated
   using (
     bucket_id = 'avatars'
-    and (storage.foldername(name))[1] = public.request_user_id()
+    and (storage.foldername(name))[1] = (select auth.uid())::text
   );
 
-drop policy if exists "avatars delete own folder (dev)" on storage.objects;
-create policy "avatars delete own folder (dev)"
+drop policy if exists "avatars delete own folder" on storage.objects;
+create policy "avatars delete own folder"
   on storage.objects for delete
-  to anon, authenticated
+  to authenticated
   using (
     bucket_id = 'avatars'
-    and (storage.foldername(name))[1] = public.request_user_id()
+    and (storage.foldername(name))[1] = (select auth.uid())::text
   );
-
--- Production versions, for when Supabase auth is live:
---
---   create policy "avatars write own folder"
---     on storage.objects for insert to authenticated
---     with check (
---       bucket_id = 'avatars'
---       and (storage.foldername(name))[1] = auth.uid()::text
---     );

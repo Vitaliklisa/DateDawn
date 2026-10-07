@@ -218,6 +218,22 @@ only works from an authorized domain.
 
 ### 5. Deploy the security rules
 
+> **Before anything else, check the backend is actually switched on:**
+>
+> ```bash
+> node scripts/check-backend.mjs
+> ```
+>
+> It probes Firebase Auth, Cloud Firestore and Supabase and tells you exactly
+> what is missing. **If Cloud Firestore is disabled, nothing the user creates is
+> saved anywhere** — countdowns, circles, invitations and notifications all
+> silently fail, and a page reload appears to "lose" everything. Enable it at
+> <https://console.firebase.google.com/project/datedawn/firestore> (Create
+> database → Production mode → pick a region).
+> Likewise, if `supabase/schema.sql` has never been applied, the notification
+> inbox and theme sync stay empty. Paste the file into the Supabase SQL editor
+> and run it once.
+
 The rules in `firestore.rules` are the real authority — the client mirrors them
 only so it can show a readable error.
 

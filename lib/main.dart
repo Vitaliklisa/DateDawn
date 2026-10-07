@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -101,6 +102,20 @@ Future<void> _initSupabase() async {
     await Supabase.initialize(
       url: resolvedSupabaseUrl,
       publishableKey: resolvedSupabasePublishableKey,
+      // Identity travels in the Firebase ID token, not in a header.
+      //
+      // `Supabase.initialize` reads this callback on every request, so it must
+      // always reflect the *current* Firebase user: returning null after a
+      // sign-out is what makes Supabase treat the request as anonymous.
+      // `getIdToken()` is called without forcing a refresh here because it
+      // already returns a cached-but-valid token and only hits the network when
+      // it is close to expiring; the sign-in flow forces a refresh separately so
+      // the `role` claim is present on the very first request after signup.
+      accessToken: () async {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) return null;
+        return user.getIdToken();
+      },
     ).timeout(const Duration(seconds: 8));
     SupabaseService.markReady();
     _trace('Supabase ready');

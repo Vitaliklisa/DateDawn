@@ -9,21 +9,25 @@ import 'event_repository.dart';
 
 /// Everything Date Dawn reads and writes in Supabase.
 ///
-/// **Why this exists alongside Firebase.** The app's identity and its
-/// countdown data live in Firebase. Supabase owns three things Firebase does
-/// not do as well for this app: appearance that follows a user across
-/// devices, a realtime notification inbox, and file storage for avatars.
-/// Keeping the two apart means the working Firestore code is untouched.
+/// **Firebase identity, Supabase data.** Firebase Authentication is the only
+/// identity provider: it signs the user in and issues a JWT. Supabase verifies
+/// that JWT (registered under Authentication -> Third-Party Auth) and exposes
+/// the Firebase uid as `auth.uid()`, so the RLS policies in `supabase/schema.sql`
+/// can scope every row to its owner without a mapping table.
 ///
-/// **The identity bridge.** Firebase issues the uid; Supabase has its own
-/// `auth.uid()`. Because the app never signs into Supabase, `auth.uid()` is
-/// NULL on every request, so Postgres cannot tell who is calling. Every
-/// request therefore carries the Firebase uid in an `x-user-id` header, and
-/// the dev policies in `supabase/schema.sql` scope rows by it.
+/// **The bridge is the token, not a header.** The client is given an
+/// `accessToken` callback that returns the current Firebase ID token; Supabase
+/// attaches it to every request. An earlier version shipped the uid in an
+/// `x-user-id` header instead, which was a dev convenience rather than a
+/// security boundary — any caller could claim any uid. The token is verified
+/// cryptography, so the uid in `auth.uid()` cannot be forged.
 ///
-/// That is a development convenience, not a security boundary — see the
-/// header comment in the schema for what to do before production. Nothing
-/// sensitive should be stored here until then.
+/// **The `role` claim matters.** Firebase JWTs carry no `role` claim by
+/// default, and without it Supabase assigns the `anon` Postgres role — which no
+/// policy grants to. A blocking Firebase Auth function stamps
+/// `role: 'authenticated'` on every token (see `firebase/functions`), and the
+/// sign-in flow force-refreshes the token so the claim is present before the
+/// first Supabase request.
 class SupabaseService {
   SupabaseService({SupabaseClient? client})
       : _client = client ?? Supabase.instance.client;
@@ -57,15 +61,18 @@ class SupabaseService {
 
   SupabaseClient get client => _client;
 
-  /// Sets the uid every subsequent Supabase request is tagged with.
+  /// Clears any auth state held by the client.
   ///
-  /// Called on sign-in and cleared on sign-out. This is what the dev RLS
-  /// policies read; without it, every request is anonymous and denied.
-  void setCurrentUserId(String? userId) {
-    if (userId == null || userId.isEmpty) {
-      _client.headers.remove('x-user-id');
-    } else {
-      _client.headers['x-user-id'] = userId;
+  /// The client no longer carries a uid of its own: identity travels in the
+  /// Firebase ID token handed to Supabase on every request via the
+  /// `accessToken` callback in `main()`. This is kept as an explicit hook so a
+  /// sign-out can immediately drop any cached token rather than waiting for
+  /// the client to re-read Firebase Auth.
+  void clearAuth() {
+    try {
+      _client.auth.signOut();
+    } catch (error) {
+      debugPrint('[datedawn] Could not clear Supabase auth state: $error');
     }
   }
 

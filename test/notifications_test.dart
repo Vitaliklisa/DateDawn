@@ -62,7 +62,6 @@ void main() {
       await pumpEventQueue();
 
       expect(container.read(themeModeProvider), ThemeMode.light);
-      expect(service.currentUserId, 'u1');
       expect(service.savedMode, ThemeMode.light);
     });
 
@@ -119,7 +118,6 @@ void main() {
     final items = await emittedItems.future;
 
     expect(items, [notification]);
-    expect(service.currentUserId, 'u1');
     expect(service.watchedUserId, 'u1');
   });
 }
@@ -127,12 +125,12 @@ void main() {
 class _FakeSupabaseService implements SupabaseService {
   ThemeMode? storedMode;
   ThemeMode? savedMode;
-  String? currentUserId;
   String? watchedUserId;
+  bool cleared = false;
   Stream<List<AppNotification>>? notificationStream;
 
   @override
-  void setCurrentUserId(String? userId) => currentUserId = userId;
+  void clearAuth() => cleared = true;
 
   @override
   Future<ThemeMode?> fetchThemeMode(String userId) async => storedMode;

@@ -102,6 +102,7 @@ class AuthService {
         email: email.trim(),
         password: password,
       );
+      await _freshToken(credential.user);
       return AppUser.fromFirebase(credential.user!);
     } on FirebaseAuthException catch (e) {
       throw _mapException(e);
@@ -127,9 +128,31 @@ class AuthService {
       // Send the verification mail, but never block the sign-in on it — the app
       // is fully usable before the address is confirmed.
       unawaited(user.sendEmailVerification().catchError((_) {}));
-      return AppUser.fromFirebase(_auth.currentUser ?? user);
+      final current = _auth.currentUser ?? user;
+      await _freshToken(current);
+      return AppUser.fromFirebase(current);
     } on FirebaseAuthException catch (e) {
       throw _mapException(e);
+    }
+  }
+
+  /// Forces a token refresh so claims written by a Firebase Auth blocking
+  /// function are present before the first Supabase request.
+  ///
+  /// Supabase reads `role` from the JWT to pick a Postgres role; without it the
+  /// request is `anon` and every RLS policy denies it. A blocking function
+  /// stamps `role: 'authenticated'` during sign-up, but the token minted for the
+  /// new session was created *before* that ran, so it must be re-minted here.
+  ///
+  /// Best-effort on purpose: if the claim is somehow still missing, the user is
+  /// signed in and the app shows its normal "could not load" state rather than
+  /// failing the sign-in itself.
+  Future<void> _freshToken(User? user) async {
+    if (user == null) return;
+    try {
+      await user.getIdToken(true);
+    } catch (error) {
+      debugPrint('[datedawn] Could not refresh the ID token: $error');
     }
   }
 
@@ -148,6 +171,7 @@ class AuthService {
           ..addScope('email')
           ..addScope('profile');
         final credential = await _auth.signInWithPopup(provider);
+        await _freshToken(credential.user);
         return AppUser.fromFirebase(credential.user!);
       }
 
@@ -161,6 +185,7 @@ class AuthService {
         idToken: auth.idToken,
       );
       final result = await _auth.signInWithCredential(credential);
+      await _freshToken(result.user);
       return AppUser.fromFirebase(result.user!);
     } on FirebaseAuthException catch (e) {
       throw _mapException(e);

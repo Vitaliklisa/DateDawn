@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/circles.dart';
 import '../core/models.dart';
@@ -17,11 +18,12 @@ final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
 final eventRepositoryProvider = Provider<EventRepository>((ref) {
   return EventRepository(
+    // The countdowns, circles and invitations live in Supabase, reached with
+    // the same verified Firebase ID token the client already carries.
+    client: SupabaseService.isAvailable ? Supabase.instance.client : null,
     // Deliver inbox notifications through Supabase. Injected here rather than
-    // imported into the repository so the data layer stays Firestore-only and
-    // remains testable without a Supabase client. Guarded on availability, so
-    // an unconfigured project simply produces no notifications instead of
-    // throwing on every invite.
+    // called directly inside the repository so the data layer stays testable
+    // without a live client.
     notificationSink: ({
       required userId,
       required title,
@@ -156,8 +158,12 @@ final responsesProvider = StreamProvider<List<InvitationResponse>>((ref) {
 final appNotificationsProvider = StreamProvider<List<AppNotification>>((ref) {
   final user = ref.watch(currentUserProvider);
   final service = ref.watch(supabaseServiceProvider);
-  service.setCurrentUserId(user?.id);
-  if (user == null) return Stream.value(const []);
+  // Identity comes from the Firebase ID token now, so the client needs no uid
+  // of its own — signing out is the only state change it has to see.
+  if (user == null) {
+    service.clearAuth();
+    return Stream.value(const []);
+  }
   return service.watchNotifications(user.id);
 });
 
@@ -282,7 +288,7 @@ class ThemeModeController extends Notifier<ThemeMode> {
     if (_userId == userId) return;
     _userId = userId;
     final revision = ++_accountRevision;
-    ref.read(supabaseServiceProvider).setCurrentUserId(userId);
+    if (userId == null) ref.read(supabaseServiceProvider).clearAuth();
     unawaited(_restore(userId, revision, _choiceRevision));
   }
 
@@ -302,8 +308,7 @@ class ThemeModeController extends Notifier<ThemeMode> {
       }
 
       if (userId == null) return;
-      final service = ref.read(supabaseServiceProvider)
-        ..setCurrentUserId(userId);
+      final service = ref.read(supabaseServiceProvider);
       await _syncRemote(userId, accountRevision, choiceRevision, service);
     } catch (error, stackTrace) {
       debugPrint('[datedawn] Could not restore theme preference: $error');

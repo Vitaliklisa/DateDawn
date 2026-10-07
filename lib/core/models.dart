@@ -75,6 +75,17 @@ class Participant {
     );
   }
 
+  /// Builds from a Supabase `event_participants` row (snake_case columns).
+  factory Participant.fromRow(Map<String, dynamic> row) => Participant(
+        userId: (row['user_id'] as String?) ?? '',
+        email: ((row['email'] as String?) ?? '').toLowerCase(),
+        role: ParticipantRole.fromWire(row['role']),
+        inviteStatus: InviteStatus.fromWire(row['invite_status']),
+        displayName: row['display_name'] as String?,
+        photoUrl: row['photo_url'] as String?,
+        joinedAt: _parseDate(row['joined_at']),
+      );
+
   Map<String, dynamic> toMap() => {
         'email': email,
         'role': role.name,
@@ -131,6 +142,15 @@ class EventNote {
         text: (map['text'] as String?) ?? '',
         createdAt: _parseDate(map['createdAt']) ?? DateTime.now(),
         updatedAt: _parseDate(map['updatedAt']) ?? DateTime.now(),
+      );
+
+  /// Builds from a Supabase `event_notes` row.
+  factory EventNote.fromRow(Map<String, dynamic> row) => EventNote(
+        id: (row['id'] as String?) ?? '',
+        userId: (row['user_id'] as String?) ?? '',
+        text: (row['text'] as String?) ?? '',
+        createdAt: _parseDate(row['created_at']) ?? DateTime.now(),
+        updatedAt: _parseDate(row['updated_at']) ?? DateTime.now(),
       );
 
   Map<String, dynamic> toMap() => {
@@ -250,6 +270,22 @@ class CountdownEvent {
     );
   }
 
+  /// Builds from a Supabase `events` row (snake_case columns).
+  ///
+  /// Participants and notes are not embedded in the row: they live in their own
+  /// tables and are streamed separately by the repository, so this leaves them
+  /// empty rather than inventing a shape Postgres did not return.
+  factory CountdownEvent.fromRow(Map<String, dynamic> row) => CountdownEvent(
+        id: (row['id'] as String?) ?? '',
+        title: (row['title'] as String?) ?? 'Untitled',
+        description: (row['description'] as String?) ?? '',
+        at: _parseDate(row['at']) ?? DateTime.now(),
+        createdBy: (row['created_by'] as String?) ?? '',
+        createdAt: _parseDate(row['created_at']) ?? DateTime.now(),
+        updatedAt: _parseDate(row['updated_at']) ?? DateTime.now(),
+        deletedAt: _parseDate(row['deleted_at']),
+      );
+
   /// Only the fields a client is allowed to write — `participants` and `notes`
   /// are mutated through their own narrow updates so two devices editing at
   /// once don't clobber each other's rows.
@@ -331,6 +367,20 @@ class Invitation {
         expiresAt: _parseDate(map['expiresAt']) ??
             DateTime.now().add(const Duration(days: 30)),
         eventTitle: (map['eventTitle'] as String?) ?? '',
+      );
+
+  /// Builds from a Supabase `invitations` row.
+  factory Invitation.fromRow(Map<String, dynamic> row) => Invitation(
+        id: (row['id'] as String?) ?? '',
+        eventId: (row['event_id'] as String?) ?? '',
+        invitedBy: (row['invited_by'] as String?) ?? '',
+        inviteeEmail: ((row['invitee_email'] as String?) ?? '').toLowerCase(),
+        role: ParticipantRole.fromWire(row['role']),
+        status: InviteStatus.fromWire(row['status']),
+        createdAt: _parseDate(row['created_at']) ?? DateTime.now(),
+        expiresAt: _parseDate(row['expires_at']) ??
+            DateTime.now().add(const Duration(days: 30)),
+        eventTitle: (row['event_title'] as String?) ?? '',
       );
 
   Map<String, dynamic> toMap() => {
