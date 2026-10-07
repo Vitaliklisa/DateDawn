@@ -1,20 +1,18 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/notifications.dart';
-import 'event_repository.dart';
 
 /// Everything Date Dawn keeps outside the countdown data itself: the in-app
-/// notification inbox, the syncable theme preference, and avatar uploads.
+/// notification inbox and the syncable theme preference.
 ///
 /// **Why this is separate from `EventRepository`.** The repository owns the
 /// shared object graph — countdowns, circles, invitations — where the rules are
 /// about membership. This class owns per-user data that only its owner ever
 /// sees, which is a much simpler shape: every read and write is scoped to
-/// `users/{uid}` or `avatars/{uid}`, and the security rules say exactly that.
+/// `users/{uid}`, and the security rules say exactly that.
 ///
 /// **The inbox is a subcollection, not a collection.** Storing notifications at
 /// `users/{uid}/notifications/{id}` means the path itself carries the owner, so
@@ -22,12 +20,10 @@ import 'event_repository.dart';
 /// accidentally span users. It also keeps one user's inbox out of the way of
 /// every other collection scan.
 class NotificationService {
-  NotificationService({FirebaseFirestore? firestore, FirebaseStorage? storage})
-      : _db = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance;
+  NotificationService({FirebaseFirestore? firestore})
+      : _db = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _db;
-  final FirebaseStorage _storage;
 
   CollectionReference<Map<String, dynamic>> _inbox(String userId) =>
       _db.collection('users').doc(userId).collection('notifications');
@@ -136,54 +132,13 @@ class NotificationService {
   }
 
   // ---------------------------------------------------------------------------
-  // profiles + storage — avatars
+  // profiles
   // ---------------------------------------------------------------------------
-
-  /// Uploads an avatar and returns its public download URL.
-  ///
-  /// The object path is `avatars/{uid}/{timestamp}-{filename}`. The leading uid
-  /// is what the storage rules match on, so a user can only ever write inside
-  /// their own folder; the timestamp keeps a replacement from being served from
-  /// cache under the same URL.
-  Future<String> uploadAvatar({
-    required String userId,
-    required List<int> bytes,
-    required String fileExtension,
-  }) async {
-    if (userId.isEmpty) {
-      throw const DataFailure('Sign in before changing your picture.');
-    }
-
-    final extension = fileExtension.replaceAll('.', '').toLowerCase();
-    final path =
-        'avatars/$userId/${DateTime.now().millisecondsSinceEpoch}.$extension';
-
-    final ref = _storage.ref(path);
-    await ref.putData(
-      Uint8List.fromList(bytes),
-      SettableMetadata(contentType: _contentTypeFor(extension)),
-    );
-    final url = await ref.getDownloadURL();
-
-    // Keep the profile in step so other people see the new picture.
-    await _db
-        .collection('users')
-        .doc(userId)
-        .set({'photoUrl': url}, SetOptions(merge: true));
-
-    return url;
-  }
-
-  static String _contentTypeFor(String extension) {
-    switch (extension) {
-      case 'png':
-        return 'image/png';
-      case 'webp':
-        return 'image/webp';
-      case 'gif':
-        return 'image/gif';
-      default:
-        return 'image/jpeg';
-    }
-  }
+  //
+  // There is deliberately nothing here for profile pictures. Cloud Storage now
+  // requires the Blaze plan, so Date Dawn ships without uploaded avatars and
+  // every identity surface renders initials instead (see `UserAvatar`). Nothing
+  // writes a `photoUrl`; the model fields that still read one exist only to
+  // carry a Google account picture straight from Firebase Auth, which costs
+  // nothing and needs no bucket.
 }

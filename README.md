@@ -144,9 +144,28 @@ confirm that:
    your production domain — Google sign-in on web is refused otherwise.
 
 Every route except `/login` requires a non-anonymous Firebase account. There is
-no guest path. **Everything runs on Firebase**: Auth for identity, Firestore for
-countdowns, circles, invitations, notes and the notification inbox, and Cloud
-Storage for avatars. There is no second backend.
+no guest path. **Everything runs on Firebase**: Auth for identity and Firestore
+for countdowns, circles, invitations, notes and the notification inbox. There is
+no second backend.
+
+### Avatars
+
+There are no profile pictures, and no image ever leaves the device.
+
+Firebase Cloud Storage cannot be enabled on the Spark (free) plan — it now
+requires Blaze — so there is no bucket to upload to. Rather than add a third
+party just for avatars, every identity surface renders the account's initials on
+a colour derived from its uid (`UserAvatar` in `lib/widgets/brand_kit.dart`).
+That is the whole avatar system: a hash, an eight-colour palette and a `Text`.
+It works offline, costs nothing, and cannot show a broken-image box.
+
+In code that means:
+
+- no `firebase_storage` dependency and no `storage.rules`
+- no upload or download code — `NotificationService` has no avatar method
+- no image picker anywhere in the app
+- a `photoUrl` is only ever a picture the sign-in provider handed us (a Google
+  account picture, when there is one). Nothing writes that field.
 
 Theme preferences use local device storage as the immediate fallback and sync to
 `users/{uid}.themeMode` for signed-in users. Inbox notifications live at
@@ -537,7 +556,7 @@ lib/
   widgets/
     countdown_face.dart       the four tiles + ticking line
     arrival_celebration.dart  confetti burst
-    brand_kit.dart            wordmark, avatar, status chip
+    brand_kit.dart            wordmark, initials avatar, status chip
     invitations_inbox.dart    countdown + circle invitations, accept/decline
     event_actions_sheet.dart  long-press actions
     share_event.dart          text sharing

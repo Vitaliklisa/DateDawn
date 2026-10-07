@@ -146,45 +146,96 @@ class StatusChip extends StatelessWidget {
   }
 }
 
-/// Round avatar with initials falling back to the account's first letters.
+/// Round avatar drawn entirely in Flutter: the account's initials on a colour
+/// derived from its id.
+///
+/// There is no image to load. Date Dawn launches without uploaded profile
+/// pictures — Cloud Storage requires the Blaze plan — so this is the whole
+/// avatar system: a hash, a palette and a `Text`. That also means it works
+/// offline, costs nothing, and cannot show a broken-image box.
 class UserAvatar extends StatelessWidget {
-  const UserAvatar(
-      {super.key, required this.initials, this.photoUrl, this.size = 32});
+  const UserAvatar({
+    super.key,
+    required this.initials,
+    this.seed,
+    this.photoUrl,
+    this.size = 32,
+  });
 
   final String initials;
+
+  /// Anything stable per account — a uid or an email. Picks the colour; the
+  /// same person is the same colour on every device.
+  final String? seed;
+
+  /// A picture straight from the sign-in provider (Google), when there is one.
+  /// Never an uploaded file. Falls back to the initials tile if it will not
+  /// load, so a network failure degrades instead of leaving a gap.
   final String? photoUrl;
+
   final double size;
+
+  /// Muted, evenly-spaced hues. Kept low-chroma on purpose: the avatar sits on
+  /// the app's own surface and must not compete with the countdown itself.
+  static const List<Color> _palette = [
+    Color(0xFF6C8EBF),
+    Color(0xFF8E7CC3),
+    Color(0xFFC27BA0),
+    Color(0xFFCC7A6B),
+    Color(0xFFC9A227),
+    Color(0xFF7FA650),
+    Color(0xFF4FA3A5),
+    Color(0xFF7C8BA1),
+  ];
+
+  static Color tintFor(String? seed) {
+    if (seed == null || seed.isEmpty) return _palette.last;
+    var hash = 0;
+    for (final unit in seed.trim().toLowerCase().codeUnits) {
+      hash = (hash * 31 + unit) & 0x7fffffff;
+    }
+    return _palette[hash % _palette.length];
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     return ClipOval(
-      child: Container(
+      child: SizedBox(
         width: size,
         height: size,
-        color: colors.surface2,
-        alignment: Alignment.center,
         child: (photoUrl != null && photoUrl!.isNotEmpty)
             ? Image.network(
                 photoUrl!,
                 width: size,
                 height: size,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _fallback(colors),
+                errorBuilder: (_, __, ___) => _initialsTile(colors),
               )
-            : _fallback(colors),
+            : _initialsTile(colors),
       ),
     );
   }
 
-  Widget _fallback(AppPalette colors) => Text(
+  /// The launch avatar: a flat tint with the initials on top.
+  Widget _initialsTile(AppPalette colors) {
+    final tint = tintFor(seed ?? initials);
+    return Container(
+      width: size,
+      height: size,
+      color: Color.alphaBlend(tint.withValues(alpha: 0.22), colors.surface2),
+      alignment: Alignment.center,
+      child: Text(
         initials,
         style: TextStyle(
-          fontSize: size * 0.34,
+          fontSize: size * 0.36,
           fontWeight: FontWeight.w600,
-          color: colors.muted,
+          height: 1,
+          color: tint,
         ),
-      );
+      ),
+    );
+  }
 }
 
 /// "3 days, 4 hours" — used under the hero title and in share text.

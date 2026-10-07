@@ -202,7 +202,7 @@ Supabase removed entirely. Auth, data, storage — all Firebase.
 | Countdowns, circles, invitations, notes | Firestore (`events`, `circles`, … ) |
 | Notification inbox | **`users/{uid}/notifications/{id}`** subcollection, live listener |
 | Theme sync | `users/{uid}.themeMode` |
-| Avatars | **Cloud Storage** `avatars/{uid}/…` |
+| Avatars | **None** — initials drawn in Flutter (see § 8) |
 
 ## Removed
 
@@ -214,9 +214,8 @@ Supabase removed entirely. Auth, data, storage — all Firebase.
 ## Added
 
 - **`lib/services/notification_service.dart`** — the per-user data layer: the
-  inbox, theme sync and avatar upload.
-- **`firebase_storage`** dependency.
-- `firestore.rules`: the inbox subcollection, plus storage rules for avatars.
+  inbox and theme sync.
+- `firestore.rules`: the inbox subcollection.
 
 ## Why the inbox is a subcollection
 
@@ -228,10 +227,7 @@ the friend, not the recipient. Updates are narrowed to the `read` flag alone.
 
 ## Avatar path convention
 
-`avatars/{firebase_uid}/{timestamp}-{filename}`. The leading uid is what the
-storage rule matches on, so a user can only write inside their own folder. Reads
-are public (an avatar is shown to other people); writes are capped at 5 MB and
-must be an image.
+There isn't one any more. § 8 removed it.
 
 ## Verification
 
@@ -250,16 +246,16 @@ must be an image.
 - **Firestore** — **live** (the earlier `SERVICE_DISABLED` is gone; an
   unauthenticated read now correctly returns `PERMISSION_DENIED`, which means
   the database exists and the rules are deployed)
-- **Cloud Storage** — not enabled yet; needed for avatar uploads only
+- **Cloud Storage** — intentionally absent. § 8 removed avatars; no bucket is
+  expected to exist, and `scripts/check-backend.mjs` no longer probes one.
 
 ### Still to do by hand
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes,storage:rules
+firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-And enable Storage in the console if you want avatars:
-https://console.firebase.google.com/project/datedawn/storage
+There is nothing to enable for Storage. See § 8.
 
 ### Note on Firestore indexes
 
@@ -267,3 +263,71 @@ https://console.firebase.google.com/project/datedawn/storage
 the composite indexes, and Firestore rejects them without. If a query ever fails
 with a link to create an index, that link is the fastest fix; deploying the file
 creates them all up front.
+
+---
+
+# 8. Avatars removed: no profile pictures on the free plan
+
+Firebase Cloud Storage cannot be enabled on the **Spark (free)** plan — it now
+requires **Blaze**, even though a free tier exists inside it. Upgrading to Blaze
+for avatars alone is not worth it, and every alternative (Supabase Storage,
+Cloudinary, imgbb, base64 in Firestore, self-hosting) reintroduces either a
+third-party dependency or the complexity this app deliberately walked away from.
+
+So the app launches **without profile pictures**. Users are represented by a
+display name in Firestore plus initials drawn in Flutter. No image is ever
+uploaded, downloaded or stored.
+
+| Concern | Before | Now |
+|---|---|---|
+| Avatar rendering | `Image.network` on a Storage download URL | Initials on a colour hashed from the uid — `UserAvatar`, `lib/widgets/brand_kit.dart` |
+| Avatar storage | Cloud Storage `avatars/{uid}/…` | **None** |
+| Upload path | `NotificationService.uploadAvatar` | Deleted — `NotificationService` has no avatar method |
+
+## Removed
+
+- **`firebase_storage`** from `pubspec.yaml`, and the import and `_storage`
+  field in `lib/services/notification_service.dart`
+- `uploadAvatar()` and its `_contentTypeFor()` helper
+- **`storage.rules`**, and the `"storage"` block in `firebase.json` — the
+  `firebase deploy --only … ,storage:rules` step is gone with it
+- The Cloud Storage probe in `scripts/check-backend.mjs`. It is not merely
+  redundant: the bucket is now *expected* to be missing, so probing it would
+  print a permanent `[FAIL]` and exit non-zero, making a healthy backend look
+  broken.
+
+## Kept, deliberately
+
+- **`photoUrl`** on `AppUser`, `Participant` and `CircleMember`, and the
+  `Image.network` branch in `UserAvatar`. It is never written by Date Dawn — it
+  only ever carries a picture the **sign-in provider** supplied, i.e. a Google
+  account picture. That costs nothing and needs no bucket, so a Google user
+  still sees their real face where the provider gave us one. Everyone else gets
+  the initials tile, which is also the fallback whenever that URL fails to load.
+- The `UserAvatar` call sites, now also passed a `seed` (the account's id or
+  uid) so the colour is stable per person across every screen and device.
+
+## What an avatar is now
+
+`UserAvatar` is a `ClipOval` around a flat tinted tile with the initials on top.
+The tint comes from a 31-multiplier hash of the seed modulo an eight-colour
+muted palette, blended at 22% over the surface so it stays behind the content
+rather than competing with the countdown. It works offline, costs nothing, and
+cannot render a broken-image box.
+
+## Verification
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | passing |
+| `flutter build web` | `√ Built build\web` |
+
+## Reversing this
+
+If the project moves to Blaze, or a genuinely free, no-self-hosting image host is
+adopted: restore `firebase_storage` in `pubspec.yaml`, re-add the `"storage"`
+block to `firebase.json` and a `storage.rules`, put `uploadAvatar()` back on
+`NotificationService`, and call it from Settings. Nothing else changed shape —
+`photoUrl` and the `Image.network` branch were never removed, so the UI needs no
+edit.

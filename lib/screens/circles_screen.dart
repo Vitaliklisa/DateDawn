@@ -205,6 +205,7 @@ class _CircleCard extends ConsumerWidget {
                       children: [
                         UserAvatar(
                           initials: member.initials,
+                          seed: member.userId,
                           photoUrl: member.photoUrl,
                           size: 24,
                         ),

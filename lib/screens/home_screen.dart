@@ -621,7 +621,9 @@ class _TopBar extends ConsumerWidget {
                 child: GestureDetector(
                   onTap: () => context.go(Routes.settings),
                   child: UserAvatar(
-                      initials: user.initials, photoUrl: user.photoUrl),
+                      initials: user.initials,
+                      seed: user.id,
+                      photoUrl: user.photoUrl),
                 ),
               )
             else

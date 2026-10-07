@@ -39,6 +39,7 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   UserAvatar(
                     initials: user.initials,
+                    seed: user.id,
                     photoUrl: user.photoUrl,
                     size: 46,
                   ),

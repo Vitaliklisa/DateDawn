@@ -231,6 +231,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                       children: [
                         UserAvatar(
                           initials: person.initials,
+                          seed: person.userId,
                           photoUrl: person.photoUrl,
                           size: 26,
                         ),

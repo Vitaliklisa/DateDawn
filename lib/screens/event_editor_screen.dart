@@ -744,6 +744,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                   children: [
                     UserAvatar(
                       initials: participant.initials,
+                      seed: participant.userId,
                       photoUrl: participant.photoUrl,
                       size: 30,
                     ),
