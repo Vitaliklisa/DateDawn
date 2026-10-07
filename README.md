@@ -31,13 +31,14 @@ Authentication's authorized domains so web sign-in works.
 - **Notes** on a shared countdown, so the people counting down together can
   leave each other messages.
 - **Duplicate** a countdown a year on — useful for annual events.
-- **Dark and light**, saved on the device and synchronized to the signed-in
-  account through Supabase.
+- **Dark and light**, saved on the device and synced to the signed-in
+  account through Firestore.
 - **A real route for every section** — Home, Invitations, Circles, Notifications,
   and Settings are directly addressable, with persistent desktop navigation and
   mobile bottom navigation. Sign-in is required before entering any section.
-- **Realtime inbox notifications** — Supabase Realtime updates the inbox and
-  unread badge while keeping the existing Firestore invitation-response feed.
+- **Realtime inbox notifications** — a `users/{uid}/notifications` subcollection
+  streamed with a live Firestore listener, so an invitation or a "your friend
+  joined" line appears without a refresh.
 
 ---
 
@@ -98,7 +99,7 @@ The flow end to end:
 | State | Riverpod | Testable, no `BuildContext` plumbing |
 | Routing | go_router | All app routes require a signed-in account on web and mobile |
 | Auth | Firebase Authentication | Free, unlimited for email/password and Google |
-| Data | Supabase selected; current event repository still uses Cloud Firestore | Supabase client is initialized; migrate the existing event/sharing repository before moving production data |
+| Data | Cloud Firestore | Countdowns, circles, invitations, notes, the notification inbox and theme sync all live in one backend |
 | Dates | intl | Locale-aware formatting |
 
 ### Firebase free-tier limits (Spark plan)
@@ -143,18 +144,18 @@ confirm that:
    your production domain — Google sign-in on web is refused otherwise.
 
 Every route except `/login` requires a non-anonymous Firebase account. There is
-no guest path. Supabase is initialized from `lib/supabase_config.dart`; the
-existing countdown, circle, and invitation reads/writes are still implemented
-against Firestore and need a separate schema/repository migration before
-Supabase becomes the app's active data store.
+no guest path. **Everything runs on Firebase**: Auth for identity, Firestore for
+countdowns, circles, invitations, notes and the notification inbox, and Cloud
+Storage for avatars. There is no second backend.
 
-Theme preferences use local device storage as the immediate fallback and sync
-to `public.user_settings` for signed-in users. Inbox notifications are loaded
-from `public.notifications` and updated live over Supabase Realtime. Apply
-`supabase/schema.sql` to the project to create these tables and enable the
-Realtime publication. The current Firebase-to-Supabase `x-user-id` bridge is
-development-only; do not put sensitive data in Supabase until the production
-identity exchange and RLS policies described in that schema are enabled.
+Theme preferences use local device storage as the immediate fallback and sync to
+`users/{uid}.themeMode` for signed-in users. Inbox notifications live at
+`users/{uid}/notifications/{id}` and are streamed with a live Firestore
+listener. Run the backend check to confirm all three services are enabled:
+
+```bash
+node scripts/check-backend.mjs
+```
 
 ### 3. Connect the app to the project
 

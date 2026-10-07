@@ -1,4 +1,4 @@
-// Date Dawn - backend health check.
+﻿// Date Dawn - backend health check.
 //
 // Tells you, in plain language, whether the two databases the app needs are
 // actually reachable. Run it from the project root:
@@ -10,8 +10,6 @@
 
 const FIREBASE_API_KEY = 'AIzaSyA3nS579jUK46wfNtUsYq4qFui8bBiRsws';
 const FIREBASE_PROJECT = 'datedawn';
-const SUPABASE_URL = 'https://wktilnzinqkelpjcwsqv.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_hommGM6hBArJ1GTGeqeQog_hrzpZrfQ';
 
 const results = [];
 
@@ -79,24 +77,24 @@ async function probe(url, options = {}) {
   }
 }
 
-// --- Supabase: notifications inbox + theme sync -----------------------------
+
+// --- Cloud Storage (avatars) ------------------------------------------------
 {
-  const url = `${SUPABASE_URL}/rest/v1/notifications?select=id&limit=1`;
-  const { status, text } = await probe(url, {
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
-  });
-  if (status === 404 && text.includes('PGRST205')) {
+  const url =
+    `https://firebasestorage.googleapis.com/v0/b/${FIREBASE_PROJECT}` +
+    '.firebasestorage.app/o?maxResults=1';
+  const { status } = await probe(url);
+  if (status === 200 || status === 403 || status === 401) {
+    record('Cloud Storage', true, 'Reachable - avatar uploads can work.');
+  } else if (status === 404) {
     record(
-      'Supabase tables',
+      'Cloud Storage',
       false,
-      'Project reachable, but the schema was never applied, so the inbox and\n' +
-        'theme sync stay empty. Fix:\n' +
-        '    Supabase dashboard > SQL Editor > paste supabase/schema.sql > Run.',
+      'Bucket not found. Enable Storage in the Firebase console:\n' +
+        '    https://console.firebase.google.com/project/datedawn/storage',
     );
-  } else if (status === 200) {
-    record('Supabase tables', true, 'Schema applied - the inbox can store rows.');
   } else {
-    record('Supabase tables', false, `HTTP ${status} - ${text.slice(0, 200)}`);
+    record('Cloud Storage', false, `HTTP ${status}`);
   }
 }
 

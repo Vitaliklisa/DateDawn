@@ -189,3 +189,81 @@ Supabase dashboard -> SQL Editor -> paste all of `supabase/schema.sql` -> Run.
   and guard rails are unit-tested; the SQL is grammar-checked but never executed.
 - **RLS under a real session.** The policies are derived from the Firestore rules
   that were the shipped authority, but no signed-in user has exercised them yet.
+
+---
+
+# 7. Reversal: everything back on Firebase
+
+Supabase removed entirely. Auth, data, storage — all Firebase.
+
+| Concern | Where it lives now |
+|---|---|
+| Sign-in | Firebase Auth |
+| Countdowns, circles, invitations, notes | Firestore (`events`, `circles`, … ) |
+| Notification inbox | **`users/{uid}/notifications/{id}`** subcollection, live listener |
+| Theme sync | `users/{uid}.themeMode` |
+| Avatars | **Cloud Storage** `avatars/{uid}/…` |
+
+## Removed
+
+- `lib/services/supabase_service.dart`, `lib/supabase_config.dart`
+- `supabase/schema.sql`, `firebase/functions/` (the role-claim functions)
+- `supabase_flutter` and `flutter_dotenv` dependencies, the `.env` asset
+- The `accessToken` callback and every `x-user-id` trace
+
+## Added
+
+- **`lib/services/notification_service.dart`** — the per-user data layer: the
+  inbox, theme sync and avatar upload.
+- **`firebase_storage`** dependency.
+- `firestore.rules`: the inbox subcollection, plus storage rules for avatars.
+
+## Why the inbox is a subcollection
+
+Notifications live at `users/{uid}/notifications/{id}`. The path itself carries
+the recipient, so no rule has to trust a `userId` field on the document and a
+query cannot span users by accident. Reads are owner-only; **creates are allowed
+by any signed-in user**, because "your friend joined your circle" is written by
+the friend, not the recipient. Updates are narrowed to the `read` flag alone.
+
+## Avatar path convention
+
+`avatars/{firebase_uid}/{timestamp}-{filename}`. The leading uid is what the
+storage rule matches on, so a user can only write inside their own folder. Reads
+are public (an avatar is shown to other people); writes are capped at 5 MB and
+must be an image.
+
+## Verification
+
+| Check | Result |
+|---|---|
+| `dart format --set-exit-if-changed lib test` | exit 0 |
+| `flutter analyze` | No issues found |
+| `flutter test` | **75/75 passing** |
+| `flutter build web` | `√ Built build\web` |
+
+## Backend status (probed live)
+
+`node scripts/check-backend.mjs` →
+
+- **Firebase Auth** — reachable
+- **Firestore** — **live** (the earlier `SERVICE_DISABLED` is gone; an
+  unauthenticated read now correctly returns `PERMISSION_DENIED`, which means
+  the database exists and the rules are deployed)
+- **Cloud Storage** — not enabled yet; needed for avatar uploads only
+
+### Still to do by hand
+
+```bash
+firebase deploy --only firestore:rules,firestore:indexes,storage:rules
+```
+
+And enable Storage in the console if you want avatars:
+https://console.firebase.google.com/project/datedawn/storage
+
+### Note on Firestore indexes
+
+`firestore.indexes.json` is intact and required — the shared-event queries need
+the composite indexes, and Firestore rejects them without. If a query ever fails
+with a link to create an index, that link is the fastest fix; deploying the file
+creates them all up front.

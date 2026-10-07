@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:datedawn/core/notifications.dart';
 import 'package:datedawn/providers/app_providers.dart';
 import 'package:datedawn/services/auth_service.dart';
-import 'package:datedawn/services/supabase_service.dart';
+import 'package:datedawn/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,15 +11,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('AppNotification', () {
-    test('parses notification rows and preserves their read state', () {
-      final notification = AppNotification.fromRow({
-        'id': 'n1',
-        'user_id': 'u1',
+    test('parses a Firestore document and preserves its read state', () {
+      // The inbox lives at users/{uid}/notifications/{id}, so the recipient is
+      // the path rather than a field — it is passed in by the reader.
+      final notification = AppNotification.fromDoc('n1', 'u1', {
         'title': 'A countdown changed',
         'body': 'Your trip is now shared.',
         'type': 'circle',
-        'is_read': true,
-        'created_at': '2026-10-05T12:00:00.000Z',
+        'read': true,
+        'createdAt': '2026-10-05T12:00:00.000Z',
       });
 
       expect(notification.id, 'n1');
@@ -30,15 +30,36 @@ void main() {
     });
 
     test('falls back safely for unknown or sparse wire values', () {
-      final notification = AppNotification.fromRow({
+      final notification = AppNotification.fromDoc('n1', 'u1', {
         'type': 'future-kind',
         'title': 42,
-        'is_read': 'true',
+        'read': 'true',
       });
 
       expect(notification.kind, NotificationKind.system);
       expect(notification.title, '');
+      // A non-bool `read` must not be treated as true.
       expect(notification.isRead, isFalse);
+    });
+
+    test('round-trips through the document body', () {
+      final original = AppNotification(
+        id: 'n1',
+        userId: 'u1',
+        title: 'Title',
+        body: 'Body',
+        kind: NotificationKind.invitation,
+        isRead: true,
+        createdAt: DateTime.utc(2026, 10, 5),
+      );
+
+      final doc = original.toDoc();
+      expect(doc['title'], 'Title');
+      expect(doc['type'], 'invitation');
+      expect(doc['read'], isTrue);
+      // The id is the document name, so it must not be duplicated in the body.
+      expect(doc.containsKey('id'), isFalse);
+      expect(doc.containsKey('user_id'), isFalse);
     });
   });
 
@@ -49,12 +70,12 @@ void main() {
 
     test('restores the local mode and syncs it to a new account', () async {
       SharedPreferences.setMockInitialValues({'theme_mode': 'light'});
-      final service = _FakeSupabaseService();
+      final service = _FakeNotificationService();
       final container = ProviderContainer(overrides: [
         currentUserProvider.overrideWithValue(
           const AppUser(id: 'u1', email: 'user@example.com'),
         ),
-        supabaseServiceProvider.overrideWithValue(service),
+        notificationServiceProvider.overrideWithValue(service),
       ]);
       addTearDown(container.dispose);
 
@@ -62,17 +83,17 @@ void main() {
       await pumpEventQueue();
 
       expect(container.read(themeModeProvider), ThemeMode.light);
-      expect(service.savedMode, ThemeMode.light);
+      expect(service.savedWireMode, 'light');
     });
 
-    test('a saved Supabase preference replaces the local fallback', () async {
+    test('a saved remote preference replaces the local fallback', () async {
       SharedPreferences.setMockInitialValues({'theme_mode': 'dark'});
-      final service = _FakeSupabaseService()..storedMode = ThemeMode.system;
+      final service = _FakeNotificationService()..storedWireMode = 'system';
       final container = ProviderContainer(overrides: [
         currentUserProvider.overrideWithValue(
           const AppUser(id: 'u1', email: 'user@example.com'),
         ),
-        supabaseServiceProvider.overrideWithValue(service),
+        notificationServiceProvider.overrideWithValue(service),
       ]);
       addTearDown(container.dispose);
 
@@ -85,7 +106,7 @@ void main() {
     });
   });
 
-  test('streams Supabase inbox items for the active Firebase user', () async {
+  test('streams inbox items for the active user', () async {
     final notification = AppNotification(
       id: 'n1',
       userId: 'u1',
@@ -95,13 +116,13 @@ void main() {
       isRead: false,
       createdAt: DateTime.utc(2026, 10, 5),
     );
-    final service = _FakeSupabaseService()
+    final service = _FakeNotificationService()
       ..notificationStream = Stream.value([notification]);
     final container = ProviderContainer(overrides: [
       currentUserProvider.overrideWithValue(
         const AppUser(id: 'u1', email: 'user@example.com'),
       ),
-      supabaseServiceProvider.overrideWithValue(service),
+      notificationServiceProvider.overrideWithValue(service),
     ]);
     addTearDown(container.dispose);
 
@@ -122,22 +143,18 @@ void main() {
   });
 }
 
-class _FakeSupabaseService implements SupabaseService {
-  ThemeMode? storedMode;
-  ThemeMode? savedMode;
+class _FakeNotificationService implements NotificationService {
+  String? storedWireMode;
+  String? savedWireMode;
   String? watchedUserId;
-  bool cleared = false;
   Stream<List<AppNotification>>? notificationStream;
 
   @override
-  void clearAuth() => cleared = true;
+  Future<String?> fetchThemeMode(String userId) async => storedWireMode;
 
   @override
-  Future<ThemeMode?> fetchThemeMode(String userId) async => storedMode;
-
-  @override
-  Future<void> saveThemeMode(String userId, ThemeMode mode) async {
-    savedMode = mode;
+  Future<void> saveThemeMode(String userId, String wireMode) async {
+    savedWireMode = wireMode;
   }
 
   @override

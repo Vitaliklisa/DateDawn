@@ -1,12 +1,27 @@
 rules_version = '2';
 
-// Until does not store user uploads today — countdowns are text and dates only.
-// This file exists so `firebase deploy` has a valid target and so the moment
-// avatars or cover images are added, the default is deny rather than open.
+// Storage holds profile pictures.
+//
+// Path convention: avatars/{firebase_uid}/{timestamp}-{filename}
+// The first path segment is the uid, which is what the rules match on, so a
+// user can only ever write inside their own folder.
+//
+// Reads are public: an avatar is shown to other people (a participant list, a
+// circle member chip), and a download URL is not a secret. Writes are the
+// owner's alone.
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Nothing is publicly readable or writable.
+    match /avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Anything not matched above is denied — including a path with no uid, so a
+    // malformed client cannot land a file outside the convention.
     match /{allPaths=**} {
       allow read, write: if false;
     }

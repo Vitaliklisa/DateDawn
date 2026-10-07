@@ -39,7 +39,7 @@ class NotificationsScreen extends ConsumerWidget {
                           .read(eventRepositoryProvider)
                           .markResponseRead(response.id),
                     ref
-                        .read(supabaseServiceProvider)
+                        .read(notificationServiceProvider)
                         .markAllNotificationsRead(user.id),
                   ]);
                 },
@@ -77,8 +77,8 @@ class NotificationsScreen extends ConsumerWidget {
                   unawaited(runAction(
                     context,
                     () => ref
-                        .read(supabaseServiceProvider)
-                        .markNotificationRead(notification.id),
+                        .read(notificationServiceProvider)
+                        .markNotificationRead(user.id, notification.id),
                   ));
                 }
               },

@@ -128,7 +128,7 @@ class SettingsScreen extends ConsumerWidget {
           const _InfoRow(
             icon: Icons.cloud_outlined,
             label: 'Sync',
-            value: 'Firebase + Supabase',
+            value: 'Firebase',
           ),
           if (user != null) ...[
             const SizedBox(height: 32),

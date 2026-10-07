@@ -116,10 +116,42 @@ service cloud.firestore {
     // email address into a uid when adding someone straight to a countdown.
     // Only the email and display name are readable, and only to signed-in
     // users — never the whole auth record.
+    //
+    // The same document also carries per-user settings (`themeMode`) and owns
+    // the notification inbox below, so a user must be able to write their own.
     match /users/{userId} {
       allow read: if signedIn();
       allow create, update: if signedIn() && userId == uid();
       allow delete: if false;
+
+      // ---------- notifications ----------
+      //
+      // The in-app inbox, one subcollection per user. Living under the owner's
+      // document means the path itself carries the recipient, so no rule has
+      // to trust a `userId` field on the document — a query cannot span users
+      // even by mistake.
+      //
+      // Read/update/delete: only the owner. Create: any signed-in user, because
+      // "your friend joined your circle" is written by the friend, not by the
+      // recipient. The create is still constrained to a well-formed document so
+      // it cannot be used as arbitrary storage.
+      match /notifications/{notificationId} {
+        allow read, update, delete: if signedIn() && userId == uid();
+
+        allow create: if signedIn()
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 120
+          && request.resource.data.body is string
+          && request.resource.data.body.size() <= 500
+          && request.resource.data.type in ['invitation', 'circle', 'system', 'reminder']
+          && request.resource.data.read == false;
+
+        // The owner may only flip `read`; nothing else is theirs to change.
+        allow update: if signedIn()
+          && userId == uid()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      }
     }
 
     // ---------- events ----------

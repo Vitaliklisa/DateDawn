@@ -4,34 +4,30 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/circles.dart';
 import '../core/models.dart';
 import '../core/notifications.dart';
 import '../services/auth_service.dart';
 import '../services/event_repository.dart';
-import '../services/supabase_service.dart';
+import '../services/notification_service.dart';
 
 /// Overridden in `main()` (and in tests) with a ready-to-use instance.
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
+/// The Firestore-backed data layer: countdowns, circles, invitations, notes.
 final eventRepositoryProvider = Provider<EventRepository>((ref) {
   return EventRepository(
-    // The countdowns, circles and invitations live in Supabase, reached with
-    // the same verified Firebase ID token the client already carries.
-    client: SupabaseService.isAvailable ? Supabase.instance.client : null,
-    // Deliver inbox notifications through Supabase. Injected here rather than
-    // called directly inside the repository so the data layer stays testable
-    // without a live client.
+    // Deliver inbox notifications into the recipient's Firestore subcollection.
+    // Injected here rather than called directly inside the repository so the
+    // data layer stays testable without a live Firestore instance.
     notificationSink: ({
       required userId,
       required title,
       required body,
       required kind,
     }) async {
-      if (!SupabaseService.isReady) return;
-      await ref.read(supabaseServiceProvider).sendNotification(
+      await ref.read(notificationServiceProvider).sendNotification(
             userId: userId,
             title: title,
             body: body,
@@ -41,8 +37,9 @@ final eventRepositoryProvider = Provider<EventRepository>((ref) {
   );
 });
 
-final supabaseServiceProvider =
-    Provider<SupabaseService>((ref) => SupabaseService());
+/// The per-user data layer: the notification inbox, theme sync and avatars.
+final notificationServiceProvider =
+    Provider<NotificationService>((ref) => NotificationService());
 
 /// The signed-in user, or `null`. `AsyncValue.loading` covers the first frame,
 /// before Firebase has restored the persisted session.
@@ -56,14 +53,10 @@ final activeAuthStateProvider = StreamProvider<AppUser?>((ref) {
   ref.keepAlive();
   return ref.watch(authServiceProvider).authStateChanges().map((user) {
     if (user != null) {
+      // One profile write covers both the Firestore `users/{uid}` document the
+      // repo uses for email lookup and the Supabase-mirrored fields it no longer
+      // needs — Supabase is gone, so `syncUserProfile` is the only writer.
       unawaited(ref.read(eventRepositoryProvider).syncUserProfile(user));
-      if (SupabaseService.isReady) {
-        unawaited(ref.read(supabaseServiceProvider).upsertProfile(
-              userId: user.id,
-              fullName: user.displayName,
-              avatarUrl: user.photoUrl,
-            ));
-      }
     }
     return user;
   });
@@ -153,21 +146,15 @@ final responsesProvider = StreamProvider<List<InvitationResponse>>((ref) {
   return ref.watch(eventRepositoryProvider).watchResponses(user.id);
 });
 
-/// Supabase's persistent inbox, delivered as a live stream and scoped to the
-/// current Firebase identity.
+/// The signed-in user's notification inbox, live from
+/// `users/{uid}/notifications`.
 final appNotificationsProvider = StreamProvider<List<AppNotification>>((ref) {
   final user = ref.watch(currentUserProvider);
-  final service = ref.watch(supabaseServiceProvider);
-  // Identity comes from the Firebase ID token now, so the client needs no uid
-  // of its own — signing out is the only state change it has to see.
-  if (user == null) {
-    service.clearAuth();
-    return Stream.value(const []);
-  }
-  return service.watchNotifications(user.id);
+  if (user == null) return Stream.value(const []);
+  return ref.watch(notificationServiceProvider).watchNotifications(user.id);
 });
 
-/// Unread Firebase responses and Supabase inbox items for navigation badges.
+/// Unread invitation responses and inbox items for navigation badges.
 final unreadResponseCountProvider = Provider<int>((ref) {
   final responses = ref.watch(responsesProvider).value ?? const [];
   final notifications = ref.watch(appNotificationsProvider).value ?? const [];
@@ -243,7 +230,7 @@ final clockProvider = StreamProvider<DateTime>((ref) {
 });
 
 /// Theme mode loads from device storage immediately, then syncs to the signed-in
-/// account when Supabase is available.
+/// account's `users/{uid}.themeMode` so it follows them between devices.
 ///
 /// Riverpod 3 retired `StateNotifierProvider`; `Notifier` is its successor and
 /// removes the `state`-vs-`super` split that used to bite here.
@@ -288,7 +275,6 @@ class ThemeModeController extends Notifier<ThemeMode> {
     if (_userId == userId) return;
     _userId = userId;
     final revision = ++_accountRevision;
-    if (userId == null) ref.read(supabaseServiceProvider).clearAuth();
     unawaited(_restore(userId, revision, _choiceRevision));
   }
 
@@ -308,7 +294,7 @@ class ThemeModeController extends Notifier<ThemeMode> {
       }
 
       if (userId == null) return;
-      final service = ref.read(supabaseServiceProvider);
+      final service = ref.read(notificationServiceProvider);
       await _syncRemote(userId, accountRevision, choiceRevision, service);
     } catch (error, stackTrace) {
       debugPrint('[datedawn] Could not restore theme preference: $error');
@@ -320,10 +306,10 @@ class ThemeModeController extends Notifier<ThemeMode> {
     String userId,
     int accountRevision,
     int choiceRevision,
-    SupabaseService service,
+    NotificationService service,
   ) async {
     try {
-      final remoteMode = await service.fetchThemeMode(userId);
+      final remoteWire = await service.fetchThemeMode(userId);
       if (accountRevision != _accountRevision || _userId != userId) return;
 
       if (choiceRevision != _choiceRevision) {
@@ -331,6 +317,7 @@ class ThemeModeController extends Notifier<ThemeMode> {
         return;
       }
 
+      final remoteMode = themeModeFromWire(remoteWire);
       if (remoteMode != null) {
         state = remoteMode;
         await _saveLocally(remoteMode, _choiceRevision);
@@ -361,9 +348,11 @@ class ThemeModeController extends Notifier<ThemeMode> {
   ) {
     _remoteWrites = _remoteWrites.then((_) async {
       if (accountRevision != _accountRevision || _userId != userId) return;
-      await ref.read(supabaseServiceProvider).saveThemeMode(userId, mode);
+      await ref
+          .read(notificationServiceProvider)
+          .saveThemeMode(userId, themeModeToWire(mode));
     }).catchError((Object error, StackTrace stackTrace) {
-      debugPrint('[datedawn] Could not save theme to Supabase: $error');
+      debugPrint('[datedawn] Could not save the theme preference: $error');
       debugPrintStack(stackTrace: stackTrace);
     });
   }

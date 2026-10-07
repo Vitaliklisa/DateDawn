@@ -76,6 +76,34 @@ class AppNotification {
         createdAt: _parseTimestamp(row['created_at']),
       );
 
+  /// Builds from a `users/{uid}/notifications/{id}` Firestore document.
+  ///
+  /// The recipient is not stored on the document — it is the path — so
+  /// `userId` is passed in by the reader, which already knows whose inbox it
+  /// subscribed to.
+  factory AppNotification.fromDoc(
+    String id,
+    String userId,
+    Map<String, dynamic> doc,
+  ) =>
+      AppNotification(
+        id: id,
+        userId: userId,
+        title: doc['title'] is String ? doc['title'] as String : '',
+        body: doc['body'] is String ? doc['body'] as String : '',
+        kind: NotificationKind.fromWire(doc['type']),
+        isRead: doc['read'] == true,
+        createdAt: _parseTimestamp(doc['createdAt']),
+      );
+
+  /// The Firestore document body, minus the id (which is the document name).
+  Map<String, dynamic> toDoc() => {
+        'title': title,
+        'body': body,
+        'type': kind.name,
+        'read': isRead,
+      };
+
   Map<String, dynamic> toRow() => {
         'user_id': userId,
         'title': title,

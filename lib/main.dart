@@ -1,15 +1,12 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 // Riverpod 3 moved `Override` out of the main entrypoint; it lives in `misc`.
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/theme.dart';
 import 'firebase_config.dart';
@@ -17,8 +14,6 @@ import 'providers/app_providers.dart';
 import 'router.dart';
 import 'services/auth_service.dart';
 import 'services/event_repository.dart';
-import 'services/supabase_service.dart';
-import 'supabase_config.dart';
 
 Future<void> main() async {
   // Launch breadcrumbs.
@@ -35,16 +30,6 @@ Future<void> main() async {
   // shell, so deep links resolve on a cold load too. A no-op off the web.
   usePathUrlStrategy();
   _trace('binding ready');
-
-  await dotenv.load(fileName: '.env', isOptional: true);
-
-  // Supabase is a *secondary* backend: it owns theme sync, the notification
-  // inbox and avatars, none of which the first screen needs. Awaiting it here
-  // used to gate `runApp` on a network round-trip, so a slow or unreachable
-  // Supabase delayed every cold start (and a failure threw before the app ever
-  // mounted). Initialise it in the background instead, with a timeout, so the
-  // countdowns — which live in Firestore — render immediately either way.
-  unawaited(_initSupabase());
 
   // On web the config must be supplied in code; on Android/iOS the native files
   // cover it. If web is missing its keys, show a page that says exactly what to
@@ -88,40 +73,6 @@ Future<void> main() async {
 /// the whole call is tree-shaken away.
 void _trace(String message) {
   if (kDebugMode) debugPrint('[datedawn] $message');
-}
-
-/// Brings up the secondary Supabase client without blocking the first frame.
-///
-/// Deliberately fire-and-forget: the countdown data lives in Firestore, so the
-/// app is fully usable before this resolves. A failure (offline, bad key, an
-/// unreachable project) is logged and swallowed — `SupabaseService.isAvailable`
-/// already guards every Supabase call, so the UI degrades to local-only instead
-/// of crashing on launch.
-Future<void> _initSupabase() async {
-  try {
-    await Supabase.initialize(
-      url: resolvedSupabaseUrl,
-      publishableKey: resolvedSupabasePublishableKey,
-      // Identity travels in the Firebase ID token, not in a header.
-      //
-      // `Supabase.initialize` reads this callback on every request, so it must
-      // always reflect the *current* Firebase user: returning null after a
-      // sign-out is what makes Supabase treat the request as anonymous.
-      // `getIdToken()` is called without forcing a refresh here because it
-      // already returns a cached-but-valid token and only hits the network when
-      // it is close to expiring; the sign-in flow forces a refresh separately so
-      // the `role` claim is present on the very first request after signup.
-      accessToken: () async {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) return null;
-        return user.getIdToken();
-      },
-    ).timeout(const Duration(seconds: 8));
-    SupabaseService.markReady();
-    _trace('Supabase ready');
-  } catch (error) {
-    _trace('Supabase unavailable, continuing without it: $error');
-  }
 }
 
 /// Shown on web when `flutterfire configure` has not been run yet.
