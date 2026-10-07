@@ -995,11 +995,9 @@ class EventRepository {
     await batch.commit();
 
     // Tell the person who invited them. Best-effort: they have already joined.
-    if (invitation.invitedBy.isNotEmpty &&
-        invitation.invitedBy != userId) {
-      final who = (displayName?.trim().isNotEmpty ?? false)
-          ? displayName!
-          : email;
+    if (invitation.invitedBy.isNotEmpty && invitation.invitedBy != userId) {
+      final who =
+          (displayName?.trim().isNotEmpty ?? false) ? displayName! : email;
       await _notify(
         userId: invitation.invitedBy,
         title: invitation.isCouple

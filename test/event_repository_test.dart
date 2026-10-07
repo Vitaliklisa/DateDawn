@@ -91,17 +91,18 @@ void main() {
         inviterEmail: 'alex@example.com',
         email: 'alex@example.com',
       ),
-          throwsA(
-            isA<DataFailure>().having(
-              (e) => e.message,
-              'message',
-              cannotInviteSelfMessage,
-            ),
-          ),
-        );
-      });
+      throwsA(
+        isA<DataFailure>().having(
+          (e) => e.message,
+          'message',
+          cannotInviteSelfMessage,
+        ),
+      ),
+    );
+  });
 
-      test('a couple circle auto-shares a new countdown with the partner', () async {
+  test('a couple circle auto-shares a new countdown with the partner',
+      () async {
     final firestore = FakeFirebaseFirestore();
     final repository = EventRepository(firestore: firestore);
 
