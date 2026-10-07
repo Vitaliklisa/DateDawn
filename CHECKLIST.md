@@ -255,6 +255,9 @@ There isn't one any more. § 8 removed it.
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
+**Do not skip this after § 9.** The rules file changed; until it is deployed,
+Accept on a circle invitation keeps returning `permission-denied`.
+
 There is nothing to enable for Storage. See § 8.
 
 ### Note on Firestore indexes
@@ -331,3 +334,78 @@ block to `firebase.json` and a `storage.rules`, put `uploadAvatar()` back on
 `NotificationService`, and call it from Settings. Nothing else changed shape —
 `photoUrl` and the `Image.network` branch were never removed, so the UI needs no
 edit.
+
+---
+
+# 9. Two bugs found in the live app
+
+## 9.1 `permission-denied` on Accepting a circle invitation
+
+**Symptom.** Tapping Accept on a circle invitation failed with
+`[cloud_firestore/permission-denied] Missing or insufficient permissions.`
+
+**Cause.** `acceptCircleInvitation()` commits one batch with three writes:
+
+1. the membership row at `circles/{id}/members/{uid}`
+2. `memberIds: arrayUnion([uid])` on the circle document
+3. the invitation flipped to `accepted`
+
+The circle `update` rule verified the new member with
+`exists(/circles/{id}/members/{uid})`. A plain `exists()` resolves against the
+database **as it was when the request started**, so it cannot see a sibling write
+from the same batch — it returned `false` for the very row the batch was adding.
+The rule was therefore unsatisfiable on the only path that ever adds a member
+this way, and Firestore rejected the whole batch: the circle document was left
+untouched and the membership row was never written.
+
+**Fix.** `firestore.rules` now uses `existsAfter()`, which resolves a document as
+of the **end** of the batch, via a named `memberRowWritten(circleId)` helper. The
+`memberIds` diff is still computed against `resource.data`, so the protection
+against a non-owner granting themselves access is unchanged — the new condition
+only adds the proof that the member row really is being created.
+
+**This needs a deploy to take effect:**
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+The app can be rebuilt all day; until the rules are deployed the Accept button
+will keep failing.
+
+## 9.2 A countdown shared with a circle never invited anyone
+
+**Symptom.** Sharing a countdown with a non-couple circle made it visible to the
+group, but no member received an invitation and none had a `participants` row to
+accept — the invitations inbox stayed empty.
+
+**Cause.** `createEvent()` wrote a synthetic `participants/circle:{id}` row for
+the circle and stopped there. Nothing ever wrote an `invitations` document or a
+per-member pending `participants` row. The comment said members "still receive an
+ordinary invitation", but no code did it.
+
+**Fix.** `createEvent()` takes `invitationRecipients` and `invitedUserIds` and
+writes, in the same batch as the event:
+
+- a pending `participants/{uid}` row per invitee, and
+- an `invitations/{id}` document addressed to their email — which is what the
+  invitee's inbox actually streams, since `invitationsProvider` queries
+  `inviteeEmail`.
+
+Both are batched deliberately: the `participants` and `invitations` create rules
+resolve the event with `getAfter()`, so they can see the event document the same
+batch is writing.
+
+A new `circleInvitees()` helper hydrates each selected circle's `members`
+subcollection — `circlesProvider` streams circle documents *without* it, so the
+in-memory `circle.members` is usually empty and iterating it would have invited
+nobody. `InvitationRecipient` (in `lib/core/models.dart`) carries the email
+alongside the uid, because a uid alone cannot address an invitation.
+
+## 9.3 Raw Firebase errors shown to the user
+
+`event_editor_screen.dart` caught every non-`DataFailure` error with
+`'Could not save: $e'`, which surfaced `[cloud_firestore/permission-denied]
+Missing or insufficient permissions.` verbatim. `_saveError()` now maps the two
+failures that actually occur — a refused write and a dead connection — to plain
+sentences, and names the deploy command for the first.

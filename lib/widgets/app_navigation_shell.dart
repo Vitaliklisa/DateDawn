@@ -157,6 +157,12 @@ class _SidebarDestination extends StatelessWidget {
       child: ListTile(
         dense: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        // Without this, `ListTile` paints its default hover overlay over the
+        // whole row, which turns the label and icon red on desktop — the same
+        // wrong signal the top-bar icons used to give. The overlay is pinned to
+        // the accent so a hovered destination reads as "this is where you are
+        // going", not "this is about to be destroyed".
+        hoverColor: colors.accent.withValues(alpha: 0.08),
         leading: Icon(
           icon,
           size: 20,

@@ -143,6 +143,15 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     try {
       CountdownEvent? created;
       if (existing == null) {
+        // Members of every circle being shared with, minus the creator. Passing
+        // these is what actually sends the invitations: attaching a countdown to
+        // a non-couple circle used to make it visible to the group while never
+        // asking anyone to join, so the invitee had nothing in their inbox and
+        // no `participants` row to accept.
+        final invitees = await repository.circleInvitees(
+          circleIds: _selectedCircleIds,
+          excludingUserId: user.id,
+        );
         created = await repository.createEvent(
           userId: user.id,
           email: user.email,
@@ -155,6 +164,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           // any other circle's members get an invitation to accept.
           autoShareCircleIds: _selectedCircleIds.toList(),
           circles: ref.read(circlesProvider).value ?? const [],
+          invitationRecipients: invitees,
         );
       } else {
         await repository.updateEvent(
@@ -193,9 +203,11 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     } on DataFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
-      if (mounted) {
-        setState(() => _error = 'Could not save: $e');
-      }
+      // A raw Firebase exception is not a sentence. `[cloud_firestore/…] Missing
+      // or insufficient permissions.` tells the person nothing they can act on,
+      // and the two cases that actually happen here deserve their own words:
+      // the security rules refusing the write, and the network being away.
+      if (mounted) setState(() => _error = _saveError(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -995,4 +1007,26 @@ class _CirclePicker extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Turns a raw save failure into something the person can act on.
+///
+/// Firebase's own text is developer-facing — `[cloud_firestore/permission-denied]
+/// Missing or insufficient permissions.` — and showing it verbatim made a
+/// security-rules rejection look like an app crash. The two failures that
+/// actually occur here are a refused write and a dead connection, so each gets a
+/// plain sentence and a next step.
+String _saveError(Object error) {
+  final text = error.toString();
+  if (text.contains('permission-denied')) {
+    return 'Firestore refused the save. If this keeps happening, the deployed '
+        'security rules are older than the app — run '
+        '`firebase deploy --only firestore:rules`.';
+  }
+  if (text.contains('unavailable') ||
+      text.contains('network') ||
+      text.contains('Failed to fetch')) {
+    return 'Could not reach Firestore. Check your connection and try again.';
+  }
+  return 'Could not save. Please try again.';
 }

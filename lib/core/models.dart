@@ -120,6 +120,27 @@ class Participant {
   }
 }
 
+/// Someone to invite to a countdown the moment it is created.
+///
+/// Carries the email as well as the uid because an `invitations` document — the
+/// only thing the invitee's inbox streams — is addressed and matched by email.
+/// A uid alone is not enough to write one.
+class InvitationRecipient {
+  const InvitationRecipient({
+    required this.userId,
+    required this.email,
+    this.displayName,
+    this.photoUrl,
+    this.role = ParticipantRole.viewer,
+  });
+
+  final String userId;
+  final String email;
+  final String? displayName;
+  final String? photoUrl;
+  final ParticipantRole role;
+}
+
 /// A short comment left on an event by a participant.
 class EventNote {
   const EventNote({

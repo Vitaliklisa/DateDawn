@@ -40,6 +40,19 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()));
     }
 
+    // Does a document exist once the whole batch has committed?
+    //
+    // The plain `exists()` sees the database as it was when the request started,
+    // so it cannot see a sibling write from the same batch. `existsAfter()` can.
+    // Needed wherever a rule has to verify something the same batch just wrote —
+    // joining a circle writes the member row and the `memberIds` entry together,
+    // and the rule for the second has to be able to see the first.
+    function memberRowWritten(circleId) {
+      return existsAfter(
+        /databases/$(database)/documents/circles/$(circleId)/members/$(uid())
+      );
+    }
+
     function participantRole(eventId) {
       return get(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.role;
     }
@@ -281,6 +294,22 @@ service cloud.firestore {
       // rather than "the diff is exactly my uid":
       //   join  -> new list = old list + me
       //   leave -> new list = old list - me
+      //
+      // The join shape reads `getAfter`, not `resource`.
+      //
+      // `resource.data` is the state of the document **as it is committed in the
+      // same batch as this write**, and the client's acceptCircleInvitation
+      // batch commits the membership subcollection write first. `getAfter`
+      // resolves a document as of the end of the whole batch, so it sees the
+      // member row the batch just wrote; `resource.data` does not. Testing the
+      // subcollection against `resource.data` is therefore always false on the
+      // only path that ever adds a member this way — which is exactly the
+      // `permission-denied` a new member used to get on Accept, with the circle
+      // document left untouched and the membership row half-written.
+      //
+      // The `memberIds` diff is still computed against `resource.data`: that is
+      // what actually protects against a non-owner granting themselves access,
+      // and it stays exactly as strict as before.
       allow update: if signedIn()
         && (
           (resource.data.ownerId == uid()
@@ -290,7 +319,8 @@ service cloud.firestore {
             && (
               (request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
                 && uid() in request.resource.data.memberIds
-                && !(uid() in resource.data.memberIds))
+                && !(uid() in resource.data.memberIds)
+                && memberRowWritten(circleId))
               || (request.resource.data.memberIds.size() == resource.data.memberIds.size() - 1
                 && !(uid() in request.resource.data.memberIds)
                 && uid() in resource.data.memberIds)

@@ -642,9 +642,16 @@ class _TopBar extends ConsumerWidget {
 ///
 /// The badge is how you notice an invitation arrived without opening anything —
 /// the number only appears when it is non-zero, so the bar stays quiet when
-/// there is nothing waiting. The icon reddens on hover/press, the same reaction
-/// as the back arrow, so the whole top bar answers the pointer consistently.
-class _BadgedIconButton extends StatefulWidget {
+/// there is nothing waiting.
+///
+/// The icon does **not** redden on hover. Red is the app's destructive colour
+/// (`colors.danger`) and is spent where it means something: the delete actions,
+/// and the back arrow, which doubles as a dismiss affordance. An ordinary
+/// navigation icon turning red reads as "this will delete something", which is
+/// exactly the wrong promise for "open your invitations". The affordance here is
+/// the pointer cursor and the `Material` hover halo every other button in the
+/// app already gives.
+class _BadgedIconButton extends StatelessWidget {
   const _BadgedIconButton({
     required this.tooltip,
     required this.icon,
@@ -658,50 +665,20 @@ class _BadgedIconButton extends StatefulWidget {
   final int count;
 
   @override
-  State<_BadgedIconButton> createState() => _BadgedIconButtonState();
-}
-
-class _BadgedIconButtonState extends State<_BadgedIconButton> {
-  bool _active = false;
-
-  void _set(bool value) {
-    if (_active == value) return;
-    setState(() => _active = value);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final color = _active ? colors.danger : colors.fg;
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (_) => _set(true),
-          onExit: (_) => _set(false),
-          child: Listener(
-            onPointerDown: (_) => _set(true),
-            onPointerUp: (_) => _set(false),
-            onPointerCancel: (_) => _set(false),
-            child: IconButton(
-              tooltip: widget.tooltip,
-              onPressed: widget.onPressed,
-              icon: TweenAnimationBuilder<Color?>(
-                duration: const Duration(milliseconds: 140),
-                curve: Curves.easeOut,
-                tween: ColorTween(end: color),
-                builder: (context, animated, _) => Icon(
-                  widget.icon,
-                  size: 20,
-                  color: animated ?? color,
-                ),
-              ),
-            ),
-          ),
+        // `IconButton` already paints its own hover/press halo from the colour
+        // scheme, so the press feedback survives without a `Listener` here.
+        IconButton(
+          tooltip: tooltip,
+          onPressed: onPressed,
+          icon: Icon(icon, size: 20, color: colors.fg),
         ),
-        if (widget.count > 0)
+        if (count > 0)
           Positioned(
             right: 6,
             top: 6,
@@ -713,7 +690,7 @@ class _BadgedIconButtonState extends State<_BadgedIconButton> {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                widget.count > 9 ? '9+' : '${widget.count}',
+                count > 9 ? '9+' : '$count',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 10,

@@ -340,6 +340,12 @@ class EventRepository {
   /// A non-couple circle passed in the same list is attached for visibility but
   /// its members still receive an ordinary invitation, so a friend group is
   /// never silently subscribed to someone's private plans.
+  ///
+  /// **Inviting people outright.** `invitationRecipients` (people who already
+  /// have an account, looked up by email) and `invitedUserIds` (people the
+  /// caller resolved itself) are added to the same batch as pending participants
+  /// with a matching `invitations` document. Without them a countdown shared to
+  /// a circle was visible to the group but nobody was ever asked to join it.
   Future<CountdownEvent> createEvent({
     required String userId,
     required String email,
@@ -350,6 +356,8 @@ class EventRepository {
     String? photoUrl,
     List<String> autoShareCircleIds = const [],
     List<Circle> circles = const [],
+    List<InvitationRecipient> invitationRecipients = const [],
+    List<String> invitedUserIds = const [],
   }) async {
     if (title.trim().isEmpty) {
       throw const DataFailure('Give this countdown a title.');
@@ -392,6 +400,10 @@ class EventRepository {
     });
 
     final autoParticipants = <Participant>[];
+    // Uids the couple auto-share has already put on this countdown. Only used to
+    // keep a member from being both an auto-participant and an invitee.
+    final invitedUserIds = <String>{};
+
     for (final circleId in validCircleIds) {
       final circle = circles.firstWhere((c) => c.id == circleId);
       // Invitations only apply to circles that are not the automatic kind.
@@ -429,6 +441,7 @@ class EventRepository {
       }
       for (final member in members) {
         if (member.userId == userId) continue;
+        invitedUserIds.add(member.userId);
         batch.set(
           _events.doc(id).collection('participants').doc(member.userId),
           {
@@ -455,7 +468,94 @@ class EventRepository {
       }
     }
 
+    // People invited outright. Each gets a pending participant row (so the
+    // countdown already lists them as awaiting an answer) plus an `invitations`
+    // document (which is what the invitee's inbox actually streams — it queries
+    // `inviteeEmail`, not the participant rows).
+    //
+    // Both live in this batch on purpose: the create rules for `participants`
+    // and `invitations` resolve the event with `getAfter()`, so they can see the
+    // event document this same batch is writing. A follow-up `inviteByEmail()`
+    // call would not — it would land after the batch committed and re-read the
+    // event, which is fine — but batching keeps a failed invite from leaving a
+    // countdown that only half-exists.
+    final nowStamp = Timestamp.fromDate(now);
+    final expiresStamp = Timestamp.fromDate(now.add(const Duration(days: 30)));
+    final invitedParticipantIds = <String>[];
+
+    void addInvitation({
+      required String targetUserId,
+      required String targetEmail,
+      String? targetDisplayName,
+      String? targetPhotoUrl,
+      required ParticipantRole role,
+    }) {
+      if (targetUserId == userId) return;
+      if (invitedParticipantIds.contains(targetUserId)) return;
+      invitedParticipantIds.add(targetUserId);
+
+      batch.set(
+        _events.doc(id).collection('participants').doc(targetUserId),
+        {
+          'email': targetEmail.toLowerCase(),
+          'role': role.name,
+          'inviteStatus': InviteStatus.pending.name,
+          'joinedAt': nowStamp,
+          if (targetDisplayName != null) 'displayName': targetDisplayName,
+          if (targetPhotoUrl != null) 'photoUrl': targetPhotoUrl,
+        },
+        SetOptions(merge: true),
+      );
+      batch.set(_invitations.doc(_uuid.v4()), {
+        'eventId': id,
+        'invitedBy': userId,
+        'inviteeEmail': targetEmail.toLowerCase(),
+        'role': role.name,
+        'status': InviteStatus.pending.name,
+        'createdAt': nowStamp,
+        'expiresAt': expiresStamp,
+        'eventTitle': title.trim(),
+      });
+    }
+
+    for (final recipient in invitationRecipients) {
+      addInvitation(
+        targetUserId: recipient.userId,
+        targetEmail: recipient.email,
+        targetDisplayName: recipient.displayName,
+        targetPhotoUrl: recipient.photoUrl,
+        role: recipient.role,
+      );
+    }
+    for (final targetUserId in invitedUserIds) {
+      final profile = await lookupUserById(targetUserId);
+      final targetEmail = profile?['email'];
+      // An `invitations` document is matched to the invitee by email, so a uid
+      // with no email on file cannot be invited this way — skipping is correct,
+      // and the caller should have passed a `recipient` instead.
+      if (targetEmail == null || targetEmail.isEmpty) continue;
+      addInvitation(
+        targetUserId: targetUserId,
+        targetEmail: targetEmail,
+        targetDisplayName: profile?['displayName'],
+        targetPhotoUrl: profile?['photoUrl'],
+        role: ParticipantRole.viewer,
+      );
+    }
+
     await batch.commit();
+
+    // Tell everyone who was invited that something is waiting for them. Sent
+    // after the commit, and one at a time, so a notification failure can never
+    // roll back the countdown the creator just made.
+    for (final recipient in invitationRecipients) {
+      await _notify(
+        userId: recipient.userId,
+        title: 'You were invited to “${title.trim()}”',
+        body: 'Open Invitations to accept or decline.',
+        kind: NotificationKind.invitation,
+      );
+    }
 
     return CountdownEvent(
       id: id,
@@ -712,6 +812,34 @@ class EventRepository {
     if (invitation.status != InviteStatus.pending) {
       throw const DataFailure('That invitation is no longer pending.');
     }
+  }
+
+  /// Everyone in the given circles except [excludingUserId], as people who can
+  /// be invited to a countdown.
+  ///
+  /// Hydrates each circle's `members` subcollection on demand: the circle
+  /// documents `circlesProvider` streams do not carry it, so the in-memory
+  /// `circle.members` is usually empty and iterating it would invite nobody.
+  Future<List<InvitationRecipient>> circleInvitees({
+    required Iterable<String> circleIds,
+    required String excludingUserId,
+  }) async {
+    final recipients = <String, InvitationRecipient>{};
+    for (final circleId in circleIds) {
+      final snap = await _circles.doc(circleId).collection('members').get();
+      for (final doc in snap.docs) {
+        if (doc.id == excludingUserId) continue;
+        final member = CircleMember.fromMap(doc.id, doc.data());
+        if (member.email.isEmpty) continue;
+        recipients[member.userId] = InvitationRecipient(
+          userId: member.userId,
+          email: member.email,
+          displayName: member.displayName,
+          photoUrl: member.photoUrl,
+        );
+      }
+    }
+    return recipients.values.toList();
   }
 
   /// Leaves a one-way note telling the inviter what the invitee chose.
@@ -1086,6 +1214,26 @@ class EventRepository {
       final data = doc.data();
       return {
         'userId': doc.id,
+        for (final key in const ['email', 'displayName', 'photoUrl'])
+          if (data[key] is String && (data[key] as String).isNotEmpty)
+            key: data[key] as String,
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The public profile for a uid, in the same shape as [lookupUserByEmail].
+  ///
+  /// Needed when the caller has already resolved a uid but still needs the
+  /// email an `invitations` document has to be addressed to.
+  Future<Map<String, String>?> lookupUserById(String userId) async {
+    if (userId.isEmpty) return null;
+    try {
+      final doc = await _db.collection('users').doc(userId).get();
+      final data = doc.data();
+      if (data == null) return null;
+      return {
         for (final key in const ['email', 'displayName', 'photoUrl'])
           if (data[key] is String && (data[key] as String).isNotEmpty)
             key: data[key] as String,
