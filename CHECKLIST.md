@@ -255,8 +255,9 @@ There isn't one any more. § 8 removed it.
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-**Do not skip this after § 9.** The rules file changed; until it is deployed,
-Accept on a circle invitation keeps returning `permission-denied`.
+**Do not skip this after § 9 or § 10.** The rules file changed; until it is
+deployed, Accept on a circle invitation and creating a countdown both keep
+returning `permission-denied`.
 
 There is nothing to enable for Storage. See § 8.
 
@@ -409,3 +410,64 @@ alongside the uid, because a uid alone cannot address an invitation.
 Missing or insufficient permissions.` verbatim. `_saveError()` now maps the two
 failures that actually occur — a refused write and a dead connection — to plain
 sentences, and names the deploy command for the first.
+
+---
+
+# 10. `permission-denied` creating a countdown — the actual cause
+
+**Symptom.** "Create countdown" on a title with no circles selected failed with
+"Firestore refused the save."
+
+**Cause.** `isAdmin()` is defined with a plain `get()`:
+
+```
+function isAdmin(eventId) {
+  return signedIn() && isParticipant(eventId) && participantRole(eventId) == 'admin';
+}
+```
+
+A plain `get()` resolves against the database **as it was when the request
+started**, so it cannot see a document written by the *same batch*. Creating a
+countdown writes the event and the creator's `participants/{uid}` admin row in
+one batch, and — as of § 9.2 — that same batch also wrote `invitations`
+documents, whose create rule ends with `&& isAdmin(eventId)`.
+
+`isAdmin()` therefore returned `false` for every invitation in that batch, the
+invitations rule refused, and because a Firestore batch is atomic **the entire
+create was rejected** — including the event document. The countdown never
+existed, which is why this looked like "I don't have rights to add anything".
+
+This is the same `get()`-vs-`getAfter()` trap as § 9.1, one layer deeper. § 9.1
+fixed the membership row; this fixes the admin lookup that gates invitations.
+
+**Fix, two parts.**
+
+1. **`firestore.rules`** — the `invitations` create rule now uses
+   `isAdminAfter(eventId)` (new helper: `existsAfter` + `getAfter` on the
+   participant row) with a fallback to
+   `getAfter(.../events/{id}).data.createdBy == uid()`. Both resolve as of the
+   end of the batch, so the just-written event and admin row are visible.
+
+2. **`event_repository.dart`** — invitations no longer ride in the create batch
+   at all. `createEvent()` commits the event and the creator's rows first, then
+   calls `_inviteAll()` best-effort, one person at a time.
+
+   The second part matters more than the first. A create batch is atomic, so any
+   rules problem with a follow-up write destroys the thing the person actually
+   asked for. Splitting them means the countdown is created and saved even if
+   every invitation is refused — it degrades to "created, but nobody was told",
+   which is recoverable from the countdown screen, instead of a blank failure.
+
+   By the time `_inviteAll()` runs, the event and admin row are committed, so
+   the plain `isAdmin()` in the rule is satisfied on its own; the `getAfter()`
+   change is what covers the batched path if anything ever batches again.
+
+**Still requires a deploy:**
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Verified with `firebase deploy --only firestore:rules --dry-run --project datedawn`
+→ `rules file firestore.rules compiled successfully` (two pre-existing warnings:
+unused `isSharedWithMyCircle`, unused `eventId` parameter in `isOwner`).

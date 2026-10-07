@@ -97,6 +97,16 @@ service cloud.firestore {
       return signedIn() && isParticipant(eventId) && participantRole(eventId) == 'admin';
     }
 
+    // The same question as `isAdmin`, asked of the database as of the end of the
+    // batch. Use this whenever the admin row may be written by the same request
+    // that needs to prove it — creating a countdown writes the event and its
+    // creator's admin row together, then invites people to it.
+    function isAdminAfter(eventId) {
+      return signedIn()
+        && existsAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()))
+        && getAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.role == 'admin';
+    }
+
     function isEditor(eventId) {
       return signedIn()
         && isParticipant(eventId)
@@ -251,7 +261,16 @@ service cloud.firestore {
         && request.resource.data.inviteeEmail == request.resource.data.inviteeEmail.lower()
         && request.resource.data.status == 'pending'
         // Only an admin of the target event may invite to it.
-        && isAdmin(request.resource.data.eventId);
+        //
+        // Resolved with `getAfter`, not `get`. A plain `get()` sees the database
+        // as it was when the request started, so it cannot find the event or the
+        // participant row when both are written by the *same batch* — which is
+        // exactly how a countdown invites the people it was shared with. With
+        // `get()` this condition was false for every invitation in that batch,
+        // and Firestore rejected the whole thing: "Firestore refused the save".
+        // `getAfter()` resolves as of the end of the batch and finds both.
+        && (isAdminAfter(request.resource.data.eventId)
+          || getAfter(/databases/$(database)/documents/events/$(request.resource.data.eventId)).data.createdBy == uid());
 
       // The invitee may accept or decline. The sender may cancel.
       allow update: if signedIn()

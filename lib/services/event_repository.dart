@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/circles.dart';
@@ -468,94 +469,26 @@ class EventRepository {
       }
     }
 
-    // People invited outright. Each gets a pending participant row (so the
-    // countdown already lists them as awaiting an answer) plus an `invitations`
-    // document (which is what the invitee's inbox actually streams — it queries
-    // `inviteeEmail`, not the participant rows).
+    // Commit the countdown and its own participant rows first, and on their own.
     //
-    // Both live in this batch on purpose: the create rules for `participants`
-    // and `invitations` resolve the event with `getAfter()`, so they can see the
-    // event document this same batch is writing. A follow-up `inviteByEmail()`
-    // call would not — it would land after the batch committed and re-read the
-    // event, which is fine — but batching keeps a failed invite from leaving a
-    // countdown that only half-exists.
-    final nowStamp = Timestamp.fromDate(now);
-    final expiresStamp = Timestamp.fromDate(now.add(const Duration(days: 30)));
-    final invitedParticipantIds = <String>[];
-
-    void addInvitation({
-      required String targetUserId,
-      required String targetEmail,
-      String? targetDisplayName,
-      String? targetPhotoUrl,
-      required ParticipantRole role,
-    }) {
-      if (targetUserId == userId) return;
-      if (invitedParticipantIds.contains(targetUserId)) return;
-      invitedParticipantIds.add(targetUserId);
-
-      batch.set(
-        _events.doc(id).collection('participants').doc(targetUserId),
-        {
-          'email': targetEmail.toLowerCase(),
-          'role': role.name,
-          'inviteStatus': InviteStatus.pending.name,
-          'joinedAt': nowStamp,
-          if (targetDisplayName != null) 'displayName': targetDisplayName,
-          if (targetPhotoUrl != null) 'photoUrl': targetPhotoUrl,
-        },
-        SetOptions(merge: true),
-      );
-      batch.set(_invitations.doc(_uuid.v4()), {
-        'eventId': id,
-        'invitedBy': userId,
-        'inviteeEmail': targetEmail.toLowerCase(),
-        'role': role.name,
-        'status': InviteStatus.pending.name,
-        'createdAt': nowStamp,
-        'expiresAt': expiresStamp,
-        'eventTitle': title.trim(),
-      });
-    }
-
-    for (final recipient in invitationRecipients) {
-      addInvitation(
-        targetUserId: recipient.userId,
-        targetEmail: recipient.email,
-        targetDisplayName: recipient.displayName,
-        targetPhotoUrl: recipient.photoUrl,
-        role: recipient.role,
-      );
-    }
-    for (final targetUserId in invitedUserIds) {
-      final profile = await lookupUserById(targetUserId);
-      final targetEmail = profile?['email'];
-      // An `invitations` document is matched to the invitee by email, so a uid
-      // with no email on file cannot be invited this way — skipping is correct,
-      // and the caller should have passed a `recipient` instead.
-      if (targetEmail == null || targetEmail.isEmpty) continue;
-      addInvitation(
-        targetUserId: targetUserId,
-        targetEmail: targetEmail,
-        targetDisplayName: profile?['displayName'],
-        targetPhotoUrl: profile?['photoUrl'],
-        role: ParticipantRole.viewer,
-      );
-    }
-
+    // Invitations are deliberately NOT in this batch. A create batch is atomic:
+    // one refused write fails all of it, so a rules problem with an invitation
+    // used to make the whole countdown vanish with a bare "Firestore refused the
+    // save". The countdown is the thing the person asked for and it is the one
+    // write that is always allowed; it must not be hostage to a follow-up.
     await batch.commit();
 
-    // Tell everyone who was invited that something is waiting for them. Sent
-    // after the commit, and one at a time, so a notification failure can never
-    // roll back the countdown the creator just made.
-    for (final recipient in invitationRecipients) {
-      await _notify(
-        userId: recipient.userId,
-        title: 'You were invited to “${title.trim()}”',
-        body: 'Open Invitations to accept or decline.',
-        kind: NotificationKind.invitation,
-      );
-    }
+    // Now invite, best-effort, one person at a time. By this point the event and
+    // the creator's admin row are committed, so `isAdmin()` sees them and the
+    // invitations rule is satisfied without needing `getAfter()`.
+    await _inviteAll(
+      eventId: id,
+      eventTitle: title.trim(),
+      inviterId: userId,
+      recipients: invitationRecipients,
+      invitedUserIds: invitedUserIds,
+      now: now,
+    );
 
     return CountdownEvent(
       id: id,
@@ -840,6 +773,101 @@ class EventRepository {
       }
     }
     return recipients.values.toList();
+  }
+
+  /// Writes the pending participant rows and `invitations` documents for a
+  /// freshly created countdown.
+  ///
+  /// Best-effort by design. The countdown is already committed by the time this
+  /// runs, so a refusal here must not turn a successful create into a failure —
+  /// it degrades to "created, but nobody was told", which is recoverable by
+  /// inviting them from the countdown afterwards.
+  Future<void> _inviteAll({
+    required String eventId,
+    required String eventTitle,
+    required String inviterId,
+    required List<InvitationRecipient> recipients,
+    required Iterable<String> invitedUserIds,
+    required DateTime now,
+  }) async {
+    final nowStamp = Timestamp.fromDate(now);
+    final expiresStamp = Timestamp.fromDate(now.add(const Duration(days: 30)));
+    final seen = <String>{inviterId};
+
+    Future<void> invite({
+      required String targetUserId,
+      required String targetEmail,
+      String? targetDisplayName,
+      String? targetPhotoUrl,
+      required ParticipantRole role,
+    }) async {
+      if (targetEmail.isEmpty) return;
+      if (!seen.add(targetUserId)) return;
+      try {
+        final batch = _db.batch();
+        batch.set(
+          _events.doc(eventId).collection('participants').doc(targetUserId),
+          {
+            'email': targetEmail.toLowerCase(),
+            'role': role.name,
+            'inviteStatus': InviteStatus.pending.name,
+            'joinedAt': nowStamp,
+            if (targetDisplayName != null) 'displayName': targetDisplayName,
+            if (targetPhotoUrl != null) 'photoUrl': targetPhotoUrl,
+          },
+          SetOptions(merge: true),
+        );
+        // The `invitations` document is what the invitee's inbox actually
+        // streams — `invitationsProvider` queries `inviteeEmail`, not the
+        // participant rows. Without it there is nothing to accept.
+        batch.set(_invitations.doc(_uuid.v4()), {
+          'eventId': eventId,
+          'invitedBy': inviterId,
+          'inviteeEmail': targetEmail.toLowerCase(),
+          'role': role.name,
+          'status': InviteStatus.pending.name,
+          'createdAt': nowStamp,
+          'expiresAt': expiresStamp,
+          'eventTitle': eventTitle,
+        });
+        await batch.commit();
+
+        await _notify(
+          userId: targetUserId,
+          title: 'You were invited to “$eventTitle”',
+          body: 'Open Invitations to accept or decline.',
+          kind: NotificationKind.invitation,
+        );
+      } catch (error) {
+        // One person's invite failing must not stop the others, and must never
+        // surface as a failed create.
+        debugPrint('[datedawn] Could not invite $targetEmail: $error');
+      }
+    }
+
+    for (final recipient in recipients) {
+      await invite(
+        targetUserId: recipient.userId,
+        targetEmail: recipient.email,
+        targetDisplayName: recipient.displayName,
+        targetPhotoUrl: recipient.photoUrl,
+        role: recipient.role,
+      );
+    }
+    for (final targetUserId in invitedUserIds) {
+      final profile = await lookupUserById(targetUserId);
+      final targetEmail = profile?['email'];
+      // An invitation is addressed by email, so a uid with none on file cannot
+      // be invited this way — the caller should pass a `recipient` instead.
+      if (targetEmail == null || targetEmail.isEmpty) continue;
+      await invite(
+        targetUserId: targetUserId,
+        targetEmail: targetEmail,
+        targetDisplayName: profile?['displayName'],
+        targetPhotoUrl: profile?['photoUrl'],
+        role: ParticipantRole.viewer,
+      );
+    }
   }
 
   /// Leaves a one-way note telling the inviter what the invitee chose.
