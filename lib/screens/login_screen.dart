@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
+import '../widgets/brand_kit.dart';
 
 /// Sign in / create account across Android, iOS and web with Firebase Auth.
 ///
@@ -97,8 +98,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+        leading: DangerHoverIconButton(
+          icon: Icons.arrow_back_rounded,
           onPressed: () => context.pop(),
         ),
       ),

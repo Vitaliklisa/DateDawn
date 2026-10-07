@@ -30,8 +30,19 @@ class HomeScreen extends ConsumerWidget {
     // empty list) and the first frames after a refresh, before the persisted
     // session has been restored — otherwise the user's own countdowns look like
     // they were never saved.
-    final loading = auth.isLoading || !authResolved;
-    if (loading && eventsAsync.value == null) return const _LoadingScaffold();
+    //
+    // The second clause matters just as much: once auth resolves, the events
+    // feed re-subscribes and has not emitted yet, so `eventsAsync` is still
+    // loading with a null value. Showing the empty state there is what made a
+    // reload look like the countdown had been lost for a beat; hold the spinner
+    // until the feed actually produces a value or a genuine empty list.
+    final signedIn = ref.watch(currentUserProvider) != null;
+    final authLoading = auth.isLoading || !authResolved;
+    final eventsLoading = eventsAsync.value == null && !eventsAsync.hasError;
+    if (eventsAsync.value == null &&
+        (authLoading || (signedIn && eventsLoading))) {
+      return const _LoadingScaffold();
+    }
 
     final events = eventsAsync.value ?? const <CountdownEvent>[];
     final hasError = eventsAsync.hasError;
@@ -629,8 +640,9 @@ class _TopBar extends ConsumerWidget {
 ///
 /// The badge is how you notice an invitation arrived without opening anything —
 /// the number only appears when it is non-zero, so the bar stays quiet when
-/// there is nothing waiting.
-class _BadgedIconButton extends StatelessWidget {
+/// there is nothing waiting. The icon reddens on hover/press, the same reaction
+/// as the back arrow, so the whole top bar answers the pointer consistently.
+class _BadgedIconButton extends StatefulWidget {
   const _BadgedIconButton({
     required this.tooltip,
     required this.icon,
@@ -644,17 +656,50 @@ class _BadgedIconButton extends StatelessWidget {
   final int count;
 
   @override
+  State<_BadgedIconButton> createState() => _BadgedIconButtonState();
+}
+
+class _BadgedIconButtonState extends State<_BadgedIconButton> {
+  bool _active = false;
+
+  void _set(bool value) {
+    if (_active == value) return;
+    setState(() => _active = value);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final color = _active ? colors.danger : colors.fg;
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        IconButton(
-          tooltip: tooltip,
-          onPressed: onPressed,
-          icon: Icon(icon, size: 20),
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => _set(true),
+          onExit: (_) => _set(false),
+          child: Listener(
+            onPointerDown: (_) => _set(true),
+            onPointerUp: (_) => _set(false),
+            onPointerCancel: (_) => _set(false),
+            child: IconButton(
+              tooltip: widget.tooltip,
+              onPressed: widget.onPressed,
+              icon: TweenAnimationBuilder<Color?>(
+                duration: const Duration(milliseconds: 140),
+                curve: Curves.easeOut,
+                tween: ColorTween(end: color),
+                builder: (context, animated, _) => Icon(
+                  widget.icon,
+                  size: 20,
+                  color: animated ?? color,
+                ),
+              ),
+            ),
+          ),
         ),
-        if (count > 0)
+        if (widget.count > 0)
           Positioned(
             right: 6,
             top: 6,
@@ -666,7 +711,7 @@ class _BadgedIconButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                count > 9 ? '9+' : '$count',
+                widget.count > 9 ? '9+' : '${widget.count}',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 10,

@@ -206,3 +206,76 @@ class RemainingSummary extends StatelessWidget {
     );
   }
 }
+
+/// An icon button that turns red while the pointer hovers it or a finger is
+/// pressing it, then eases back to its resting colour.
+///
+/// Used for the back arrows, the circle invite action and the inbox icons: the
+/// red is a clear "this will change or leave something" cue, and giving every
+/// such control the same reaction is what makes the app feel deliberate rather
+/// than only styling one arrow. The colour animates over [duration] so the
+/// change reads as a response, not a flicker.
+class DangerHoverIconButton extends StatefulWidget {
+  const DangerHoverIconButton({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+    this.tooltip,
+    this.iconSize = 20,
+    this.duration = const Duration(milliseconds: 140),
+  });
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final String? tooltip;
+  final double iconSize;
+  final Duration duration;
+
+  @override
+  State<DangerHoverIconButton> createState() => _DangerHoverIconButtonState();
+}
+
+class _DangerHoverIconButtonState extends State<DangerHoverIconButton> {
+  bool _active = false;
+
+  void _set(bool value) {
+    if (_active == value) return;
+    setState(() => _active = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final enabled = widget.onPressed != null;
+    final resting = enabled ? colors.fg : colors.subtle;
+    final color = enabled && _active ? colors.danger : resting;
+
+    // `Listener` observes the pointer without competing for the tap, so the
+    // IconButton below still receives its own press. MouseRegion covers hover
+    // on desktop/web; Listener covers press-and-hold on touch.
+    return MouseRegion(
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onEnter: enabled ? (_) => _set(true) : null,
+      onExit: enabled ? (_) => _set(false) : null,
+      child: Listener(
+        onPointerDown: enabled ? (_) => _set(true) : null,
+        onPointerUp: enabled ? (_) => _set(false) : null,
+        onPointerCancel: enabled ? (_) => _set(false) : null,
+        child: IconButton(
+          tooltip: widget.tooltip,
+          onPressed: widget.onPressed,
+          icon: TweenAnimationBuilder<Color?>(
+            duration: widget.duration,
+            curve: Curves.easeOut,
+            tween: ColorTween(end: color),
+            builder: (context, animated, _) => Icon(
+              widget.icon,
+              size: widget.iconSize,
+              color: animated ?? color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

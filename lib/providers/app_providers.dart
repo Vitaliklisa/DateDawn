@@ -70,11 +70,30 @@ final authResolvedProvider = Provider<bool>((ref) {
 /// refresh. A local-only visitor (no account) gets an empty list rather than an
 /// error: there is nothing to sync, and the UI invites them to sign in.
 final eventsProvider = StreamProvider<List<CountdownEvent>>((ref) {
-  if (!ref.watch(authResolvedProvider)) return const Stream.empty();
+  if (!ref.watch(authResolvedProvider)) {
+    // A stream that never emits and never closes, so the provider genuinely
+    // stays in `loading` until the session is restored. Returning
+    // `Stream.empty()` here completed the provider immediately, which resolved
+    // it out of loading and let the home screen flash its empty state before
+    // the real feed arrived — the reload looked like the countdowns were gone.
+    return _neverEmits<List<CountdownEvent>>();
+  }
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(const []);
   return ref.watch(eventRepositoryProvider).watchEvents(user.id);
 });
+
+/// A stream that stays open forever and never produces a value.
+///
+/// Used to hold an [AsyncValue] in its `loading` state across a session
+/// restore, where an empty stream would complete the provider instead. The
+/// controller is closed when the provider cancels its subscription, so nothing
+/// is left dangling.
+Stream<T> _neverEmits<T>() {
+  final controller = StreamController<T>();
+  controller.onCancel = controller.close;
+  return controller.stream;
+}
 
 /// Pending invitations addressed to the signed-in user's email.
 final invitationsProvider = StreamProvider<List<Invitation>>((ref) {

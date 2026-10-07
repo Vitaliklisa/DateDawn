@@ -179,10 +179,11 @@ class _CircleCard extends ConsumerWidget {
                 ),
               ),
               if (isOwner)
-                IconButton(
+                DangerHoverIconButton(
                   tooltip: 'Invite someone',
+                  iconSize: 19,
+                  icon: Icons.person_add_alt_1_rounded,
                   onPressed: () => _openInviteSheet(context, ref, circle),
-                  icon: const Icon(Icons.person_add_alt_1_rounded, size: 19),
                 ),
             ],
           ),
@@ -386,6 +387,7 @@ Future<void> _openInviteSheet(
 
   final emailController = TextEditingController();
   var busy = false;
+  String? inviteError;
 
   await showModalBottomSheet<void>(
     context: context,
@@ -427,7 +429,29 @@ Future<void> _openInviteSheet(
                 autofocus: true,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(hintText: 'them@example.com'),
+                onChanged: (_) {
+                  if (inviteError != null) {
+                    setSheetState(() => inviteError = null);
+                  }
+                },
               ),
+              if (inviteError != null) ...[
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.error_outline_rounded,
+                        size: 16, color: colors.danger),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        inviteError!,
+                        style: TextStyle(fontSize: 13, color: colors.danger),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 18),
               FilledButton(
                 onPressed: busy
@@ -435,18 +459,31 @@ Future<void> _openInviteSheet(
                     : () async {
                         final email = emailController.text.trim();
                         if (email.isEmpty) return;
-                        setSheetState(() => busy = true);
-                        await runAction(
+                        setSheetState(() {
+                          busy = true;
+                          inviteError = null;
+                        });
+                        final failure = await runAction(
                           sheetContext,
                           () =>
                               ref.read(eventRepositoryProvider).inviteToCircle(
                                     circle: circle,
                                     inviterId: user.id,
+                                    inviterEmail: user.email,
                                     email: email,
                                     inviterName: user.displayName,
                                   ),
                           successMessage: 'Invitation sent to $email.',
                         );
+                        if (failure != null) {
+                          if (sheetContext.mounted) {
+                            setSheetState(() {
+                              busy = false;
+                              inviteError = failure;
+                            });
+                          }
+                          return;
+                        }
                         if (sheetContext.mounted) {
                           Navigator.of(sheetContext).pop();
                         }

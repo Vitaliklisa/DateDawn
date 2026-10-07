@@ -88,7 +88,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
     if (event == null) {
       return Scaffold(
-        appBar: AppBar(leading: BackButton(onPressed: () => context.pop())),
+        appBar: AppBar(
+          leading: DangerHoverIconButton(
+            icon: Icons.arrow_back_rounded,
+            onPressed: () => context.pop(),
+          ),
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -118,8 +123,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+        leading: DangerHoverIconButton(
+          icon: Icons.arrow_back_rounded,
           onPressed: () => context.pop(),
         ),
         title: const BrandMark(),

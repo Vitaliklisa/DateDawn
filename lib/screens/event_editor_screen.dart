@@ -180,12 +180,13 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                 existing == null ? 'Countdown created.' : 'Changes saved.')),
       );
       if (created != null) {
-        // A brand-new countdown gets its own page, so the creator lands on the
-        // thing they just made — with its edit and delete actions in reach —
-        // instead of being dropped back on the home screen guessing whether it
-        // saved at all. `replace` keeps Back on the home screen rather than
-        // bouncing into the now-stale composer.
-        context.pushReplacement('/event/${created.id}');
+        // A brand-new countdown is pinned as the hero and the creator is taken
+        // straight back to the home screen, where the thing they just made is
+        // already counting down. `go` (rather than `pop`) resets the stack, so
+        // Back never bounces into the now-stale composer and the freshly
+        // created countdown is visible without an extra tap.
+        ref.read(selectedEventIdProvider.notifier).set(created.id);
+        context.go(Routes.home);
       } else {
         context.pop();
       }
@@ -235,8 +236,8 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     if (user == null) {
       return Scaffold(
         appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
+          leading: DangerHoverIconButton(
+            icon: Icons.arrow_back_rounded,
             onPressed: () => context.pop(),
           ),
           title: Text(editing ? 'Edit countdown' : 'New countdown'),
@@ -246,8 +247,8 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     }
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+        leading: DangerHoverIconButton(
+          icon: Icons.arrow_back_rounded,
           onPressed: () => context.pop(),
         ),
         title: Text(editing ? 'Edit countdown' : 'New countdown'),
@@ -608,6 +609,10 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
   ParticipantRole _role = ParticipantRole.viewer;
   bool _inviting = false;
 
+  /// Set when an invitation is refused — most visibly when someone tries to
+  /// invite their own address. Rendered as red text under the field.
+  String? _inviteError;
+
   @override
   void dispose() {
     _email.dispose();
@@ -620,19 +625,27 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
     final email = _email.text.trim();
     if (email.isEmpty) return;
 
-    setState(() => _inviting = true);
+    setState(() {
+      _inviting = true;
+      _inviteError = null;
+    });
     try {
-      await runAction(
+      final failure = await runAction(
         context,
         () => ref.read(eventRepositoryProvider).inviteByEmail(
               event: widget.event,
               inviterId: user.id,
+              inviterEmail: user.email,
               email: email,
               role: _role,
             ),
         successMessage: 'Invitation sent to $email.',
       );
-      _email.clear();
+      if (failure == null) {
+        _email.clear();
+      } else if (mounted) {
+        setState(() => _inviteError = failure);
+      }
     } finally {
       if (mounted) setState(() => _inviting = false);
     }
@@ -691,6 +704,23 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
               ),
             ],
           ),
+          if (_inviteError != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.error_outline_rounded,
+                    size: 16, color: colors.danger),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _inviteError!,
+                    style: TextStyle(fontSize: 13, color: colors.danger),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
         const SizedBox(height: 16),
         if (participants.isEmpty)

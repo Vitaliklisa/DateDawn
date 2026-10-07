@@ -336,7 +336,20 @@ class EventRepository {
 
       // A couple circle: every member joins silently, as an editor, so either
       // partner can reshape the plan.
-      for (final member in circle.members) {
+      //
+      // `circlesProvider` streams circle documents without their `members`
+      // subcollection, so the list here is usually empty. Hydrate it from the
+      // subcollection on demand — without this the couple auto-share silently
+      // did nothing, because the loop below had nobody to iterate.
+      var members = circle.members;
+      if (members.isEmpty) {
+        final memberSnap =
+            await _circles.doc(circle.id).collection('members').get();
+        members = memberSnap.docs
+            .map((d) => CircleMember.fromMap(d.id, d.data()))
+            .toList();
+      }
+      for (final member in members) {
         if (member.userId == userId) continue;
         batch.set(
           _events.doc(id).collection('participants').doc(member.userId),
@@ -440,6 +453,7 @@ class EventRepository {
     required String inviterId,
     required String email,
     required ParticipantRole role,
+    String? inviterEmail,
     String? knownUserId,
     String? displayName,
     String? photoUrl,
@@ -451,12 +465,42 @@ class EventRepository {
     if (target.isEmpty || !target.contains('@')) {
       throw const DataFailure('Enter a valid email address.');
     }
+    // You cannot invite yourself: you are already on your own countdown, and a
+    // notification addressed to your own account is just noise. Matched on both
+    // the email and the uid, because a second account signed in here would slip
+    // past an email-only check.
+    if (inviterEmail != null && inviterEmail.trim().toLowerCase() == target) {
+      throw const DataFailure("Can't invite yourself lol");
+    }
+    if (knownUserId != null && knownUserId == inviterId) {
+      throw const DataFailure("Can't invite yourself lol");
+    }
 
-    if (knownUserId != null) {
+    // Resolve the email to an account when the caller did not already know the
+    // uid. This is what makes the documented behaviour real: an address that
+    // already has an account gets a participant row immediately (it appears as
+    // pending in their app), while an unknown address waits in `invitations`
+    // until that email signs up. Without this the lookup was never called and
+    // every invite — even to an existing user — sat unclaimed in `invitations`.
+    var targetUserId = knownUserId;
+    if (targetUserId == null) {
+      final match = await lookupUserByEmail(target);
+      final resolvedId = match?['userId'];
+      if (resolvedId != null && resolvedId.isNotEmpty) {
+        if (resolvedId == inviterId) {
+          throw const DataFailure("Can't invite yourself lol");
+        }
+        targetUserId = resolvedId;
+        displayName ??= match?['displayName'];
+        photoUrl ??= match?['photoUrl'];
+      }
+    }
+
+    if (targetUserId != null) {
       await _events
           .doc(event.id)
           .collection('participants')
-          .doc(knownUserId)
+          .doc(targetUserId)
           .set({
         'email': target,
         'role': role.name,
@@ -710,6 +754,7 @@ class EventRepository {
     required Circle circle,
     required String inviterId,
     required String email,
+    String? inviterEmail,
     String? inviterName,
     ParticipantRole role = ParticipantRole.editor,
   }) async {
@@ -720,7 +765,27 @@ class EventRepository {
     if (target.isEmpty || !target.contains('@')) {
       throw const DataFailure('Enter a valid email address.');
     }
-    if (circle.members.any((m) => m.email == target)) {
+    // You cannot invite yourself into your own circle: the owner is already a
+    // member, and the invitation would notify your own account. Checked on the
+    // email (what is typed, normalised so casing cannot slip past).
+    if (inviterEmail != null && inviterEmail.trim().toLowerCase() == target) {
+      throw const DataFailure("Can't invite yourself lol");
+    }
+
+    // Hydrate the member list if the caller only had the circle document
+    // (`circlesProvider` streams it without the `members` subcollection), so
+    // both the duplicate check and the self-check below actually have rows to
+    // compare against instead of silently passing.
+    var members = circle.members;
+    if (members.isEmpty) {
+      final snap = await _circles.doc(circle.id).collection('members').get();
+      members =
+          snap.docs.map((d) => CircleMember.fromMap(d.id, d.data())).toList();
+    }
+    if (members.any((m) => m.userId == inviterId && m.email == target)) {
+      throw const DataFailure("Can't invite yourself lol");
+    }
+    if (members.any((m) => m.email == target)) {
       throw DataFailure('$target is already in “${circle.name}”.');
     }
 
@@ -849,6 +914,10 @@ class EventRepository {
   /// Uses the users collection to turn an email address into an account, so an
   /// invite can be added straight to a countdown when the person already has an
   /// account rather than waiting for a signup.
+  ///
+  /// Returns `userId` plus any profile fields that are actually present —
+  /// absent ones are omitted rather than stringified to `"null"`, so a caller
+  /// can pass `displayName`/`photoUrl` straight through without a bogus value.
   Future<Map<String, String>?> lookupUserByEmail(String email) async {
     final normalised = email.trim().toLowerCase();
     if (normalised.isEmpty) return null;
@@ -860,7 +929,13 @@ class EventRepository {
           .get();
       if (snap.docs.isEmpty) return null;
       final doc = snap.docs.first;
-      return {'userId': doc.id, ...doc.data().map((k, v) => MapEntry(k, '$v'))};
+      final data = doc.data();
+      return {
+        'userId': doc.id,
+        for (final key in const ['email', 'displayName', 'photoUrl'])
+          if (data[key] is String && (data[key] as String).isNotEmpty)
+            key: data[key] as String,
+      };
     } catch (_) {
       return null;
     }
