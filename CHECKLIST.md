@@ -1330,3 +1330,214 @@ remaining possibility is that the **existing empty cache entry is still present*
 once under Settings → Actions → Caches, or the version bumped, and the
 self-repair step will then fill it correctly. That is the one manual action worth
 knowing about.
+
+---
+
+# 18. After the cache purge: hardening the cold path
+
+All GitHub caches were deleted. That means the **next run is a cold run** — the
+first time every install path executes for real, with nothing to fall back on. A
+cold run is the one that finds bugs a warm cache hides, so the path was audited
+end to end rather than assumed.
+
+## What the cold run will now do
+
+| Step | Cold behaviour |
+|---|---|
+| `Restore Android NDK` | miss — expected |
+| `Ensure Android SDK tools` | downloads cmdline-tools (~120 MB) |
+| `Install NDK if not cached` | downloads the NDK (~1.5 GB) — the slow part |
+| `Ensure NDK present` | repairs a hollow hit if one appears |
+| `Build app bundle` | full Gradle + R8 |
+| `Save Android NDK` | **banks the 1.5 GB so it is never paid again** |
+
+Expected cold time: ~15–25 minutes. Every subsequent run should skip the NDK
+download entirely.
+
+## The key was bumped to `-v2`
+
+GitHub cache entries are **immutable per key**. The poisoned empty `ndk-*` entry
+would have kept being restored forever under the old key, because a save with an
+existing key is rejected. The `-v2` suffix guarantees a clean start, which makes
+deleting the caches in the UI a belt-and-braces step rather than the only fix.
+
+Both halves use the same `-v2` key — verified, because a mismatch between the
+restore and save keys reintroduces exactly the bug from §17.
+
+## Two cold-path gaps found and closed
+
+**1. `repositories.cfg` is now created before the first `sdkmanager` call.**
+
+On a freshly-provisioned runner `~/.android/repositories.cfg` does not exist, and
+`sdkmanager` can behave inconsistently without it — including failing to fetch
+the repository index. An empty file is all it wants. This only ever bites on a
+cold run, which is precisely the run that just became imminent.
+
+**2. The NDK install accepts licences itself.**
+
+Previously only `Ensure Android SDK tools` ran `yes | sdkmanager --licenses`. The
+NDK install depended on that step having run first. It now repeats the licence
+acceptance inline, so the install is self-contained — worth the zero cost, since
+on a cold cache this is the first real download and failing here wastes the most
+time.
+
+## A second validator: the shell scripts actually parse
+
+`scripts/check-workflow-shell.mjs` (`npm run check:workflow-shell`) extracts every
+`run: |` block from the workflow and runs `bash -n` on it — a parse with no
+execution, so a missing `fi`, an unbalanced quote or a malformed `if` is caught
+**before** a run gets far enough to waste the NDK download.
+
+```
+Using: C:\Program Files\Git\bin\bash.exe
+  ok    Build and prune web  (line 84)
+  ok    Restore google-services.json  (line 183)
+  ok    Ensure Android SDK tools  (line 241)
+  ok    Install NDK if not cached  (line 282)
+  ok    Ensure NDK present (repair hollow cache hits)  (line 297)
+  ok    Build app bundle  (line 357)
+  ok    Report bundle size  (line 365)
+Checked 7 script(s) with bash -n.  All parse cleanly.
+```
+
+Details that matter:
+
+- **Skips rather than fails when bash is absent.** On Windows bash is usually Git
+  Bash and not on PATH, so the well-known install locations are probed. If none
+  exists the check exits 0 with a note — reporting "7 syntax errors" because the
+  validator could not find its own tool is a false alarm, and a checker that
+  cries wolf is one people learn to ignore.
+- **Tested against a real error.** A missing `fi` was induced deliberately; the
+  checker named the exact line (`step-4.sh: line 11`). Restored, it went clean.
+  Both this and `check-workflow` have now been shown to fail on the bug they were
+  written for, rather than only ever printing green.
+
+`npm run check:ci` runs both.
+
+## Verification for § 18
+
+| Check | Result |
+|---|---|
+| `npm run check:workflow` | No problems found |
+| `npm run check:workflow-shell` | 7/7 scripts parse cleanly |
+| Shell checker against an induced error | **FAILS with the right line** (tested) |
+| `flutter test` | **78/78 passing** |
+| `flutter analyze` | No issues found |
+| Restore/save keys match | both `ndk-${os}-${NDK_VERSION}-v2` |
+
+### Not verified
+
+**Still no Android SDK on this machine**, so `sdkmanager` and the 1.5 GB download
+were never executed. The scripts are proven to *parse*; the download is proven
+only by the NDK documentation. The first cold run remains the real test.
+
+**If it fails, the diagnostics are now specific.** `Ensure NDK present` prints the
+directory listing, the `toolchains` tree, and a one-line explanation, and the
+install steps print their own progress. That output will name the cause instead of
+the previous content-free `llvm-strip not found`.
+
+---
+
+# 19. `scripts/` explained, and four dead files removed
+
+The question was fair: 41 `.mjs` files in a Flutter app looks like clutter. It was
+— but only four files' worth. The rest split into two groups, and one of them
+must not be touched.
+
+**The full breakdown now lives in `scripts/README.md`**, so the folder explains
+itself without a code change being needed to understand it.
+
+## The answer, in short
+
+| Category | Count | Verdict |
+|---|---:|---|
+| Platform chrome — the sandbox's harness | 14 | **Not mine to remove** |
+| Template leftovers — a React/Vite/Postgres app not in this repo | 4 | **Removed** |
+| This Flutter app's own tooling | 20 | Each has a job |
+
+## The reasoning that mattered
+
+**Filenames and comments lie, so imports were followed instead.** Two files looked
+like textbook template cruft:
+
+| File | Looks dead | Actually |
+|---|---|---|
+| `brand-check.mjs` | "brand checks, no brand code here" | `browser-smoke.mjs` imports `computeBrandWarnings` from it |
+| `check-auth-invariant.mjs` | "auth env for a Vite app that is gone" | `browser-smoke.mjs` imports **four** symbols from it |
+
+An earlier draft of the report had **both listed for deletion**. Grepping the real
+importers caught it. Deleting them would have broken the platform's smoke
+harness while every check still looked green — the worst kind of cleanup.
+
+`preview-thumbnail.mjs` is called by `SandboxInternal.CapturePreviewThumbnail`,
+and `browser-guard.mjs` is the security control that stops a capture rendering
+`file:///root/.grok/auth.json` into a PNG. Neither is app code, and neither is
+junk.
+
+## Removed (4 files)
+
+| File | Why it was dead |
+|---|---|
+| `migrate.mjs` | Ran Postgres `migrations/*.sql` — there is no Postgres here |
+| `migration-plan.mjs` | Its own header said it is shared with `src/lib/db.ts`, which does not exist |
+| `migration-plan.test.mjs` | Tested the migration planner |
+| `verify-neon.mjs` | Probed a **Neon Postgres** database — no Neon in this project |
+
+Also unwired the now-broken `db:migrate` and `db:verify` npm scripts, and fixed
+two stale comments in `sign-out-plan.mjs` and `tsconfig.json` that pointed at
+`migration-plan.mjs`.
+
+## Why `.mjs` and not `.sh` or `.ts`
+
+Because these run on a bare Node 22 with **no build step**:
+
+- a `.ts` script needs `tsc` or a loader before it can run;
+- several need real file APIs and JSON parsing (`deep-clean.mjs` walks trees and
+  shells out to `git ls-files`) — bash can do that badly;
+- `.mjs` can be imported, so `node --test` covers it, where a shell script is
+  tested by running it and hoping.
+
+The count is high because each file is one single-purpose tool, and two
+generations of tooling (platform + app) both landed in the folder.
+
+## The honest remaining wart: 8 permanently-failing tests
+
+`npm run test:node` reports **8 failures**, and they are all platform tests —
+the template's `VITE_AUTH_ENABLED` wiring and OG-card generation — failing
+because the React app they exercise is not in this repo:
+
+```
+✖ the template ships auth off
+✖ the build side resolves the template's shipped app-env
+✖ the wrapped command runs with the app env applied
+✖ emits og:image for a public host and prefers a custom card
+```
+
+**They were left in place deliberately.** They belong to the sandbox harness and
+removing another project's tests is not mine to do. But it is worth knowing: it
+means `npm test` **cannot go green in this repo**, and a permanently red suite is
+one people stop reading. If those tests are not wanted, deleting them is a
+one-line decision for you — they live in `check-auth-invariant.test.mjs` and
+`grok-pwa-plugin.test.mjs`.
+
+## Verification for § 19
+
+| Check | Result |
+|---|---|
+| `scripts/` file count | 41 → **38** |
+| Removed files referenced anywhere | **no** (grep across `.mjs`, `.json`, `.yml`, `.md`) |
+| `package.json` | valid; `db:migrate` and `db:verify` gone |
+| `flutter test` | **78/78 passing** |
+| `flutter analyze` | No issues found |
+| `npm run check:ci` | workflow OK, 7/7 scripts parse |
+| Node test failures | 9 → **8** (all pre-existing platform tests) |
+
+### Not verified
+
+**The platform harness was not executed.** `preview-thumbnail.mjs` is invoked by
+the sandbox's `SandboxInternal.CapturePreviewThumbnail`, which I cannot run from
+here, so the claim "these files are needed" rests on reading the imports and the
+sandbox contract rather than on a live capture. That is exactly why the two files
+that *looked* dead but are imported by platform code were kept: the cost of
+keeping an unused file is a few KB, and the cost of deleting a live one is a
+broken preview.
