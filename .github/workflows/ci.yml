@@ -258,7 +258,7 @@ jobs:
           set -euo pipefail
           echo "NDK not restored from cache — installing ${NDK_VERSION} (slow path)"
           SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
-          "$SDKMANAGER" "ndk;${NDK_VERSION}"
+          yes | "$SDKMANAGER" "ndk;${NDK_VERSION}"
 
       # A cache hit is not proof the directory is usable. `actions/cache` will
       # happily report a hit for a key saved from an empty path — which is
@@ -276,7 +276,7 @@ jobs:
 
           if [ ! -d "$NDK_DIR" ]; then
             echo "::warning::NDK ${NDK_VERSION} missing (cache hit was hollow) — installing now"
-            "$SDKMANAGER" "ndk;${NDK_VERSION}"
+            yes | "$SDKMANAGER" "ndk;${NDK_VERSION}"
           fi
 
           test -d "$NDK_DIR" || {
@@ -293,7 +293,7 @@ jobs:
           if [ -z "$STRIP" ]; then
             echo "::warning::llvm-strip not found under $NDK_DIR — NDK install is hollow/partial. Re-installing..."
             rm -rf "$NDK_DIR"
-            "$SDKMANAGER" "ndk;${NDK_VERSION}"
+            yes | "$SDKMANAGER" "ndk;${NDK_VERSION}"
             STRIP=$(find "$NDK_DIR" -name llvm-strip -type f 2>/dev/null | head -1 || true)
           fi
           if [ -z "$STRIP" ]; then
