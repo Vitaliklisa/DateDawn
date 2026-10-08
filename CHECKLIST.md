@@ -1187,3 +1187,146 @@ Also unmeasured: the actual wall-clock saving. The NDK change removes a
 (~1–2 min), and dropping `--analyze-size` removes one full AOT pass
 (~2–4 min, the largest single item). Those are estimates from the shape of the
 work, not from a timed run — I have no CI history to compare against.
+
+---
+
+# 17. `llvm-strip not found` — the real cause was my own cache step
+
+## The error
+
+```
+::error::llvm-strip not found under /usr/local/lib/android/sdk/ndk/28.2.13676358
+Error: Process completed with exit code 1.
+```
+
+## Why it happened
+
+The check was reporting a symptom. The NDK was **never installed at all**, and
+§16 had introduced the reason.
+
+The cache step was placed **before** the install:
+
+```yaml
+- name: Cache Android NDK
+  uses: actions/cache@v4
+  id: ndk-cache
+  with:
+    path: /usr/local/lib/android/sdk/ndk/28.2.13676358   # does not exist yet
+    key: ndk-${{ runner.os }}-${{ env.NDK_VERSION }}
+
+- name: Install NDK if not cached
+  if: steps.ndk-cache.outputs.cache-hit != 'true'        # therefore skipped
+```
+
+`actions/cache@v4` saves the path **at the end of the job**. Caching a directory
+that does not exist yet stores an **empty entry** — and an empty entry still
+counts as a `cache-hit` on the next run. So:
+
+1. Run 1: saved an empty entry, and the install ran (miss).
+2. Run 2: `cache-hit` = true → the install was **skipped** → nothing to restore
+   from an empty entry → no NDK.
+3. The verification step then correctly reported that `llvm-strip` was missing,
+   but had no way to know the NDK had never been installed.
+
+My own optimisation broke the job. The lesson is exact: a cache with a restore
+but no matching save is not a cache, it is a trap that reports success.
+
+## The fix
+
+Restore and save are now **separate, explicit** steps, which is what makes the
+asymmetry visible and checkable:
+
+```yaml
+- name: Restore Android NDK
+  uses: actions/cache/restore@v4        # early, before the install
+  id: ndk-cache
+  ...
+
+- name: Install NDK if not cached
+  if: steps.ndk-cache.outputs.cache-hit != 'true'
+  ...
+
+- name: Save Android NDK
+  if: always() && steps.ndk-cache.outputs.cache-hit != 'true'
+  uses: actions/cache/save@v4           # END of job, after the install
+  ...
+```
+
+`if: always()` on the save so a later step failing still banks the 1.5 GB
+download instead of paying for it again next run.
+
+## Self-healing, because a hollow hit is always possible
+
+A cache hit is not proof the directory is usable — old entries, partial saves and
+manual cache evictions all produce hits with no content. The install step now
+also **verifies the result and repairs it**:
+
+```yaml
+- name: Ensure NDK present (repair hollow cache hits)
+  run: |
+    if [ ! -d "$NDK_DIR" ]; then
+      echo "::warning::NDK missing (cache hit was hollow) — installing now"
+      "$SDKMANAGER" "ndk;${NDK_VERSION}"
+    fi
+```
+
+So a bad cache costs a slow run, not a failed one.
+
+## The failure message now diagnoses itself
+
+The old check tested `test -x "$STRIP"` where `STRIP` was empty on a miss, so it
+reported "not found" with no context. It now prints what is actually on disk:
+
+```
+::error::llvm-strip not found under $NDK_DIR
+::error::toolchains tree:
+::error::  <the first 20 directories found>
+::error::this usually means the NDK install is partial
+::error::Removing the cache entry and re-running will re-fetch it.
+```
+
+It also finds `llvm-strip` with `find` rather than hardcoding the host triple
+(`toolchains/llvm/prebuilt/linux-x86_64/bin/`), so the check keeps working if the
+runner image changes architecture.
+
+## The validator now catches this class of bug
+
+`npm run check:workflow` gained a rule that would have caught my mistake before
+it shipped:
+
+```
+steps.ndk-cache.outputs referenced but no step defines id: ndk-cache
+5 cache restore(s) but 4 save(s) — a restore without a save can never hit real content
+the NDK cache save runs before the NDK is installed (stores nothing)
+```
+
+**Verified it can actually fail.** I deleted the save step, ran the check, and it
+reported `1 cache restore(s) but 0 save(s)` — then restored the step and it went
+green again. A validator that cannot fail on the real bug is decoration, so this
+one was tested against the bug it was written for.
+
+## Verification for § 17
+
+| Check | Result |
+|---|---|
+| `npm run check:workflow` | No problems found — restores 1, saves 1, save after install |
+| Validator against the broken version | **FAILS** with the right message (tested) |
+| `flutter test` | **78/78 passing** |
+| `flutter analyze` | No issues found |
+| YAML structure | 385 lines, 3 jobs, no tabs |
+
+### Not verified
+
+**The NDK path is not exercised end to end here** — there is no Android SDK on
+this machine, so `sdkmanager "ndk;28.2.13676358"` was never run and I have not
+seen `llvm-strip` at that path with my own eyes. The layout
+(`ndk/<version>/toolchains/llvm/prebuilt/<host>/bin/llvm-strip`) comes from the
+NDK documentation and the `find` no longer depends on it.
+
+**If the next run still fails**, the step now prints the real directory listing
+and the toolchains tree, which will name the cause directly. The most likely
+remaining possibility is that the **existing empty cache entry is still present**
+— caches are immutable per key, so the poisoned `ndk-*` entry must be deleted
+once under Settings → Actions → Caches, or the version bumped, and the
+self-repair step will then fill it correctly. That is the one manual action worth
+knowing about.

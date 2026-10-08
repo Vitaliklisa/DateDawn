@@ -67,7 +67,40 @@ for (const used of usedIds) {
 }
 notes.push(`step ids defined: ${[...definedIds].join(', ') || 'none'}`);
 
-// 5. Every ndk cache guard should be paired with an install that respects it.
+// 5b. Every cache RESTORE must have a matching SAVE.
+//
+// This is the root cause of the "llvm-strip not found" failure: a restore was
+// added without a save, so the key never had real content. `actions/cache@v4`
+// hides the asymmetry (it does both), while `cache/restore` + `cache/save` make
+// it explicit and therefore checkable. A restore with no save is a cache that
+// can never work — it always misses, and if it ever hits, it hits something
+// empty.
+const restoreKeys = [...text.matchAll(/uses:\s*actions\/cache\/restore@v\d[\s\S]{0,300}?key:\s*(\S+)/g)].map(
+  (m) => m[1],
+);
+const saveKeys = [...text.matchAll(/uses:\s*actions\/cache\/save@v\d[\s\S]{0,300}?key:\s*(\S+)/g)].map(
+  (m) => m[1],
+);
+if (restoreKeys.length !== saveKeys.length) {
+  problems.push(
+    `${restoreKeys.length} cache restore(s) but ${saveKeys.length} save(s) — ` +
+      'a restore without a save can never hit real content',
+  );
+}
+notes.push(`cache restores: ${restoreKeys.length}, saves: ${saveKeys.length}`);
+
+// 5c. The NDK save must come AFTER the install, or it stores an empty path.
+if (text.includes('cache/save@v4')) {
+  const saveAt = text.indexOf('cache/save@v4');
+  const installAt = text.indexOf('Install NDK if not cached');
+  if (installAt === -1 || saveAt < installAt) {
+    problems.push('the NDK cache save runs before the NDK is installed (stores nothing)');
+  } else {
+    notes.push('ok   NDK cache save runs after the install');
+  }
+}
+
+// 5d. The NDK cache guard should be paired with an install that respects it.
 if (text.includes('id: ndk-cache') && !text.includes("cache-hit != 'true'")) {
   problems.push('ndk-cache is defined but the install step is not guarded on it');
 }

@@ -133,15 +133,18 @@ jobs:
       # The runner image ships an Android SDK but NOT the NDK, and the sdkmanager
       # download for it is ~1.5 GB — the most expensive thing in this workflow.
       #
-      # The previous version had two bugs that made the cache pure cost. First,
-      # the key was a constant that nothing ever wrote on a miss, so it restored
-      # nothing and saved nothing. Second, the install step ran unconditionally,
-      # so even a successful restore was followed by a full reinstall.
+      # `actions/cache` is used twice on purpose, with ONE key:
       #
-      # Fixed: a key distinct per NDK version, and an install step guarded on the
-      # cache hit so the 1.5 GB only moves when the version actually changes.
-      - name: Cache Android NDK
-        uses: actions/cache@v4
+      #   * here, to RESTORE a previously saved NDK;
+      #   * at the end of the job, to SAVE the installed one.
+      #
+      # The original version only had the restore half, placed before the install.
+      # A save path that does not exist yet stores an empty entry, so the first
+      # run cached nothing and every later run took a `cache-hit` on that empty
+      # entry — which made the guarded install skip. The NDK was never installed
+      # and the failure surfaced much later as "llvm-strip not found".
+      - name: Restore Android NDK
+        uses: actions/cache/restore@v4
         id: ndk-cache
         with:
           path: /usr/local/lib/android/sdk/ndk/${{ env.NDK_VERSION }}
@@ -205,18 +208,36 @@ jobs:
           python3 -m json.tool android/app/google-services.json > /dev/null
           echo "google-services.json is present and valid JSON"
 
-      # Flutter's release step shells out to the NDK's `llvm-strip`. The runner
-      # image ships an Android SDK without cmdline-tools, which is what made the
-      # strip step fail on a developer machine; installing them here (and
-      # accepting the licences) is the fix.
+      # NOTE: the NDK cache used to live here, BEFORE the install steps. That was
+      # the bug behind "llvm-strip not found".
+      #
+      # `actions/cache` saves a path at the END of the job. Caching a directory
+      # that does not exist yet means the save is empty — so the first run
+      # stored nothing, and every subsequent run got a `cache-hit` on that empty
+      # entry. `Install NDK if not cached` then skipped, because it trusted the
+      # hit, and the NDK was never installed at all.
+      #
+      # It now lives after the install, at the bottom of the job, so what gets
+      # saved is a populated NDK.
+
+      # Flutter's release step shells out to the NDK's `llvm-strip` to strip
+      # native debug symbols. Modern NDK layout (r23+):
+      #
+      #   ndk/<version>/toolchains/llvm/prebuilt/<host>/bin/llvm-strip
+      #
+      # The runner image ships an Android SDK without cmdline-tools, which is
+      # what made the strip step fail on a developer machine; installing them
+      # here (and accepting the licences) is the fix.
       #
       # Only cmdline-tools and platform-tools are handled here. The NDK is
       # installed by the guarded step below, because downloading it is the
-      # expensive part and it should only happen on a cache miss.
+      # expensive part and it should only happen on a restore miss.
       - name: Ensure Android SDK tools
         run: |
+          set -euo pipefail
           SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
           if [ ! -x "$SDKMANAGER" ]; then
+            echo "cmdline-tools absent, downloading"
             mkdir -p "${ANDROID_HOME}/cmdline-tools"
             curl -sSLo cmdline-tools.zip \
               "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
@@ -228,24 +249,58 @@ jobs:
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
           "$SDKMANAGER" "platform-tools" > /dev/null
 
-      # The 1.5 GB download, skipped entirely when the cache above restored it.
+      # The ~1.5 GB download, skipped when the restore above hit.
+      #
+      # `--no-https` is deliberately NOT used; sdkmanager requires HTTPS.
       - name: Install NDK if not cached
         if: steps.ndk-cache.outputs.cache-hit != 'true'
         run: |
+          set -euo pipefail
           echo "NDK not restored from cache — installing ${NDK_VERSION} (slow path)"
           SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
-          "$SDKMANAGER" "ndk;${NDK_VERSION}" > /dev/null
+          "$SDKMANAGER" "ndk;${NDK_VERSION}"
 
-      # Fail loudly here rather than 10 minutes into Gradle, where a missing NDK
-      # surfaces as an opaque "Gradle build failed".
-      - name: Verify NDK and llvm-strip
+      # A cache hit is not proof the directory is usable. `actions/cache` will
+      # happily report a hit for a key saved from an empty path — which is
+      # exactly what happened here: the cache step runs BEFORE the NDK is
+      # installed, so on the very first run it saved nothing, and every later run
+      # "restored" that nothing while `Install NDK if not cached` skipped.
+      #
+      # So the hit is verified, and the install is retried if the restore was
+      # hollow. Self-healing beats a mysterious failure.
+      - name: Ensure NDK present (repair hollow cache hits)
         run: |
+          set -euo pipefail
           NDK_DIR="${ANDROID_HOME}/ndk/${NDK_VERSION}"
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+
+          if [ ! -d "$NDK_DIR" ]; then
+            echo "::warning::NDK ${NDK_VERSION} missing (cache hit was hollow) — installing now"
+            "$SDKMANAGER" "ndk;${NDK_VERSION}"
+          fi
+
           test -d "$NDK_DIR" || {
-            echo "::error::NDK ${NDK_VERSION} is missing at $NDK_DIR"; exit 1; }
-          STRIP=$(find "$NDK_DIR" -name llvm-strip -type f | head -1)
+            echo "::error::NDK still missing at $NDK_DIR after install"; exit 1; }
+
+          # Report what is actually on disk before asserting anything about it.
+          echo "NDK contents ($(du -sh "$NDK_DIR" | cut -f1)):"
+          ls "$NDK_DIR"
+
+          # Locate llvm-strip without guessing the host triple: the runner is
+          # linux-x86_64 today, but hardcoding that is a latent break if the
+          # image ever changes.
+          STRIP=$(find "$NDK_DIR" -name llvm-strip -type f 2>/dev/null | head -1 || true)
+          if [ -z "$STRIP" ]; then
+            echo "::error::llvm-strip not found under $NDK_DIR"
+            echo "::error::toolchains tree:"
+            find "$NDK_DIR/toolchains" -maxdepth 4 -type d 2>/dev/null | head -20 || true
+            echo "::error::this usually means the NDK install is partial "
+            echo "::error::(a source.properties without a toolchains tree). "
+            echo "::error::Removing the cache entry and re-running will re-fetch it."
+            exit 1
+          fi
           test -x "$STRIP" || {
-            echo "::error::llvm-strip not found under $NDK_DIR"; exit 1; }
+            echo "::error::found $STRIP but it is not executable"; exit 1; }
           echo "NDK ready: $STRIP"
 
       # Unsigned on purpose: this proves the release build compiles and that the
@@ -312,3 +367,18 @@ jobs:
           path: build/symbols
           retention-days: 7
           if-no-files-found: warn
+
+      # The SAVE half of the NDK cache, and the reason the restore above can work
+      # at all. It must run AFTER the NDK is installed — a save of a path that
+      # does not exist yet stores an empty entry, and an empty entry still counts
+      # as a cache hit next time, which is what broke this job.
+      #
+      # `if: always()` so a later failure still banks the 1.5 GB download rather
+      # than throwing it away and paying for it again next run. Skipped when the
+      # restore already hit, since re-saving an identical key is wasted upload.
+      - name: Save Android NDK
+        if: always() && steps.ndk-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /usr/local/lib/android/sdk/ndk/${{ env.NDK_VERSION }}
+          key: ndk-${{ runner.os }}-${{ env.NDK_VERSION }}
