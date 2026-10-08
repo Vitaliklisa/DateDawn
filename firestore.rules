@@ -286,7 +286,7 @@ service cloud.firestore {
           (
             resource.data.inviteeEmail == myEmail()
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-            && request.resource.data.status in ['accepted', 'rejected']
+            && request.resource.data.status in ['accepted', 'declined', 'rejected']
           )
           || (
             resource.data.invitedBy == uid()

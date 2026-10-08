@@ -40,7 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _busy = true);
     try {
-      await runAction(
+      final error = await runAction(
         context,
         () async {
           final auth = ref.read(authServiceProvider);
@@ -57,6 +57,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         },
         successMessage: _creating ? 'Account created.' : 'Welcome back.',
       );
+      if (error == null && mounted) {
+        context.go(Routes.home);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -65,11 +68,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _google() async {
     setState(() => _busy = true);
     try {
-      await runAction(
+      final error = await runAction(
         context,
         () => ref.read(authServiceProvider).signInWithGoogle(),
         successMessage: 'Signed in with Google.',
       );
+      if (error == null && mounted) {
+        context.go(Routes.home);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
