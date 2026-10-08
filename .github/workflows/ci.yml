@@ -148,7 +148,7 @@ jobs:
         id: ndk-cache
         with:
           path: /usr/local/lib/android/sdk/ndk/${{ env.NDK_VERSION }}
-          key: ndk-${{ runner.os }}-${{ env.NDK_VERSION }}
+          key: ndk-${{ runner.os }}-${{ env.NDK_VERSION }}-v2
 
       # The Firebase config is deliberately NOT committed: it is gitignored, and
       # for good reason — committing it bakes one project's identifiers into the
@@ -291,12 +291,13 @@ jobs:
           # image ever changes.
           STRIP=$(find "$NDK_DIR" -name llvm-strip -type f 2>/dev/null | head -1 || true)
           if [ -z "$STRIP" ]; then
-            echo "::error::llvm-strip not found under $NDK_DIR"
-            echo "::error::toolchains tree:"
-            find "$NDK_DIR/toolchains" -maxdepth 4 -type d 2>/dev/null | head -20 || true
-            echo "::error::this usually means the NDK install is partial "
-            echo "::error::(a source.properties without a toolchains tree). "
-            echo "::error::Removing the cache entry and re-running will re-fetch it."
+            echo "::warning::llvm-strip not found under $NDK_DIR — NDK install is hollow/partial. Re-installing..."
+            rm -rf "$NDK_DIR"
+            "$SDKMANAGER" "ndk;${NDK_VERSION}"
+            STRIP=$(find "$NDK_DIR" -name llvm-strip -type f 2>/dev/null | head -1 || true)
+          fi
+          if [ -z "$STRIP" ]; then
+            echo "::error::llvm-strip still not found under $NDK_DIR after re-install"
             exit 1
           fi
           test -x "$STRIP" || {
@@ -381,4 +382,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: /usr/local/lib/android/sdk/ndk/${{ env.NDK_VERSION }}
-          key: ndk-${{ runner.os }}-${{ env.NDK_VERSION }}
+          key: ndk-${{ runner.os }}-${{ env.NDK_VERSION }}-v2
