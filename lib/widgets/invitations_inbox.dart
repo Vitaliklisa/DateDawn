@@ -200,14 +200,19 @@ class _EventInviteCard extends ConsumerStatefulWidget {
 class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
   bool _busy = false;
 
-  /// True from the first tap until the widget is disposed or the invite is
-  /// settled. Unlike `_busy` this is *not* visual state — it is the re-entry
-  /// lock that stops a second tap (or a rebuild that re-enters the handler)
-  /// from writing again while the first write is still in flight.
-  bool _submitted = false;
+  /// The key this card claims before writing. The claim lives in a provider, so
+  /// it survives the rebuilds and remounts that wiped the old per-card flag.
+  String get _claimKey => 'event-${widget.invite.id}';
+
+  bool get _alreadyClaimed =>
+      ref.read(invitationSubmissionProvider).contains(_claimKey);
+
+  void _release() {
+    ref.read(invitationSubmissionProvider.notifier).release(_claimKey);
+  }
 
   Future<void> _accept() async {
-    if (_submitted) return;
+    if (_alreadyClaimed) return;
     final user = ref.read(currentUserProvider);
     if (user == null) return;
     setState(() => _busy = true);
@@ -222,11 +227,18 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
       if (mounted) setState(() => _busy = false);
       return;
     }
-    // `mounted` again after the dialog's own await: the user may have dismissed
-    // the sheet while the confirm was open.
     if (!mounted) return;
-    _submitted = true;
-    await runAction(
+
+    // Claim **synchronously**, after the dialog and before any await. Claiming
+    // before the dialog would block every other mounted instance of this same
+    // invitation while somebody is still deciding; claiming after an await
+    // would let a second tap through in the same frame.
+    if (!ref.read(invitationSubmissionProvider.notifier).claim(_claimKey)) {
+      if (mounted) setState(() => _busy = false);
+      return;
+    }
+
+    final failure = await runAction(
       context,
       () => ref.read(eventRepositoryProvider).acceptInvitation(
             invitation: widget.invite,
@@ -237,15 +249,21 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
           ),
       successMessage: 'You joined “${widget.invite.eventTitle}”.',
     );
+    // A refusal is the one case where a second attempt should be possible:
+    // the first never changed anything, so the invitation is still open.
+    if (failure != null) _release();
     if (mounted) setState(() => _busy = false);
   }
 
   Future<void> _decline() async {
-    if (_submitted) return;
+    if (_alreadyClaimed) return;
     final user = ref.read(currentUserProvider);
     setState(() => _busy = true);
-    _submitted = true;
-    await runAction(
+    if (!ref.read(invitationSubmissionProvider.notifier).claim(_claimKey)) {
+      if (mounted) setState(() => _busy = false);
+      return;
+    }
+    final failure = await runAction(
       context,
       () => ref.read(eventRepositoryProvider).rejectInvitation(
             widget.invite,
@@ -255,6 +273,7 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
           ),
       successMessage: 'Invitation declined.',
     );
+    if (failure != null) _release();
     if (mounted) setState(() => _busy = false);
   }
 
@@ -288,17 +307,27 @@ class _CircleInviteCard extends ConsumerStatefulWidget {
 class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
   bool _busy = false;
 
-  /// See `_EventInviteCardState._submitted` — the re-entry lock that stops a
-  /// settled invitation from being answered twice.
-  bool _submitted = false;
+  /// See `_EventInviteCardState._claimKey` — the claim lives in a provider so it
+  /// survives the rebuilds that reset per-card state.
+  String get _claimKey => 'circle-${widget.invite.id}';
+
+  bool get _alreadyClaimed =>
+      ref.read(invitationSubmissionProvider).contains(_claimKey);
+
+  void _release() {
+    ref.read(invitationSubmissionProvider.notifier).release(_claimKey);
+  }
 
   Future<void> _accept() async {
-    if (_submitted) return;
+    if (_alreadyClaimed) return;
     final user = ref.read(currentUserProvider);
     if (user == null) return;
     setState(() => _busy = true);
-    _submitted = true;
-    await runAction(
+    if (!ref.read(invitationSubmissionProvider.notifier).claim(_claimKey)) {
+      if (mounted) setState(() => _busy = false);
+      return;
+    }
+    final failure = await runAction(
       context,
       () => ref.read(eventRepositoryProvider).acceptCircleInvitation(
             invitation: widget.invite,
@@ -309,20 +338,25 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
           ),
       successMessage: 'You joined “${widget.invite.circleName}”.',
     );
+    if (failure != null) _release();
     if (mounted) setState(() => _busy = false);
   }
 
   Future<void> _decline() async {
-    if (_submitted) return;
+    if (_alreadyClaimed) return;
     setState(() => _busy = true);
-    _submitted = true;
-    await runAction(
+    if (!ref.read(invitationSubmissionProvider.notifier).claim(_claimKey)) {
+      if (mounted) setState(() => _busy = false);
+      return;
+    }
+    final failure = await runAction(
       context,
       () => ref
           .read(eventRepositoryProvider)
           .rejectCircleInvitation(widget.invite),
       successMessage: 'Invitation declined.',
     );
+    if (failure != null) _release();
     if (mounted) setState(() => _busy = false);
   }
 

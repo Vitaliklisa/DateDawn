@@ -80,18 +80,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'login',
         builder: (context, state) => const LoginScreen(),
       ),
-      // Support is a top-level route, deliberately OUTSIDE the ShellRoute.
-      //
-      // Inside it, the page inherited the sidebar and the mobile tab bar —
-      // chrome that implies "you are somewhere in the app" for a page that is
-      // meant to be findable by someone who cannot get into the app at all. As
-      // a standalone route it renders its own AppBar with a real back button,
-      // and it is reachable at a stable URL a store listing can point at.
-      GoRoute(
-        path: Routes.support,
-        name: 'support',
-        builder: (context, state) => const SupportScreen(),
-      ),
       ShellRoute(
         builder: (context, state, child) => AppNavigationShell(
           location: state.uri.path,
@@ -102,6 +90,32 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: Routes.home,
             name: 'home',
             builder: (context, state) => const HomeScreen(),
+            routes: [
+              // `/home/:id` pins one countdown as the hero.
+              //
+              // **The `home/` prefix is required, not cosmetic.** `Routes.home`
+              // is `/`, so a bare `:id` child makes the home route match
+              // `/anything` — GoRouter matches `/` then lets `:id` swallow the
+              // next segment. That silently captured `/support` and rendered the
+              // home screen at the support URL, while the sidebar (which reads
+              // the URL string, not the matched route) highlighted Support. Two
+              // sources of truth disagreeing: the highlight said Support, the
+              // body said Home.
+              //
+              // An explicit `home/:id` segment cannot collide with a sibling
+              // top-level route, because `/support` no longer matches `/` +
+              // `:id`.
+              //
+              // Additive on purpose: `/` still works and still picks the
+              // countdown automatically, so existing links do not break.
+              GoRoute(
+                path: 'home/:id',
+                name: 'homeEvent',
+                builder: (context, state) => HomeScreen(
+                  focusedEventId: state.pathParameters['id'],
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: Routes.settings,
@@ -122,6 +136,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: Routes.notifications,
             name: 'notifications',
             builder: (context, state) => const NotificationsScreen(),
+          ),
+          // Support sits inside the shell like every other page, so it gets the
+          // same navigation: the sidebar on desktop, and a route the bottom bar
+          // and Settings can both reach. Earlier it was a standalone top-level
+          // route, which made it the one page in the app with different chrome.
+          //
+          // The public exemption in the redirect is what keeps it reachable
+          // signed out — position in this tree has nothing to do with access.
+          GoRoute(
+            path: Routes.support,
+            name: 'support',
+            builder: (context, state) => const SupportScreen(),
           ),
           GoRoute(
             path: Routes.newEvent,

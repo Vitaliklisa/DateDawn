@@ -35,6 +35,16 @@ void main() {
       expect(all.toSet().length, all.length);
     });
 
+    test('home and support are siblings under one router', () {
+      // Support moved inside the shell so it is reached the same way as every
+      // other page. Both must still be distinct top-level paths.
+      expect(Routes.home, '/');
+      expect(Routes.support, '/support');
+      expect(Routes.support != Routes.home, isTrue);
+      // `/support` must not be nested under home, or `/` would capture it.
+      expect(Routes.support.startsWith('${Routes.home}/'), isFalse);
+    });
+
     test('every non-root path is absolute and clean', () {
       for (final path in [
         Routes.login,

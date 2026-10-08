@@ -691,3 +691,171 @@ All three passed with 0 console errors and 0 failed requests.
 | `dart format` | clean |
 | `npm run build:web` | built + pruned, 11.7 MB |
 | `npm run verify:routes` | **PASS** — 3/3 paths, 0 errors |
+
+---
+
+# 13. The actual infinite-invitation bug, Home routing, Support in the shell
+
+§ 11.2 claimed the accept/decline loop was fixed. **It was not.** The guards
+added there were all real improvements, but none of them could have stopped this
+loop, and I should have said so rather than calling it fixed.
+
+## 13.1 Why the loop survived three guards
+
+Every guard lived in **widget state**:
+
+- `bool _busy` — visual state, reset on rebuild.
+- `bool _submitted` — a plain field on the card's `State`.
+- `ValueKey` on the cards — fixed identity *between* siblings, but does not
+  survive the parent being rebuilt.
+
+Widget state cannot survive this case:
+
+1. `InvitationsInbox` is mounted in **more than one place** on the home screen
+   (three call sites), and every instance builds its own card for the same
+   invitation. Each has its own `_submitted`.
+2. Each card remounts as the Firestore streams re-emit. A remount is a **new
+   State object** — `_submitted` starts at `false` again.
+3. `_guardInvitation(invitation)` checked `invitation.status` on the object
+   passed in — a **build-time snapshot** that reads `pending` forever, however
+   many times it is re-submitted. Comparing a stale copy of the state against
+   itself can never detect that the state has moved on.
+
+So the write fired again on the next rebuild, forever.
+
+## The fix, in two parts
+
+**1. The claim lives in a provider, not a widget.**
+`invitationSubmissionProvider` (`Notifier<Set<String>>`) holds the ids already
+being written. A provider outlives every rebuild and remount and is **shared by
+every mounted copy**, so the first card to claim an invitation id blocks all the
+others for the life of the route.
+
+`claim()` is **synchronous on purpose**: `runAction` is async, so any `await`
+before the claim would let a second tap slip through in the same frame. A failed
+write calls `release()`, so a genuine retry is still possible — a refusal changed
+nothing, so the invitation is still open.
+
+**2. The guard reads the live document.**
+`_guardInvitation` is now `async` and re-reads `invitations/{id}` through
+Firestore, which is the only authority on whether an answer is still open. A
+stale snapshot cannot answer that question. Same treatment for the circle path,
+which previously checked only `isExpired` and never the status at all.
+
+Pinned by `test/invitation_submission_test.dart`: the claim is atomic, per-id,
+survives a re-read, and a release allows a retry.
+
+## 13.2 Supabase removed from the code, not just the config
+
+§ 7 said Supabase was removed. It was removed from the *app* — the dependency,
+the schema, the service — but **not from the source**: nine dead `fromRow`
+parsers, a test file exercising only those parsers, and comments still describing
+a Postgres backend as if it were live.
+
+The parsers are gone, along with `test/event_repository_row_test.dart` (which
+tested a backend that no longer exists) and every stale comment.
+
+> A note on how. I first tried a regex source-rewriter
+> (`scripts/cleanup-supabase-refs.mjs`). It removed some parsers cleanly but
+> **also ate a stray closing brace and a blank line** in `models.dart` — the
+> analyzer still passed, because the brace happened to be an unused one. That is
+> the exact hazard of editing source with regexes. I reverted to hand edits for
+> the rest, verified with a diff against a backup, and deleted the script.
+
+## 13.3 The route that matched the wrong screen
+
+Adding `/home/:id` introduced a bug worth recording, because it was invisible to
+the check I had written.
+
+`Routes.home` is `'/'`. Giving it a bare `:id` child made the home route match
+`/anything`: GoRouter matches `/`, then `:id` swallows the next segment — so
+`/support` resolved to `HomeScreen(focusedEventId: 'support')`.
+
+The symptom was two sources of truth disagreeing: the **sidebar highlighted
+Support** (it reads the URL string) while the **body painted Home** (it comes
+from the matched route). `verify:routes` passed, because the URL really was
+`/support`.
+
+Fixed by making the segment explicit — `home/:id` — which cannot collide with a
+sibling top-level route. `/` still works and still picks the hero automatically.
+
+## 13.4 Support is now a normal page
+
+Moved **inside** the `ShellRoute`, so it gets the same chrome as every other
+page: the sidebar on desktop, and a route the bottom bar and Settings can reach.
+§ 12 had made it a standalone top-level route, which made it the one page in the
+app with different chrome — the opposite of "like other pages".
+
+It is added to `_destinations` and therefore appears in the desktop sidebar.
+The mobile bottom bar shows only the first five (`_bottomBarCount`): six labels
+do not fit without truncating, and Support is reachable from Settings and the
+login screen, so it is the right one to leave out of the bar everyone taps daily.
+
+It stays **public** — the redirect exemption in `_isPublic()` is what grants
+that, and it has nothing to do with where the route sits in the tree.
+
+The back arrow is now conditional: shown only when there is a stack to pop. On
+desktop the sidebar *is* the navigation, and a back arrow that pops to whatever
+happened to be underneath makes a page feel like a modal.
+
+## 13.5 Home has a real route
+
+`/home/:id` pins a countdown as the hero. Before this, "which countdown am I
+looking at" lived only in provider state, so it could not be linked, bookmarked,
+shared, or restored by a refresh — reload and you got whichever countdown sorted
+first.
+
+The id is resolved **against the loaded events**, not trusted directly, so a link
+to a countdown that was deleted, unshared, or never belonged to this account
+degrades to the normal home rather than rendering an empty hero.
+
+## 13.6 The route check, made able to fail
+
+`verify-routes` originally asserted only that the URL stayed `/support` — which
+it did, while the wrong screen was painting. A check that cannot fail on the bug
+you have is not a check.
+
+It now compares **screenshots by hash**. Two different screens hash differently;
+the same screen hashes the same. The support frame must differ from the login
+frame that the home screen collapsed into.
+
+I also tried, and abandoned, two weaker approaches on the way — worth recording
+so they are not retried:
+
+- **Scraping the DOM for words** ("mail", "support"). Flutter paints into a
+  canvas; with the accessibility bridge off there are no `flt-semantics` nodes
+  and no text, so the scrape returns empty and the assertion silently passes on
+  nothing. It failed on a page that was rendering perfectly.
+- **Asserting the absence of home text.** Same flaw, same false pass.
+
+The hash check is the only one of the three with real signal.
+
+## Verification for § 13
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | **78/78 passing** (6 new claim tests) |
+| `dart format` | clean (43 files, 0 changed) |
+| Supabase references in `lib/` | **0** |
+| `npm run build:web` | built + pruned, 11.7 MB |
+| `npm run verify:web` | **PASS** — painted, 0 errors, 0 failed requests |
+| `npm run verify:routes` | **PASS** — 4/4 paths, frame hashes distinguish the screens |
+
+Frame hashes from the passing run:
+
+```
+support-signed-out         5e50b2a8084c
+support-trailing-slash     5e50b2a8084c   <- same screen
+root-redirects-to-login    63ed57e0dc87
+home-with-id               63ed57e0dc87   <- both land on login
+```
+
+### Not verified
+
+The loop fix is verified at the **provider and data layer** (unit tests) and the
+routing is verified in a **real browser**. What I could not do is tap Accept on a
+live signed-in invitation — that needs a session and a real Firestore write, and
+there is no emulator here. If it still loops, the log line to look for is
+`[datedawn] Could not invite …`, and the next suspect would be a **second writer**
+of the same invitation rather than the UI re-submitting.

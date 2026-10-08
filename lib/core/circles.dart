@@ -68,24 +68,6 @@ class Circle {
         'memberIds': memberIds,
       };
 
-  /// Builds from a Supabase `circles` row.
-  ///
-  /// `memberIds` is not a column in Postgres — membership lives in
-  /// `circle_members`. The owner is always a member, so it is seeded here; the
-  /// UI reads the full list separately through `watchCircleMembers`.
-  factory Circle.fromRow(Map<String, dynamic> row) {
-    final ownerId = (row['owner_id'] as String?) ?? '';
-    return Circle(
-      id: (row['id'] as String?) ?? '',
-      name: (row['name'] as String?) ?? 'Circle',
-      ownerId: ownerId,
-      createdAt: _date(row['created_at']) ?? DateTime.now(),
-      emoji: row['emoji'] as String?,
-      isCouple: (row['is_couple'] as bool?) ?? false,
-      memberIds: [if (ownerId.isNotEmpty) ownerId],
-    );
-  }
-
   Circle copyWith({
     String? name,
     String? emoji,
@@ -130,16 +112,6 @@ class CircleMember {
         photoUrl: map['photoUrl'] as String?,
         isOwner: (map['isOwner'] as bool?) ?? false,
         joinedAt: _date(map['joinedAt']),
-      );
-
-  /// Builds from a Supabase `circle_members` row.
-  factory CircleMember.fromRow(Map<String, dynamic> row) => CircleMember(
-        userId: (row['user_id'] as String?) ?? '',
-        email: ((row['email'] as String?) ?? '').toLowerCase(),
-        displayName: row['display_name'] as String?,
-        photoUrl: row['photo_url'] as String?,
-        isOwner: row['role'] == 'owner',
-        joinedAt: _date(row['joined_at']),
       );
 
   Map<String, dynamic> toMap() => {
@@ -221,22 +193,6 @@ class CircleInvitation {
         'createdAt': createdAt.toIso8601String(),
         'expiresAt': expiresAt.toIso8601String(),
       };
-
-  /// Builds from a Supabase `circle_invitations` row.
-  factory CircleInvitation.fromRow(Map<String, dynamic> row) =>
-      CircleInvitation(
-        id: (row['id'] as String?) ?? '',
-        circleId: (row['circle_id'] as String?) ?? '',
-        invitedBy: (row['invited_by'] as String?) ?? '',
-        invitedByName: row['invited_by_name'] as String?,
-        inviteeEmail: ((row['invitee_email'] as String?) ?? '').toLowerCase(),
-        circleName: (row['circle_name'] as String?) ?? 'a circle',
-        isCouple: (row['is_couple'] as bool?) ?? false,
-        status: InviteStatus.fromWire(row['status']),
-        createdAt: _date(row['created_at']) ?? DateTime.now(),
-        expiresAt: _date(row['expires_at']) ??
-            DateTime.now().add(const Duration(days: 30)),
-      );
 }
 
 /// What the inviter sees about an invitation they sent.
@@ -305,21 +261,6 @@ class InvitationResponse {
         'respondedAt': respondedAt.toIso8601String(),
         'read': read,
       };
-
-  /// Builds from a Supabase `responses` row.
-  factory InvitationResponse.fromRow(Map<String, dynamic> row) =>
-      InvitationResponse(
-        id: (row['id'] as String?) ?? '',
-        recipientId: (row['recipient_id'] as String?) ?? '',
-        eventId: (row['event_id'] as String?) ?? '',
-        eventTitle: (row['event_title'] as String?) ?? 'your countdown',
-        responderEmail:
-            ((row['responder_email'] as String?) ?? '').toLowerCase(),
-        responderName: row['responder_name'] as String?,
-        accepted: (row['accepted'] as bool?) ?? false,
-        respondedAt: _date(row['responded_at']) ?? DateTime.now(),
-        read: (row['is_read'] as bool?) ?? false,
-      );
 }
 
 /// Shared date parsing — Firestore `Timestamp`, ISO string, or `DateTime`.

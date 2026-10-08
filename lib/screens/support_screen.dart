@@ -31,37 +31,33 @@ class SupportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final router = GoRouter.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Help & support'),
-        // Explicit rather than relying on the implicit back button.
+        // A back arrow only where there is a stack to go back through.
         //
-        // This route is top-level and is meant to be openable from outside the
-        // app — a store listing, a message to a friend, a bookmarked URL. On
-        // that first page there is nothing to pop, so the implicit button never
-        // appears and the visitor is stranded with no way into the app. Showing
-        // it always, and falling back to the home route when the stack is
-        // empty, means Back is never a dead end.
-        // Matches every other secondary screen: `DangerHoverIconButton` is the
-        // app's standard back arrow, and it reddens on hover deliberately — a
-        // back control is a dismissal, which is the one place red belongs.
-        // Using a plain `IconButton` here made support the only screen whose
-        // back arrow did not respond to the pointer.
-        leading: DangerHoverIconButton(
-          icon: Icons.arrow_back_rounded,
-          tooltip: 'Back',
-          onPressed: () {
-            final router = GoRouter.of(context);
-            if (router.canPop()) {
-              router.pop();
-            } else {
-              // Opened cold from a store link or a bookmark: there is nothing
-              // to pop, so send them into the app rather than nowhere.
-              router.go(Routes.home);
-            }
-          },
-        ),
+        // Inside the shell on desktop the sidebar is the navigation, and an
+        // arrow that pops to whatever happened to be underneath is worse than
+        // no arrow: it makes the page feel like a modal. On a phone there is a
+        // bottom bar but the page is pushed, so Back is genuinely useful — and
+        // when it was opened cold from a store link there is nothing to pop, so
+        // it falls back to Home rather than stranding the visitor.
+        leading: router.canPop()
+            ? DangerHoverIconButton(
+                icon: Icons.arrow_back_rounded,
+                tooltip: 'Back',
+                onPressed: () {
+                  final router = GoRouter.of(context);
+                  if (router.canPop()) {
+                    router.pop();
+                  } else {
+                    router.go(Routes.home);
+                  }
+                },
+              )
+            : null,
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),

@@ -16,14 +16,35 @@ import '../widgets/invitations_inbox.dart';
 
 /// The countdown home: one hero countdown, then everything else below it.
 class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.focusedEventId});
+
+  /// The countdown pinned as the hero, taken from the `/home/:id` route.
+  ///
+  /// `null` on `/` means "pick automatically" — the soonest upcoming one. When
+  /// the route supplies an id, that wins, so a link to a specific countdown
+  /// shows that countdown rather than whatever happens to sort first.
+  final String? focusedEventId;
+
+  /// Which countdown to show as the hero.
+  ///
+  /// Route id first, automatic pick second. The id is matched against the
+  /// loaded events rather than used directly, so a link to a countdown that was
+  /// deleted, unshared, or never belonged to this account falls back to normal
+  /// home instead of rendering a hero with nothing in it.
+  CountdownEvent? _resolveFeatured(WidgetRef ref, List<CountdownEvent> events) {
+    if (focusedEventId != null) {
+      for (final event in events) {
+        if (event.id == focusedEventId) return event;
+      }
+    }
+    return ref.watch(featuredEventProvider);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(activeAuthStateProvider);
     final authResolved = ref.watch(authResolvedProvider);
     final eventsAsync = ref.watch(eventsProvider);
-    final featured = ref.watch(featuredEventProvider);
     final now = ref.watch(clockProvider).value ?? DateTime.now();
 
     // Cover both the signed-out visitor (whose `eventsProvider` is a constant
@@ -46,6 +67,12 @@ class HomeScreen extends ConsumerWidget {
 
     final events = eventsAsync.value ?? const <CountdownEvent>[];
     final hasError = eventsAsync.hasError;
+
+    // The route wins when it names a countdown; otherwise fall back to the
+    // automatic pick. Resolved against the loaded list rather than trusted
+    // blindly: a stale or mistyped id in a URL should degrade to the normal
+    // home rather than render an empty hero.
+    final featured = _resolveFeatured(ref, events);
 
     return Scaffold(
       body: SafeArea(

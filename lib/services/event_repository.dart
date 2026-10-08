@@ -66,10 +66,10 @@ class EventRepository {
 
   /// Delivers an in-app notification to a recipient, best-effort.
   ///
-  /// Wired to Supabase in `app_providers.dart`. It is injected rather than
-  /// imported so this class stays a Firestore-only data layer (and stays
-  /// testable without a Supabase client). A failure here must never fail the
-  /// user's action — the countdown was already shared, the inbox line is a
+  /// Wired to a Firestore-backed sink in `app_providers.dart`. It is injected
+  /// rather than imported so this class stays a data layer that is testable
+  /// without a live Firestore. A failure here must never fail the user's
+  /// action — the countdown was already shared, the inbox line is a
   /// courtesy — so callers wrap it and swallow errors.
   final Future<void> Function({
     required String userId,
@@ -621,7 +621,7 @@ class EventRepository {
         if (photoUrl != null) 'photoUrl': photoUrl,
       }, SetOptions(merge: true));
       // Tell the invitee there is something waiting for them. This is the line
-      // that makes the Supabase inbox useful rather than permanently empty.
+      // that makes the inbox useful rather than permanently empty.
       await _notify(
         userId: targetUserId,
         title: 'You were invited to “${event.title}”',
@@ -706,7 +706,7 @@ class EventRepository {
     String? displayName,
     String? photoUrl,
   }) async {
-    _guardInvitation(invitation);
+    await _guardInvitation(invitation);
 
     final batch = _db.batch();
     batch.set(
@@ -828,16 +828,31 @@ class EventRepository {
 
   /// Refuses an invitation that has already been answered.
   ///
-  /// This is the guard that stops the accept/decline loop. A settled invitation
-  /// used to be re-submitted on every rebuild, because the card stayed mounted
-  /// while the stream caught up and each pass fired another write. Guarding at
-  /// the data layer means no caller can accidentally start that loop, however
-  /// the UI is wired.
-  void _guardInvitation(Invitation invitation) {
+  /// **Why this reads the live document instead of trusting the argument.**
+  /// `_guardInvitation(invitation)` used to check `invitation.status`, but that
+  /// object is a *snapshot* the caller captured when its widget was built. It
+  /// says `pending` forever, however many times it is re-submitted, so the
+  /// guard never fired and a settled invitation could be answered again and
+  /// again. Comparing a stale copy of the state against itself can never detect
+  /// that the state has moved on.
+  ///
+  /// This re-reads the document, which is the only authority on whether an
+  /// answer is still open.
+  Future<void> _guardInvitation(Invitation invitation) async {
     if (invitation.isExpired) {
       throw const DataFailure('That invitation has expired.');
     }
+    // Fast path: the caller already knows it is settled.
     if (invitation.status != InviteStatus.pending) {
+      throw const DataFailure('That invitation has already been answered.');
+    }
+
+    final doc = await _invitations.doc(invitation.id).get();
+    final live = doc.data();
+    if (!doc.exists || live == null) {
+      throw const DataFailure('That invitation no longer exists.');
+    }
+    if (live['status'] != InviteStatus.pending.name) {
       throw const DataFailure('That invitation has already been answered.');
     }
   }
@@ -882,6 +897,25 @@ class EventRepository {
       }
     }
     return recipients.values.toList();
+  }
+
+  /// Refuses a circle invitation that has already been answered.
+  ///
+  /// Reads the stored document rather than the caller's snapshot, for the same
+  /// reason as [_guardInvitation]: a snapshot captured at build time always
+  /// says `pending`, so it cannot detect that the invitation has moved on.
+  Future<void> _guardCircleInvitation(CircleInvitation invitation) async {
+    if (invitation.status != InviteStatus.pending) {
+      throw const DataFailure('That invitation has already been answered.');
+    }
+    final doc = await _circleInvitations.doc(invitation.id).get();
+    final live = doc.data();
+    if (!doc.exists || live == null) {
+      throw const DataFailure('That invitation no longer exists.');
+    }
+    if (live['status'] != InviteStatus.pending.name) {
+      throw const DataFailure('That invitation has already been answered.');
+    }
   }
 
   /// Writes the pending participant rows and `invitations` documents for a
@@ -1012,8 +1046,8 @@ class EventRepository {
       // The response document is a courtesy; never fail the user's action on it.
     }
 
-    // Mirror the same event into the Supabase inbox, which is the feed the
-    // Notifications screen streams live. Without this the inbox table stayed
+    // Mirror the same event into the invitee's inbox, which is the feed the
+    // Notifications screen streams live. Without this the inbox stayed
     // empty — the second database looked broken because nothing ever wrote to
     // it.
     await _notify(
@@ -1239,6 +1273,11 @@ class EventRepository {
     if (invitation.isExpired) {
       throw const DataFailure('That invitation has expired.');
     }
+    // Same live-document check as the countdown invitation: the object the
+    // caller holds is a build-time snapshot that always reads `pending`, so
+    // only the stored document can say whether an answer is still open. Without
+    // this, a settled circle invitation was re-committed on every rebuild.
+    await _guardCircleInvitation(invitation);
 
     final batch = _db.batch();
     batch.set(

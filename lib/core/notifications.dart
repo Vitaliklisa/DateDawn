@@ -37,12 +37,11 @@ enum NotificationKind {
   }
 }
 
-/// One row of the Supabase `notifications` table.
+/// One row of the `users/{uid}/notifications` subcollection.
 ///
-/// Deliberately separate from the Firestore-backed `InvitationResponse` in
-/// `core/models.dart`: that one is the Firebase notification log, this one is
-/// the Supabase inbox. Keeping the types apart is what stops the two backends
-/// from becoming entangled.
+/// Deliberately separate from the `InvitationResponse` in `core/models.dart`:
+/// that one is the "your friend answered" log, this one is the inbox the
+/// Notifications screen streams.
 class AppNotification {
   const AppNotification({
     required this.id,
@@ -61,20 +60,6 @@ class AppNotification {
   final NotificationKind kind;
   final bool isRead;
   final DateTime createdAt;
-
-  /// Builds from a Supabase row.
-  ///
-  /// Every field is defensive: a row written by a future client, or by hand in
-  /// the dashboard, should render as a blank line rather than crash the inbox.
-  factory AppNotification.fromRow(Map<String, dynamic> row) => AppNotification(
-        id: (row['id'] ?? '').toString(),
-        userId: (row['user_id'] ?? '').toString(),
-        title: row['title'] is String ? row['title'] as String : '',
-        body: row['body'] is String ? row['body'] as String : '',
-        kind: NotificationKind.fromWire(row['type']),
-        isRead: row['is_read'] == true,
-        createdAt: _parseTimestamp(row['created_at']),
-      );
 
   /// Builds from a `users/{uid}/notifications/{id}` Firestore document.
   ///
@@ -136,7 +121,7 @@ DateTime _parseTimestamp(Object? value) {
 }
 
 /// The wire form of a Flutter [ThemeMode], matching the check constraint on
-/// `user_settings.theme_mode` in `supabase/schema.sql`.
+/// `users/{uid}.themeMode` in `firestore.rules`.
 String themeModeToWire(ThemeMode mode) {
   switch (mode) {
     case ThemeMode.light:

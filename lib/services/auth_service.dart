@@ -136,17 +136,11 @@ class AuthService {
     }
   }
 
-  /// Forces a token refresh so claims written by a Firebase Auth blocking
-  /// function are present before the first Supabase request.
+  /// Forces a token refresh after sign-in.
   ///
-  /// Supabase reads `role` from the JWT to pick a Postgres role; without it the
-  /// request is `anon` and every RLS policy denies it. A blocking function
-  /// stamps `role: 'authenticated'` during sign-up, but the token minted for the
-  /// new session was created *before* that ran, so it must be re-minted here.
-  ///
-  /// Best-effort on purpose: if the claim is somehow still missing, the user is
-  /// signed in and the app shows its normal "could not load" state rather than
-  /// failing the sign-in itself.
+  /// Best-effort. It exists so a freshly minted session has current claims
+  /// before the first Firestore read; a failure here must never fail the
+  /// sign-in itself, because the user is already authenticated.
   Future<void> _freshToken(User? user) async {
     if (user == null) return;
     try {

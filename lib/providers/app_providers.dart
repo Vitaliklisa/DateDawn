@@ -53,9 +53,9 @@ final activeAuthStateProvider = StreamProvider<AppUser?>((ref) {
   ref.keepAlive();
   return ref.watch(authServiceProvider).authStateChanges().map((user) {
     if (user != null) {
-      // One profile write covers both the Firestore `users/{uid}` document the
-      // repo uses for email lookup and the Supabase-mirrored fields it no longer
-      // needs — Supabase is gone, so `syncUserProfile` is the only writer.
+      // Keeps the public `users/{uid}` profile in step, which is what the email
+      // lookup for invitations reads. Not awaited: it is best-effort and must
+      // not delay sign-in.
       unawaited(ref.read(eventRepositoryProvider).syncUserProfile(user));
     }
     return user;
@@ -169,6 +169,44 @@ final pendingInviteCountProvider = Provider<int>((ref) {
   final circles = ref.watch(circleInvitationsProvider).value ?? const [];
   return events.length + circles.length;
 });
+
+/// Answers already being written, keyed by invitation id.
+///
+/// **This is the loop fix.** Every earlier guard lived in widget state, and
+/// widget state cannot survive this case: `InvitationsInbox` is mounted in
+/// several places at once (the home screen renders it more than once), each
+/// instance builds its own card, and each card re-mounts as the Firestore
+/// streams re-emit. A `bool _submitted` on a card is discarded and reset every
+/// time that happens, so a settled invitation was re-submitted on the next
+/// rebuild — indefinitely.
+///
+/// A provider outlives every one of those rebuilds and is shared by every
+/// mounted copy, so the first card to claim an invitation id blocks all the
+/// others, across remounts, for the life of the route.
+class InvitationSubmission extends Notifier<Set<String>> {
+  @override
+  Set<String> build() => <String>{};
+
+  /// Claims [key] atomically. Returns false if it was already claimed.
+  ///
+  /// Synchronous on purpose: `runAction` is async, so an `await` before the
+  /// claim would let a second tap slip through in the same frame.
+  bool claim(String key) {
+    if (state.contains(key)) return false;
+    state = {...state, key};
+    return true;
+  }
+
+  /// Releases a claim so a genuine retry is possible after a failure.
+  void release(String key) {
+    if (!state.contains(key)) return;
+    state = {...state}..remove(key);
+  }
+}
+
+final invitationSubmissionProvider =
+    NotifierProvider<InvitationSubmission, Set<String>>(
+        InvitationSubmission.new);
 
 /// Participants of one event, live.
 final participantsProvider =

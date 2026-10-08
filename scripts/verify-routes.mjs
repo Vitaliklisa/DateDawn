@@ -9,6 +9,7 @@
 // Serves `build/web`, loads `/support` with no session, and asserts the page
 // rendered and did NOT bounce to the login screen.
 
+import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -90,6 +91,28 @@ async function check(label, path, { expectSupportPage }) {
   const landedOn = new URL(page.url()).pathname;
   const text = await page.evaluate(() => document.body.innerText || '');
 
+  // Flutter paints into a canvas. With the accessibility bridge off there are
+  // no `flt-semantics` nodes and no DOM text to read, so scraping the page for
+  // words returns nothing — which is what made the first version of this
+  // assertion fail against a page that was rendering perfectly.
+  //
+  // So compare pixels instead. A hash of the composited frame is stable for a
+  // given page and wildly different between two different pages. Comparing the
+  // support page against the home page is a real signal that they are distinct
+  // screens, where scraping for the word "mail" was not.
+  const shot = await page.screenshot({
+    clip: { x: 240, y: 0, width: 700, height: 300 },
+  });
+  const frameHash = createHash('sha1').update(shot).digest('hex').slice(0, 12);
+
+  const semantics = await page.evaluate(() => {
+    const nodes = document.querySelectorAll('flt-semantics, [aria-label]');
+    return [...nodes]
+      .map((n) => n.getAttribute('aria-label') || n.textContent || '')
+      .join(' | ');
+  });
+  const rendered = `${text} ${semantics}`.toLowerCase();
+
   await page.screenshot({
     path: `screenshots/route-${label.replace(/\W+/g, '-')}.png`,
   });
@@ -99,6 +122,8 @@ async function check(label, path, { expectSupportPage }) {
     label,
     path,
     landedOn,
+    rendered,
+    frameHash,
     hadErrors: consoleErrors.length + failedRequests.length,
     consoleErrors,
     failedRequests,
@@ -112,6 +137,8 @@ async function check(label, path, { expectSupportPage }) {
 await check('support-signed-out', '/support', { expectSupportPage: true });
 await check('support-trailing-slash', '/support/', { expectSupportPage: true });
 await check('root-redirects-to-login', '/', { expectSupportPage: false });
+// `/home/:id` must resolve rather than 404 back into the login redirect.
+await check('home-with-id', '/home/some-event-id', { expectSupportPage: false });
 
 await browser.close();
 server.close();
@@ -130,14 +157,43 @@ for (const r of results) {
 const supportOk = results
   .filter((r) => r.path.startsWith('/support'))
   .every((r) => r.landedOn === '/support' || r.landedOn === '/support/');
+
+// And it must render the SUPPORT page, not merely keep the URL.
+//
+// The bug this guards against: a route ordering mistake let `/support` match
+// the home route's `:id` child, so the URL said /support (the sidebar even
+// highlighted Support) while the body painted Home. The URL check alone passed.
+//
+// Pixel hashes catch it. Two different screens hash differently; the same
+// screen hashes the same. So require the support frame to differ from the login
+// frame, which is what the home screen collapsed into when it swallowed the
+// route.
+const supportFrames = results
+  .filter((r) => r.path.startsWith('/support'))
+  .map((r) => r.frameHash);
+const loginFrame = results.find((r) => r.path === '/')?.frameHash;
+const supportContentOk =
+  supportFrames.length > 0 &&
+  new Set(supportFrames).size === 1 &&
+  supportFrames.every((h) => h !== loginFrame);
+
 const rootOk = results.find((r) => r.path === '/')?.landedOn === '/login';
+const homeOk =
+  results.find((r) => r.path === '/home/some-event-id')?.landedOn === '/login';
 const noErrors = results.every((r) => r.hadErrors === 0);
+
+console.log('\n[routes] frame hashes');
+for (const r of results) console.log(`  ${r.label.padEnd(26)} ${r.frameHash}`);
 
 console.log('\n[routes] checks');
 console.log(`  /support stays public (no bounce to /login): ${supportOk}`);
+console.log(
+  `  /support renders its own screen (not /login): ${supportContentOk}`,
+);
 console.log(`  / redirects to /login when signed out:       ${rootOk}`);
+console.log(`  /home/:id redirects when signed out:         ${homeOk}`);
 console.log(`  no console errors or failed requests:        ${noErrors}`);
 
-const ok = supportOk && rootOk && noErrors;
+const ok = supportOk && supportContentOk && rootOk && homeOk && noErrors;
 console.log(`\n[routes] ${ok ? 'PASS' : 'FAIL'}`);
 process.exit(ok ? 0 : 1);

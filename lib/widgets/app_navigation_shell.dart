@@ -23,7 +23,17 @@ class AppNavigationShell extends ConsumerWidget {
     ('Circles', Routes.circles, Icons.groups_outlined),
     ('Notifications', Routes.notifications, Icons.notifications_none_rounded),
     ('Settings', Routes.settings, Icons.settings_outlined),
+    ('Support', Routes.support, Icons.help_outline_rounded),
   ];
+
+  /// Destinations shown in the mobile bottom bar.
+  ///
+  /// The bottom bar holds five items comfortably and six does not — the labels
+  /// start to truncate. Support is a rarely-used destination, so on a phone it
+  /// stays reachable from Settings and from the login screen rather than
+  /// crowding the bar everyone taps every day. On desktop the sidebar has the
+  /// room and shows all six.
+  static const _bottomBarCount = 5;
 
   int get _selectedIndex {
     for (var i = 1; i < _destinations.length; i++) {
@@ -54,7 +64,7 @@ class AppNavigationShell extends ConsumerWidget {
               selectedIndex: _selectedIndex,
               onDestinationSelected: (index) => _goTo(context, index),
               destinations: [
-                for (final destination in _destinations)
+                for (final destination in _destinations.take(_bottomBarCount))
                   NavigationDestination(
                     icon: Icon(destination.$3),
                     label: destination.$1,

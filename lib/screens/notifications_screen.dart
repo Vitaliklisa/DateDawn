@@ -10,7 +10,7 @@ import '../core/theme.dart';
 import '../core/notifications.dart';
 import '../providers/app_providers.dart';
 
-/// The Supabase realtime inbox alongside the existing invitation-response log.
+/// The live Firestore inbox alongside the existing invitation-response log.
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
