@@ -32,3 +32,16 @@ cd "$ROOT_DIR"
 flutter config --no-analytics --enable-web
 flutter pub get
 flutter build web --release --base-href /
+
+# Prune the renderers Flutter stages but the app never loads.
+#
+# `flutter build web` emits every renderer it might pick at runtime (~38 MB of
+# WebAssembly) plus the `.symbols` maps only a debugger wants. `web/index.html`
+# pins `renderer: 'canvaskit'`, so the rest is downloaded by nobody. Removing it
+# takes the deployed artifact from ~38 MB to ~12 MB, which is the difference
+# between a first load that feels instant and one that takes seconds.
+#
+# This runs here rather than being left to `npm run build:web` because Vercel
+# invokes THIS script directly (`vercel.json` -> buildCommand). Without it the
+# deploy shipped the unpruned build while local builds looked optimised.
+node scripts/prune-web-build.mjs

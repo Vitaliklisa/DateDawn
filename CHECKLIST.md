@@ -859,3 +859,114 @@ live signed-in invitation — that needs a session and a real Firestore write, a
 there is no emulator here. If it still loops, the log line to look for is
 `[datedawn] Could not invite …`, and the next suspect would be a **second writer**
 of the same invitation rather than the UI re-submitting.
+
+---
+
+# 14. scripts/ audit, a broken test command, and the deploy that shipped 38 MB
+
+## 14.1 The folder was mostly healthy — one file was not
+
+`scripts/` held 37 files. Instead of deleting on instinct, `scripts/audit-scripts.mjs`
+(`npm run audit:scripts`) walks every entry point — `package.json`, the CI
+workflow, `firebase.json`, the docs, `pubspec.yaml`, and imports between scripts —
+and classifies each file as referenced, pattern-discovered, or possibly dead.
+
+**One genuinely dead file: `generate-icons.mjs`.** It was a leftover from the
+template's React/Capacitor app:
+
+| It writes to | `resources/` — **does not exist** |
+| It calls | `npx @capacitor/assets` — **not installed** |
+| Palette | `#6fd0b6` — not this app's `#4FD1C5` |
+| Referenced by | nothing but its own usage comment |
+
+The Flutter app's icon generator is **`generate-flutter-icons.mjs`**, which is
+live: documented in the README, and all four of its output paths (`assets/icon/`,
+`assets/splash/`, `web/icons/`, `web/favicon.png`) exist. Two competing
+implementations of the same job for two different apps, and only one is real.
+Deleted `generate-icons.mjs`.
+
+Everything else is live: 10 `*.test.mjs` suites (found by the `npm test` glob),
+`*.sh` build tooling, and the platform's `grok-pwa-*` chrome, which must not be
+touched.
+
+## 14.2 `npm test` was broken
+
+`package.json` ran, after the Node suites:
+
+```
+node --experimental-strip-types --test src/lib/app-data/app-data.test.ts
+  src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts
+  src/lib/auth/sign-in-gate.test.ts src/lib/events.pure.test.ts
+  src/lib/auth/origins.pure.test.ts src/lib/auth/deployed-origins.test.ts
+```
+
+**None of those seven files exist.** They belonged to the deleted React app, so
+`npm test` exited 1 on a project whose tests all passed — and would have failed
+CI on every run. Now:
+
+```
+"test":         "node --test 'scripts/**/*.test.mjs' && flutter test"
+"test:node":    node suites only
+"test:flutter": flutter test only
+```
+
+`npm test` runs **78 Flutter tests plus the Node suites, exit 0.**
+
+## 14.3 The deploy was shipping the unpruned build
+
+§ 11.7 pruned the web build from 38.6 MB to 11.7 MB — but only for
+`npm run build:web`. **Vercel does not run that.** `vercel.json` calls
+`scripts/build-vercel-web.sh` directly, and that script did a bare
+`flutter build web --release`. So every production deploy shipped all four
+renderers while local builds looked optimised. The optimisation existed
+everywhere except where it mattered.
+
+`build-vercel-web.sh` now runs `node scripts/prune-web-build.mjs` after the
+build. Confirmed still working end to end: `build/web is now 11.7 MB`,
+`verify:web` PASS.
+
+## 14.4 What "runs on a potato" actually comes to
+
+Measured, not guessed — the bytes a browser must fetch before the first frame:
+
+| File | Bytes |
+|---|---:|
+| `main.dart.js` | 3,356,940 |
+| `canvaskit/canvaskit.wasm` | 7,284,602 |
+| `canvaskit/canvaskit.js` | 86,987 |
+| `flutter_bootstrap.js` | 13,094 |
+| `MaterialIcons-Regular.otf` | 14,592 |
+| `index.html` + manifest | ~3,200 |
+| **Critical path** | **10.26 MB** |
+
+Two honest observations:
+
+- **The icons are already 99% tree-shaken** (3.5 KB of a ~1.6 MB font). That work
+  was done in an earlier pass; there is nothing left to win there.
+- **The remaining weight is the renderer.** `canvaskit.wasm` is 7.3 MB and there
+  is no smaller Flutter web renderer — `main.dart.js` plus one wasm binary is the
+  floor for this framework. The levers that remain are (a) `--wasm`, which builds
+  a leaner `skwasm` pair but is Chromium-only, and (b) serving the build
+  compressed (Brotli takes the wasm to roughly a third), which is a hosting
+  setting rather than a code change.
+
+  Worth saying plainly: 10 MB is a **hard floor for a Flutter web app**, not
+  something more aggressive pruning will fix. If the target is genuinely "loads
+  on a potato", the bigger levers are outside this repo.
+
+## 14.5 Verification for § 14
+
+| Check | Result |
+|---|---|
+| `npm run audit:scripts` | 37 files, **0 possibly dead** |
+| `npm test` | **passes, exit 0** (78 Flutter + Node suites) |
+| `flutter analyze` | No issues found |
+| `npm run build:web` | built + pruned, 11.7 MB |
+| `npm run verify:web` | **PASS** — 0 console errors, 0 failed requests |
+| `scripts/build-vercel-web.sh` | now prunes; runs on the real deploy path |
+
+### Not verified
+
+The Vercel deploy itself. I cannot run a Vercel build from here, so the fix to
+`build-vercel-web.sh` is verified by reading `vercel.json`'s `buildCommand` and
+by running the same prune step locally — not by watching a real deployment.
