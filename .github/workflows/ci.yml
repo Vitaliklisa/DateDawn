@@ -314,19 +314,19 @@ jobs:
           # Locate llvm-strip without guessing the host triple: the runner is
           # linux-x86_64 today, but hardcoding that is a latent break if the
           # image ever changes.
-          STRIP=$(find "$NDK_DIR" -name llvm-strip -type f 2>/dev/null | head -1 || true)
-          if [ -z "$STRIP" ]; then
-            echo "::warning::llvm-strip not found under $NDK_DIR — NDK install is hollow/partial. Re-installing..."
+          # NDK tool binaries can be symlinks (for example, llvm-strip may
+          # point to llvm-objcopy), so do not require a regular file here.
+          STRIP=$(find "$NDK_DIR" -name llvm-strip -print -quit 2>/dev/null || true)
+          if [ -z "$STRIP" ] || [ ! -x "$STRIP" ]; then
+            echo "::warning::llvm-strip missing or not executable under $NDK_DIR — repairing NDK install..."
             rm -rf "$NDK_DIR"
             (yes || true) | "$SDKMANAGER" "ndk;${NDK_VERSION}"
-            STRIP=$(find "$NDK_DIR" -name llvm-strip -type f 2>/dev/null | head -1 || true)
+            STRIP=$(find "$NDK_DIR" -name llvm-strip -print -quit 2>/dev/null || true)
           fi
-          if [ -z "$STRIP" ]; then
-            echo "::error::llvm-strip still not found under $NDK_DIR after re-install"
+          if [ -z "$STRIP" ] || [ ! -x "$STRIP" ]; then
+            echo "::error::llvm-strip is still missing or not executable under $NDK_DIR after re-install"
             exit 1
           fi
-          test -x "$STRIP" || {
-            echo "::error::found $STRIP but it is not executable"; exit 1; }
           echo "NDK ready: $STRIP"
 
       # Unsigned on purpose: this proves the release build compiles and that the

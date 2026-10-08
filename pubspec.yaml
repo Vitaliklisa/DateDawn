@@ -40,7 +40,7 @@ dependencies:
   # is a pure hash and needs no dependency.
   flutter_local_notifications: ^22.3.1
 
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^2.0.0
 
 dev_dependencies:
   flutter_test:
