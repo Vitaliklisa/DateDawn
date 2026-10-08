@@ -22,6 +22,7 @@
     "test:node": "node --test 'scripts/**/*.test.mjs'",
     "test:flutter": "flutter test",
     "audit:scripts": "node scripts/audit-scripts.mjs",
+    "check:workflow": "node scripts/check-workflow.mjs",
     "clean": "node scripts/deep-clean.mjs --dry-run",
     "clean:apply": "node scripts/deep-clean.mjs --apply",
     "lint": "eslint .",

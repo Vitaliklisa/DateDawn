@@ -1063,3 +1063,127 @@ regenerated and re-tested rather than assumed:
 **zero tracked files**, so they can never reach the repository — they only ever
 occupy local disk. `npm run clean` exists so this does not silently regrow to
 4 GB again; run it before archiving or handing the project on.
+
+---
+
+# 16. CI: the Android bundle build, made fast
+
+The workflow was correct but paid for the same work several times over. Five
+changes, ordered by how much they cost.
+
+## 16.1 The NDK was downloaded on every single run (~1.5 GB)
+
+The biggest cost, and it was two bugs compounding:
+
+- The `Cache Android SDK` step had a **constant key** (`ndk-28.2.13676358`) that
+  nothing ever wrote on a miss, so `actions/cache` restored nothing and then
+  saved nothing — it never became a hit.
+- `sdkmanager "ndk;28.2.13676358"` ran **unconditionally**, so even a successful
+  restore was immediately followed by a full reinstall.
+
+Fixed: a key distinct per NDK version (`ndk-${runner.os}-${NDK_VERSION}`), and
+the install step guarded with `if: steps.ndk-cache.outputs.cache-hit != 'true'`.
+The 1.5 GB now moves only when the version actually changes.
+
+A `Verify NDK and llvm-strip` step runs before Gradle, so a missing NDK fails in
+seconds with a clear message instead of surfacing ten minutes later as the opaque
+`Gradle build failed`.
+
+## 16.2 Both jobs were building — the web build was duplicate work
+
+`analyze-and-test` ran a full `flutter build web --release`, then
+`build-android` started a **second runner** that re-checked out, re-installed
+Flutter and re-ran `pub get` on the same commit.
+
+Now three jobs, all **parallel** (`needs` references: none):
+
+| Job | What it does |
+|---|---|
+| `checks` | format, analyze, test — pure Dart, no SDK, no Java, no Gradle |
+| `web` | build + prune; the fastest proof the widget tree compiles |
+| `android` | the release bundle |
+
+`android` deliberately has **no `needs:`**. Chaining it behind the others
+serialised a ~10-minute Gradle build behind checks that cannot affect whether it
+succeeds. The wall-clock time is now the slowest job, not the sum of all three.
+
+The `web` job also runs `prune-web-build.mjs`, so it validates the real deploy
+artifact (11 MB) rather than merely proving the code compiles.
+
+## 16.3 `--analyze-size` was doubling the Dart compile
+
+Removed. Flutter's own help confirms why it is expensive and why it cannot
+coexist with the replacement:
+
+> `--analyze-size` … **This flag cannot be combined with `--split-debug-info`.**
+
+It forces a **second full AOT compile in a separate build mode** purely to print
+a size breakdown — for a number the `Report bundle size` step already computes
+from the real artifact with `wc -c`. That is roughly double the Dart compiler
+time for information already in the log. It is a diagnostic to run by hand when
+investigating bloat, not a per-commit step.
+
+Added `--split-debug-info=build/symbols`, which moves DWARF symbols out of the
+binary so the AAB is smaller and packaging has less to carry. The symbols upload
+as a second artifact (`android-debug-symbols`), because they are required to
+symbolicate a crash from that build via `flutter symbolize` — verified the
+command exists.
+
+## 16.4 Smaller cache gaps
+
+- `gradle.properties` added to the Gradle cache key. Flipping a build flag
+  (`org.gradle.caching`, `android.nonTransitiveRClass`) changes task outputs, so
+  without it a cache hit could restore outputs produced under different settings.
+- `GRADLE_VERSION` and `NDK_VERSION` hoisted into `env:` so a version bump
+  cannot leave one cache key stale and silently disable caching.
+- `actions/setup-node` added to the web job, since it runs a Node script.
+
+## 16.5 A check so this cannot silently regress
+
+`scripts/check-workflow.mjs` (`npm run check:workflow`) validates the workflow
+without a YAML parser or network access. It catches tabs (illegal in YAML), a
+job with no `runs-on`, `needs:` pointing at a job that does not exist,
+`steps.<id>.outputs` referencing an id no step defines, and an NDK cache guard
+with no matching install. It also asserts the specific optimisations, so
+reverting one is loud rather than silent:
+
+```
+jobs: checks, web, android
+needs references: none (all parallel)
+ok   --analyze-size is gone from commands
+ok   --split-debug-info is used
+ok   no job waits on checks for android
+ok   web build runs the pruner
+ok   android job is not chained (parallel)
+```
+
+> A note on building this. The first version flagged `--analyze-size` as still
+> present — a **false positive**, because the flag name appears in the comment
+> explaining why it was removed. The check now reads only non-comment lines.
+> A cleanup report that cries wolf is one you learn to ignore.
+
+## Verification for § 16
+
+| Check | Result |
+|---|---|
+| `npm run check:workflow` | No problems found |
+| `flutter test` | **78/78 passing** |
+| `flutter analyze` | No issues found |
+| `flutter build appbundle --help` | confirms both flags and their mutual exclusion |
+| `flutter symbolize` | present, so the uploaded symbols are usable |
+| Gradle wrapper | 9.3.1, matching `GRADLE_VERSION` |
+
+### Not verified
+
+**No Android build was run here** — this machine has no Android SDK
+(`ANDROID_HOME` is unset, no NDK directory), so `bundleRelease` could not be
+executed. The flag behaviour is verified against Flutter's own `--help` output
+and the Gradle/config values against the files, but the end-to-end artifact is
+unproven. **The first CI run is the real test.** If it fails, the `Verify NDK`
+step will name a missing NDK directly instead of failing inside Gradle.
+
+Also unmeasured: the actual wall-clock saving. The NDK change removes a
+~1.5 GB download (~1–3 min), the job split removes one cold runner start
+(~1–2 min), and dropping `--analyze-size` removes one full AOT pass
+(~2–4 min, the largest single item). Those are estimates from the shape of the
+work, not from a timed run — I have no CI history to compare against.

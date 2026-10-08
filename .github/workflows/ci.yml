@@ -7,6 +7,10 @@ on:
 
 env:
   ANDROID_HOME: /usr/local/lib/android/sdk
+  # Pinned once here rather than repeated inside cache keys, so a version bump
+  # cannot leave one key stale and silently disable caching.
+  NDK_VERSION: 28.2.13676358
+  GRADLE_VERSION: 9.3.1
 
 # Cancel an in-progress run when a newer commit lands on the same branch.
 # Without this, pushing twice leaves the first run burning CI minutes on code
@@ -16,8 +20,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  analyze-and-test:
-    name: Analyze, test, build
+  # ---------------------------------------------------------------------------
+  # Static checks. No Android SDK, no Java, no Gradle, no release compile.
+  #
+  # These are pure Dart. They used to be serialised ahead of a full release web
+  # build in the same job, so a formatting nit paid for a cold compiler anyway.
+  # ---------------------------------------------------------------------------
+  checks:
+    name: Format, analyze, test
     runs-on: ubuntu-latest
 
     steps:
@@ -42,15 +52,49 @@ jobs:
       - name: Test
         run: flutter test
 
-      # The web build is the fastest end-to-end proof that the widget tree
-      # compiles on a target that needs no signing key and no emulator.
-      - name: Build web
-        run: flutter build web --release
+  # ---------------------------------------------------------------------------
+  # Web build. Its own job so it runs AT THE SAME TIME as the Android build
+  # rather than ahead of it on the same runner.
+  #
+  # This is the fastest end-to-end proof that the widget tree compiles on a
+  # target needing no signing key and no emulator. It also runs the pruner, so
+  # the job validates the real deploy artifact (11 MB, not 38 MB) rather than
+  # just proving the code compiles.
+  # ---------------------------------------------------------------------------
+  web:
+    name: Build web
+    runs-on: ubuntu-latest
 
-  build-android:
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .flutter-version
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build and prune web
+        run: |
+          flutter build web --release
+          node scripts/prune-web-build.mjs
+
+  # ---------------------------------------------------------------------------
+  # Android release bundle.
+  #
+  # Deliberately has no `needs:` — it runs in parallel with the jobs above.
+  # Chaining it behind them serialised a 10-minute Gradle build behind checks
+  # that cannot affect whether it succeeds.
+  # ---------------------------------------------------------------------------
+  android:
     name: Build Android bundle
     runs-on: ubuntu-latest
-    needs: analyze-and-test
 
     steps:
       - uses: actions/checkout@v5
@@ -68,29 +112,40 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # Cache the Gradle dependency graph *and* the build cache. A release build
-      # with Firebase pulls hundreds of MB of AARs and runs R8 over all of them;
-      # restoring `~/.gradle/caches` instead of re-downloading turns a cold build
-      # into a warm one, and `org.gradle.caching=true` (gradle.properties) lets
-      # the task outputs be reused too. The key includes the Gradle version so a
-      # wrapper bump invalidates it cleanly rather than restoring stale jars.
+      # Cache the Gradle dependency graph, the wrapper distribution, and the
+      # build-cache directory in one entry. `org.gradle.caching=true`
+      # (gradle.properties) writes task outputs into that tree, which is what
+      # lets a repeat build skip R8 rather than merely skip the download.
+      #
+      # The key now also hashes gradle.properties, so flipping a build flag
+      # invalidates the cache instead of restoring outputs produced under
+      # different settings.
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-9.3.1-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties', 'pubspec.lock') }}
+          key: gradle-${{ runner.os }}-${{ env.GRADLE_VERSION }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties', 'android/gradle.properties', 'pubspec.lock') }}
           restore-keys: |
-            gradle-${{ runner.os }}-9.3.1-
+            gradle-${{ runner.os }}-${{ env.GRADLE_VERSION }}-
 
-      - name: Cache Android SDK
+      # The runner image ships an Android SDK but NOT the NDK, and the sdkmanager
+      # download for it is ~1.5 GB — the most expensive thing in this workflow.
+      #
+      # The previous version had two bugs that made the cache pure cost. First,
+      # the key was a constant that nothing ever wrote on a miss, so it restored
+      # nothing and saved nothing. Second, the install step ran unconditionally,
+      # so even a successful restore was followed by a full reinstall.
+      #
+      # Fixed: a key distinct per NDK version, and an install step guarded on the
+      # cache hit so the 1.5 GB only moves when the version actually changes.
+      - name: Cache Android NDK
         uses: actions/cache@v4
+        id: ndk-cache
         with:
-          path: |
-            /usr/local/lib/android/sdk/ndk
-            /usr/local/lib/android/sdk/platform-tools
-          key: android-sdk-${{ runner.os }}-ndk-28.2.13676358
+          path: /usr/local/lib/android/sdk/ndk/${{ env.NDK_VERSION }}
+          key: ndk-${{ runner.os }}-${{ env.NDK_VERSION }}
 
       # The Firebase config is deliberately NOT committed: it is gitignored, and
       # for good reason — committing it bakes one project's identifiers into the
@@ -154,6 +209,10 @@ jobs:
       # image ships an Android SDK without cmdline-tools, which is what made the
       # strip step fail on a developer machine; installing them here (and
       # accepting the licences) is the fix.
+      #
+      # Only cmdline-tools and platform-tools are handled here. The NDK is
+      # installed by the guarded step below, because downloading it is the
+      # expensive part and it should only happen on a cache miss.
       - name: Ensure Android SDK tools
         run: |
           SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
@@ -167,25 +226,57 @@ jobs:
             SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
           fi
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
-          "$SDKMANAGER" "platform-tools" "ndk;28.2.13676358" > /dev/null
+          "$SDKMANAGER" "platform-tools" > /dev/null
+
+      # The 1.5 GB download, skipped entirely when the cache above restored it.
+      - name: Install NDK if not cached
+        if: steps.ndk-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "NDK not restored from cache — installing ${NDK_VERSION} (slow path)"
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          "$SDKMANAGER" "ndk;${NDK_VERSION}" > /dev/null
+
+      # Fail loudly here rather than 10 minutes into Gradle, where a missing NDK
+      # surfaces as an opaque "Gradle build failed".
+      - name: Verify NDK and llvm-strip
+        run: |
+          NDK_DIR="${ANDROID_HOME}/ndk/${NDK_VERSION}"
+          test -d "$NDK_DIR" || {
+            echo "::error::NDK ${NDK_VERSION} is missing at $NDK_DIR"; exit 1; }
+          STRIP=$(find "$NDK_DIR" -name llvm-strip -type f | head -1)
+          test -x "$STRIP" || {
+            echo "::error::llvm-strip not found under $NDK_DIR"; exit 1; }
+          echo "NDK ready: $STRIP"
 
       # Unsigned on purpose: this proves the release build compiles and that the
       # Gradle config is sound. Signing happens locally, where the keystore and
       # its passwords live — they are never uploaded to a build server.
       #
-      # No `--no-shrink`: that flag skips R8, and running the real release
-      # pipeline is what catches a missing keep-rule before upload rather than in
-      # the Play Console.
+      # Two deliberate flag choices, both measured against the cost of the run:
+      #
+      #   * No `--no-shrink`. That flag skips R8, and running the real release
+      #     pipeline is what catches a missing keep-rule before upload rather
+      #     than in the Play Console.
+      #
+      #   * `--split-debug-info` moves DWARF symbols out of the binary into a
+      #     separate directory. The AAB gets smaller, and there is simply less
+      #     for the packaging step to carry. The symbols are uploaded as a
+      #     second artifact, because they are needed to symbolicate a stack
+      #     trace from this build.
+      #
+      # `--analyze-size` used to be here, and removing it is the single biggest
+      # saving in this job. It forces a SECOND full AOT compile in a separate
+      # build mode purely to produce a size breakdown — roughly doubling the
+      # Dart compiler time for a number the `Report bundle size` step already
+      # prints, measured from the real artifact. It is a diagnostic to run by
+      # hand when investigating bloat, not a per-commit step.
       - name: Build app bundle
         env:
           GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}
         run: |
-          # `--analyze-size` writes a size breakdown next to the bundle without
-          # changing the artifact; the `wc -c` line below then records how big
-          # the AAB actually is, so a regression from a new dependency shows up
-          # in the run log rather than at upload time.
           flutter build appbundle --release \
             --target-platform android-arm,android-arm64,android-x64 \
+            --split-debug-info=build/symbols \
             --dart-define=GOOGLE_SERVER_CLIENT_ID="$GOOGLE_SERVER_CLIENT_ID"
           ls -lh build/app/outputs/bundle/release/app-release.aab
 
@@ -211,3 +302,13 @@ jobs:
           name: app-release-unsigned
           path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 7
+
+      # Required to symbolicate a crash from this build. Useless if it is lost —
+      # the next `flutter build` overwrites it — so it ships with the bundle.
+      - name: Upload debug symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-symbols
+          path: build/symbols
+          retention-days: 7
+          if-no-files-found: warn
