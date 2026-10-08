@@ -263,7 +263,7 @@ jobs:
           # below to run unattended — `sdkmanager` refuses a package whose licence
           # has not been accepted, and on a cold cache the NDK install is the
           # first thing that needs one.
-          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          (yes || true) | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
 
           # Non-NDK pieces needed before Gradle runs. The NDK is deliberately kept
           # out of this step so its 1.5 GB cost is isolated and cache-guarded.
@@ -283,7 +283,7 @@ jobs:
           set -euo pipefail
           echo "NDK not restored from cache — installing ${NDK_VERSION} (slow path)"
           SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" "ndk;${NDK_VERSION}"
+          (yes || true) | "$SDKMANAGER" "ndk;${NDK_VERSION}"
 
       # A cache hit is not proof the directory is usable. `actions/cache` will
       # happily report a hit for a key saved from an empty path — which is
@@ -301,7 +301,7 @@ jobs:
 
           if [ ! -d "$NDK_DIR" ]; then
             echo "::warning::NDK ${NDK_VERSION} missing (cache hit was hollow) — installing now"
-            yes | "$SDKMANAGER" "ndk;${NDK_VERSION}"
+            (yes || true) | "$SDKMANAGER" "ndk;${NDK_VERSION}"
           fi
 
           test -d "$NDK_DIR" || {
@@ -318,7 +318,7 @@ jobs:
           if [ -z "$STRIP" ]; then
             echo "::warning::llvm-strip not found under $NDK_DIR — NDK install is hollow/partial. Re-installing..."
             rm -rf "$NDK_DIR"
-            yes | "$SDKMANAGER" "ndk;${NDK_VERSION}"
+            (yes || true) | "$SDKMANAGER" "ndk;${NDK_VERSION}"
             STRIP=$(find "$NDK_DIR" -name llvm-strip -type f 2>/dev/null | head -1 || true)
           fi
           if [ -z "$STRIP" ]; then
