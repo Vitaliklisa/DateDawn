@@ -614,3 +614,80 @@ console errors, zero failed requests.
 | `firestore.rules` | compiled successfully (dry run) |
 | `npm run build:web` | built + pruned, 11.7 MB |
 | `npm run verify:web` | PASS — painted, 0 console errors, 0 failed requests |
+
+---
+
+# 12. Help & support as its own route
+
+`/support` existed but was mounted **inside the `ShellRoute`**, so it inherited
+the desktop sidebar and the mobile tab bar — chrome that says "you are somewhere
+in the app" on a page meant to be found by someone who cannot get into the app.
+It is now a **top-level route**, rendering its own `AppBar`.
+
+## Routes moved to their own file
+
+`lib/core/routes.dart` now holds the path constants, re-exported from
+`router.dart` as `Routes` so existing imports keep working.
+
+This was not tidiness. `router.dart` imports every screen, so `login_screen.dart`
+importing it back to reach `Routes.support` is an **import cycle** — and Dart
+compiles cycles happily right up until something is read before it initialises,
+which surfaces as a confusing runtime failure rather than a build error. A file
+that imports nothing breaks the cycle for good.
+
+## The redirect, made prefix-safe
+
+The public-route check was `state.matchedLocation == Routes.support`, an exact
+match. That sends `/support/` — a trailing slash, a deep link, a URL a provider
+might normalise — straight to the login screen, which is the exact dead end the
+exemption exists to prevent. It is now `_isPublic()`, matching `/support` and
+anything beneath it.
+
+## Back is never a dead end
+
+`/support` is meant to be opened cold: from a store listing, a bookmark, a
+message to a friend. On that first page there is nothing to pop, so Flutter's
+implicit back button never appears and the visitor is stranded. The screen now
+renders `DangerHoverIconButton` explicitly and falls back to the home route when
+the stack is empty.
+
+Using the app's standard back arrow also fixes an inconsistency: support was the
+only screen whose back arrow did not redden on hover. That hover-red is
+deliberate everywhere else — a back control is a dismissal, which is the one
+place red belongs.
+
+## Reachable from where it is needed
+
+- **Settings → "Help & support"**
+- **Login screen → "Trouble signing in? Get help"** — the one place it matters
+  most. Somebody stuck at the login screen is exactly who needs support, and
+  until now the only way there was to guess a URL.
+- **`/support` directly, signed out.** The router's redirect exempts it.
+
+## Verifying it
+
+`test/routes_test.dart` pins the paths: uniqueness (two constants sharing a
+value is how one route silently replaces another), absolute and clean, and
+`/support` staying top-level.
+
+`scripts/verify-routes.mjs` (`npm run verify:routes`) checks the behaviour a
+unit test cannot, because the redirect runs inside GoRouter rather than in a
+widget. It serves the real build and loads each path with no session:
+
+| Path | Lands on | Expected |
+|---|---|---|
+| `/support` | `/support` | stays public |
+| `/support/` | `/support` | stays public |
+| `/` | `/login` | redirected when signed out |
+
+All three passed with 0 console errors and 0 failed requests.
+
+## Verification for § 12
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | **82/82 passing** (3 new route tests) |
+| `dart format` | clean |
+| `npm run build:web` | built + pruned, 11.7 MB |
+| `npm run verify:routes` | **PASS** — 3/3 paths, 0 errors |

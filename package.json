@@ -24,6 +24,7 @@
     "build:web": "node scripts/build-web.mjs",
     "prune:web": "node scripts/prune-web-build.mjs",
     "verify:web": "node scripts/verify-web-build.mjs",
+    "verify:routes": "node scripts/verify-routes.mjs",
     "check:backend": "node scripts/check-backend.mjs"
   },
   "dependencies": {

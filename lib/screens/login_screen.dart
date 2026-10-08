@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/routes.dart';
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
 import '../widgets/brand_kit.dart';
@@ -257,6 +258,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 6),
+                    // The one place this link matters most. Somebody stuck on
+                    // the login screen — wrong password, signed in with the
+                    // other provider, account they cannot get into — is exactly
+                    // who needs support, and until now the only way out was to
+                    // guess a URL.
+                    TextButton(
+                      onPressed: () => context.push(Routes.support),
+                      child: Text(
+                        'Trouble signing in? Get help',
+                        style: TextStyle(fontSize: 12.5, color: colors.subtle),
+                      ),
                     ),
                   ],
                 ),

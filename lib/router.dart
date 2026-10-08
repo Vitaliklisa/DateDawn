@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/models.dart';
+import 'core/routes.dart';
 import 'providers/app_providers.dart';
 import 'screens/circles_screen.dart';
 import 'screens/event_detail_screen.dart';
@@ -16,21 +17,23 @@ import 'screens/support_screen.dart';
 import 'widgets/app_navigation_shell.dart';
 
 /// Route names, kept in one place so navigation calls never use raw strings.
-class Routes {
-  const Routes._();
-
-  static const home = '/';
-  static const login = '/login';
-  static const settings = '/settings';
-  static const newEvent = '/event/new';
-  static const eventDetail = '/event';
-  static const invitations = '/invitations';
-  static const circles = '/circles';
-  static const notifications = '/notifications';
-  static const support = '/support';
-}
+///
+/// Defined in `core/routes.dart` and re-exported here, so screens that already
+/// import this file keep working while the definition stays importable by a
+/// screen without creating a cycle.
+export 'core/routes.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
+
+/// Routes reachable without a session.
+///
+/// Login obviously, and support: an app whose help page demands you sign in
+/// first has no help page. Everything else is behind the redirect.
+bool _isPublic(String location) {
+  if (location == Routes.login) return true;
+  return location == Routes.support ||
+      location.startsWith('${Routes.support}/');
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -41,10 +44,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       final goingToLogin = state.matchedLocation == Routes.login;
 
       // Support must stay reachable when signed out. Somebody who cannot get
-      // into their account — or a store reviewer checking that the support
-      // URL in the listing resolves — has to be able to reach us without a
-      // working session.
-      if (state.matchedLocation == Routes.support) return null;
+      // into their account — or a store reviewer checking that the support URL
+      // in the listing resolves — has to be able to reach us without a working
+      // session.
+      //
+      // Matched as a prefix, not with `==`, so `/support` and any path under it
+      // (a trailing slash, a future `/support/faq`, a deep link) all stay public.
+      // An exact match here would silently send `/support/` to the login screen,
+      // which is exactly the dead end this exemption exists to prevent.
+      if (_isPublic(state.matchedLocation)) return null;
 
       if (auth.isLoading) {
         return goingToLogin ? null : _loginLocation(state.uri);
@@ -71,6 +79,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.login,
         name: 'login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      // Support is a top-level route, deliberately OUTSIDE the ShellRoute.
+      //
+      // Inside it, the page inherited the sidebar and the mobile tab bar —
+      // chrome that implies "you are somewhere in the app" for a page that is
+      // meant to be findable by someone who cannot get into the app at all. As
+      // a standalone route it renders its own AppBar with a real back button,
+      // and it is reachable at a stable URL a store listing can point at.
+      GoRoute(
+        path: Routes.support,
+        name: 'support',
+        builder: (context, state) => const SupportScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => AppNavigationShell(
@@ -102,11 +122,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: Routes.notifications,
             name: 'notifications',
             builder: (context, state) => const NotificationsScreen(),
-          ),
-          GoRoute(
-            path: Routes.support,
-            name: 'support',
-            builder: (context, state) => const SupportScreen(),
           ),
           GoRoute(
             path: Routes.newEvent,

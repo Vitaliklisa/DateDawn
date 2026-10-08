@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/routes.dart';
 import '../core/theme.dart';
+import '../widgets/brand_kit.dart';
 
 /// Support, contact and legal.
 ///
@@ -30,7 +33,36 @@ class SupportScreen extends StatelessWidget {
     final colors = context.colors;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Support')),
+      appBar: AppBar(
+        title: const Text('Help & support'),
+        // Explicit rather than relying on the implicit back button.
+        //
+        // This route is top-level and is meant to be openable from outside the
+        // app — a store listing, a message to a friend, a bookmarked URL. On
+        // that first page there is nothing to pop, so the implicit button never
+        // appears and the visitor is stranded with no way into the app. Showing
+        // it always, and falling back to the home route when the stack is
+        // empty, means Back is never a dead end.
+        // Matches every other secondary screen: `DangerHoverIconButton` is the
+        // app's standard back arrow, and it reddens on hover deliberately — a
+        // back control is a dismissal, which is the one place red belongs.
+        // Using a plain `IconButton` here made support the only screen whose
+        // back arrow did not respond to the pointer.
+        leading: DangerHoverIconButton(
+          icon: Icons.arrow_back_rounded,
+          tooltip: 'Back',
+          onPressed: () {
+            final router = GoRouter.of(context);
+            if (router.canPop()) {
+              router.pop();
+            } else {
+              // Opened cold from a store link or a bookmark: there is nothing
+              // to pop, so send them into the app rather than nowhere.
+              router.go(Routes.home);
+            }
+          },
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
         children: [
