@@ -36,13 +36,29 @@
 </head>
 <body>
   <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+    Flutter ships four renderers and, left to itself, the build stages all of
+    them so the loader can pick one at runtime. That is ~31 MB of WebAssembly
+    for an app that needs exactly one, which is the difference between a web
+    build that loads instantly and one that spends seconds downloading a
+    renderer it will never run.
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
+    Pinning it here removes the choice. `canvaskit` is the right one for Date
+    Dawn: it is the renderer Flutter supports everywhere and it is what the
+    app's gradients, blurs and the confetti burst were drawn against. The
+    `--wasm` renderers (skwasm) and the `webparagraph` variant are Chromium-only
+    experiments and are not staged any more.
+
+    `renderer: canvaskit` must match `--web-renderer canvaskit` on the build
+    command; see the README's build section.
   -->
+  <script>
+    window.flutterConfiguration = {
+      renderer: 'canvaskit',
+      // The loading indicator is our own, so Flutter does not need to inject
+      // its spinner — one less script in the boot path.
+      canvasKitBaseUrl: 'canvaskit/',
+    };
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

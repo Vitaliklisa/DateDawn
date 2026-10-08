@@ -26,21 +26,59 @@ enum ParticipantRole {
 }
 
 /// Where a collaborator stands on an invitation they received.
+///
+/// `rejected` and `declined` are deliberately different. A `rejected` row is one
+/// an admin removed or an invitation that was cancelled — the person never
+/// engaged with it. A `declined` row is someone who *answered no*, and it is
+/// kept on the list on purpose: the countdown owner should be able to see who
+/// said no rather than have them silently vanish, and the person who declined
+/// should be able to change their mind.
+///
+/// `reopened` is the state between "they changed their mind" and the answer they
+/// give next: a declined row that has been put back in front of the invitee.
+/// Without it the accept rule would have to admit a write on a `declined` row,
+/// which would let any admin flip someone's answer without asking them.
 enum InviteStatus {
   pending,
   accepted,
-  rejected;
+  declined,
+  rejected,
+  reopened;
 
   static InviteStatus fromWire(Object? value) {
     switch (value) {
       case 'accepted':
         return InviteStatus.accepted;
+      case 'declined':
+        return InviteStatus.declined;
       case 'rejected':
         return InviteStatus.rejected;
+      case 'reopened':
+        return InviteStatus.reopened;
       default:
         return InviteStatus.pending;
     }
   }
+
+  /// Whether the invitee still has a decision to make.
+  bool get isAwaitingAnswer =>
+      this == InviteStatus.pending || this == InviteStatus.reopened;
+
+  /// Whether this row counts as unsettled for the inviter's "waiting on" list.
+  bool get isSettled => !isAwaitingAnswer;
+}
+
+/// What a participant row actually represents.
+///
+/// A countdown can be shared with a whole circle, which is recorded as one
+/// synthetic row rather than one row per member. That row is not a person and
+/// must not be shown as one.
+enum ParticipantKind {
+  person,
+  circle;
+
+  static ParticipantKind fromWire(Object? value) =>
+      value == 'circle' ? ParticipantKind.circle : ParticipantKind.person;
 }
 
 /// Someone who can see an event alongside its creator.
@@ -53,6 +91,8 @@ class Participant {
     this.displayName,
     this.photoUrl,
     this.joinedAt,
+    this.kind = ParticipantKind.person,
+    this.circleName,
   });
 
   final String userId;
@@ -63,6 +103,25 @@ class Participant {
   final String? photoUrl;
   final DateTime? joinedAt;
 
+  /// Whether this row is a real account or a placeholder standing in for a
+  /// whole circle that was shared with.
+  ///
+  /// `createEvent` writes a synthetic `participants/circle:{id}` row when a
+  /// countdown is shared to a circle. It carries **no email and no name**, so
+  /// rendered naively it drew as a nameless person with a fallback "U" avatar —
+  /// a row that identifies nobody sitting in a list of named people. This flag
+  /// is what lets the UI say "shared with Friends (4)" instead.
+  final ParticipantKind kind;
+
+  /// Set only on a [ParticipantKind.circle] row.
+  final String? circleName;
+
+  bool get isCircle => kind == ParticipantKind.circle;
+
+  /// Whether the person has actually answered, as opposed to a circle
+  /// placeholder which has no answer to give.
+  bool get hasAnswered => !isCircle && inviteStatus.isSettled;
+
   factory Participant.fromMap(String userId, Map<String, dynamic> map) {
     return Participant(
       userId: userId,
@@ -72,6 +131,8 @@ class Participant {
       displayName: map['displayName'] as String?,
       photoUrl: map['photoUrl'] as String?,
       joinedAt: _parseDate(map['joinedAt']),
+      kind: ParticipantKind.fromWire(map['kind']),
+      circleName: map['circleName'] as String?,
     );
   }
 

@@ -754,43 +754,99 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                 ),
                 child: Row(
                   children: [
-                    UserAvatar(
-                      initials: participant.initials,
-                      seed: participant.userId,
-                      photoUrl: participant.photoUrl,
-                      size: 30,
-                    ),
+                    // A circle row is not a person: it has no email and no name,
+                    // so it gets a group icon rather than a nameless "U" avatar
+                    // that identified nobody.
+                    if (participant.isCircle)
+                      Container(
+                        width: 30,
+                        height: 30,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: colors.accentSoft,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.groups_outlined,
+                            size: 16, color: colors.accent),
+                      )
+                    else
+                      UserAvatar(
+                        initials: participant.initials,
+                        seed: participant.userId,
+                        photoUrl: participant.photoUrl,
+                        size: 30,
+                      ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            participant.email,
+                            participant.isCircle
+                                ? 'Shared with ${participant.circleName ?? 'a circle'}'
+                                : (participant.displayName?.isNotEmpty == true
+                                    ? participant.displayName!
+                                    : participant.email),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            '${_roleLabel(participant.role)} · ${participant.inviteStatus.name}',
-                            style:
-                                TextStyle(fontSize: 11.5, color: colors.subtle),
-                          ),
+                          if (!participant.isCircle &&
+                              participant.displayName?.isNotEmpty == true)
+                            Text(
+                              participant.email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 11.5, color: colors.subtle),
+                            ),
+                          if (!participant.isCircle) const SizedBox(height: 5),
+                          if (!participant.isCircle)
+                            Row(
+                              children: [
+                                Text(
+                                  _roleLabel(participant.role),
+                                  style: TextStyle(
+                                      fontSize: 11.5, color: colors.subtle),
+                                ),
+                                const SizedBox(width: 8),
+                                InviteStatusChip(
+                                    status: participant.inviteStatus,
+                                    compact: true),
+                              ],
+                            ),
                         ],
                       ),
                     ),
+                    // A circle row has no answer to give and nothing to
+                    // remove — the share is managed in the composer.
                     if (canManage &&
-                        participant.userId != widget.event.createdBy &&
-                        participant.inviteStatus != InviteStatus.accepted)
-                      IconButton(
-                        tooltip: 'Remove',
-                        iconSize: 18,
-                        color: colors.subtle,
-                        onPressed: () => _remove(participant),
-                        icon: const Icon(Icons.close_rounded),
-                      ),
+                        !participant.isCircle &&
+                        participant.userId != widget.event.createdBy) ...[
+                      // Someone who has not answered can be removed outright.
+                      // Someone who declined said no but is still on the list on
+                      // purpose, and the useful action for them is to ask again
+                      // rather than to erase them.
+                      if (participant.inviteStatus.isAwaitingAnswer)
+                        IconButton(
+                          tooltip: 'Remove',
+                          iconSize: 18,
+                          color: colors.subtle,
+                          onPressed: () => _remove(participant),
+                          icon: const Icon(Icons.close_rounded),
+                        )
+                      else if (participant.inviteStatus ==
+                          InviteStatus.declined)
+                        IconButton(
+                          tooltip: 'Invite again',
+                          iconSize: 18,
+                          color: colors.warning,
+                          onPressed: () => _inviteAgain(participant),
+                          icon: const Icon(Icons.refresh_rounded),
+                        ),
+                    ],
                   ],
                 ),
               ),
@@ -802,18 +858,67 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
   Future<void> _remove(Participant participant) async {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
-    // Removing someone is a role update to `viewer` plus a rejected invite —
-    // the row stays so their history is not silently rewritten.
+
+    final confirmed = await _confirmRemove(participant);
+    if (!confirmed || !mounted) return;
+
+    // Remove means remove: drop the participant row, so they lose access and
+    // stop appearing in the list. This used to only rewrite the role to
+    // `viewer` under a tooltip that said "Remove", which left the person on the
+    // countdown — the button did not do what it said.
     await runAction(
       context,
-      () => ref.read(eventRepositoryProvider).updateParticipantRole(
+      () => ref.read(eventRepositoryProvider).removeParticipant(
             eventId: widget.event.id,
             actorId: user.id,
-            participant: participant,
-            role: ParticipantRole.viewer,
+            userId: participant.userId,
           ),
-      successMessage: '${participant.email} can now only view.',
+      successMessage: '${participant.email} was removed.',
     );
+  }
+
+  /// Asks someone who already declined to take another look.
+  Future<void> _inviteAgain(Participant participant) async {
+    final user = ref.read(currentUserProvider);
+    if (user == null || participant.email.isEmpty) return;
+    await runAction(
+      context,
+      () => ref.read(eventRepositoryProvider).reopenInvitation(
+            eventId: widget.event.id,
+            userId: participant.userId,
+            inviteeEmail: participant.email,
+            eventTitle: widget.event.title,
+            inviterId: user.id,
+          ),
+      successMessage: 'Asked ${participant.email} again.',
+    );
+  }
+
+  Future<bool> _confirmRemove(Participant participant) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove this person?'),
+        content: Text(
+            '${participant.email} will lose access to this countdown and will no '
+            'longer see it in their list.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: dialogContext.colors.danger,
+              minimumSize: const Size(88, 42),
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   String _roleLabel(ParticipantRole role) => switch (role) {

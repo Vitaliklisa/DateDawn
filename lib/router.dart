@@ -12,6 +12,7 @@ import 'screens/invitations_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/support_screen.dart';
 import 'widgets/app_navigation_shell.dart';
 
 /// Route names, kept in one place so navigation calls never use raw strings.
@@ -26,6 +27,7 @@ class Routes {
   static const invitations = '/invitations';
   static const circles = '/circles';
   static const notifications = '/notifications';
+  static const support = '/support';
 }
 
 final _rootKey = GlobalKey<NavigatorState>();
@@ -37,6 +39,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final auth = ref.read(activeAuthStateProvider);
       final goingToLogin = state.matchedLocation == Routes.login;
+
+      // Support must stay reachable when signed out. Somebody who cannot get
+      // into their account — or a store reviewer checking that the support
+      // URL in the listing resolves — has to be able to reach us without a
+      // working session.
+      if (state.matchedLocation == Routes.support) return null;
 
       if (auth.isLoading) {
         return goingToLogin ? null : _loginLocation(state.uri);
@@ -94,6 +102,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: Routes.notifications,
             name: 'notifications',
             builder: (context, state) => const NotificationsScreen(),
+          ),
+          GoRoute(
+            path: Routes.support,
+            name: 'support',
+            builder: (context, state) => const SupportScreen(),
           ),
           GoRoute(
             path: Routes.newEvent,

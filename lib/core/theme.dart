@@ -23,6 +23,8 @@ class AppColors {
   static const accentFg = Color(0xFF05201E);
 
   static const danger = Color(0xFFE5716E);
+  static const success = Color(0xFF6FCF7F);
+  static const warning = Color(0xFFE0B44C);
 
   // Celebration hues — accent plus fixed party colours, so confetti reads as
   // confetti rather than a second product accent.
@@ -55,6 +57,8 @@ class AppColorsLight {
   static const accentFg = Color(0xFFFFFFFF);
 
   static const danger = Color(0xFFC0392B);
+  static const success = Color(0xFF2F7D48);
+  static const warning = Color(0xFF9A6B12);
 }
 
 /// Everything a widget needs to paint, reachable through `context.colors`.
@@ -73,6 +77,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.accentSoft,
     required this.accentFg,
     required this.danger,
+    required this.success,
+    required this.warning,
   });
 
   final Color canvas;
@@ -88,6 +94,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
   final Color accentFg;
   final Color danger;
 
+  /// Status colours, used for exactly one thing: telling an answered invitation
+  /// from an unanswered one. Kept beside `danger` rather than invented per
+  /// widget so "accepted" is the same green everywhere in the app.
+  final Color success;
+  final Color warning;
+
   static const dark = AppPalette(
     canvas: AppColors.canvas,
     surface: AppColors.surface,
@@ -101,6 +113,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     accentSoft: AppColors.accentSoft,
     accentFg: AppColors.accentFg,
     danger: AppColors.danger,
+    success: AppColors.success,
+    warning: AppColors.warning,
   );
 
   static const light = AppPalette(
@@ -116,6 +130,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     accentSoft: AppColorsLight.accentSoft,
     accentFg: AppColorsLight.accentFg,
     danger: AppColorsLight.danger,
+    success: AppColorsLight.success,
+    warning: AppColorsLight.warning,
   );
 
   @override
@@ -132,6 +148,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? accentSoft,
     Color? accentFg,
     Color? danger,
+    Color? success,
+    Color? warning,
   }) =>
       AppPalette(
         canvas: canvas ?? this.canvas,
@@ -146,6 +164,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
         accentSoft: accentSoft ?? this.accentSoft,
         accentFg: accentFg ?? this.accentFg,
         danger: danger ?? this.danger,
+        success: success ?? this.success,
+        warning: warning ?? this.warning,
       );
 
   @override
@@ -164,6 +184,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
       accentSoft: Color.lerp(accentSoft, other.accentSoft, t)!,
       accentFg: Color.lerp(accentFg, other.accentFg, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
+      success: Color.lerp(success, other.success, t)!,
+      warning: Color.lerp(warning, other.warning, t)!,
     );
   }
 }

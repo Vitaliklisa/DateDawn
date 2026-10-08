@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../core/countdown.dart';
+import '../core/models.dart';
 import '../core/theme.dart';
 
 /// The "Date Dawn" wordmark with its clock glyph. The second hand sweeps once
@@ -231,6 +232,50 @@ class UserAvatar extends StatelessWidget {
           fontSize: size * 0.36,
           fontWeight: FontWeight.w600,
           height: 1,
+          color: tint,
+        ),
+      ),
+    );
+  }
+}
+
+/// A coloured pill for an invitation's state.
+///
+/// Green means answered yes, amber means still waiting, red means answered no.
+/// The point is that the owner can tell at a glance who has replied without
+/// reading a word: previously every row said `pending` in the same grey, so a
+/// settled invitation looked identical to one nobody had opened.
+class InviteStatusChip extends StatelessWidget {
+  const InviteStatusChip(
+      {super.key, required this.status, this.compact = false});
+
+  final InviteStatus status;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final (label, tint) = switch (status) {
+      InviteStatus.accepted => ('Accepted', colors.success),
+      InviteStatus.declined => ('Declined', colors.danger),
+      InviteStatus.rejected => ('Removed', colors.subtle),
+      InviteStatus.reopened => ('Reopened', colors.warning),
+      InviteStatus.pending => ('Waiting', colors.warning),
+    };
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: compact ? 7 : 9, vertical: compact ? 2 : 3),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: tint.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: compact ? 10.5 : 11.5,
+          fontWeight: FontWeight.w600,
           color: tint,
         ),
       ),

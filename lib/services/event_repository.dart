@@ -660,6 +660,23 @@ class EventRepository {
     });
   }
 
+  /// Drops someone from a countdown entirely.
+  ///
+  /// Deletes the participant row rather than only downgrading the role: the row
+  /// *is* the access. The event document is left alone — this removes a
+  /// collaborator, not the countdown.
+  Future<void> removeParticipant({
+    required String eventId,
+    required String actorId,
+    required String userId,
+  }) async {
+    if (userId == actorId) {
+      throw const DataFailure(
+          'You cannot remove yourself — delete the countdown instead.');
+    }
+    await _events.doc(eventId).collection('participants').doc(userId).delete();
+  }
+
   /// Live stream of pending invitations addressed to this email.
   Stream<List<Invitation>> watchInvitations(String email) {
     final normalised = email.trim().toLowerCase();
@@ -724,10 +741,36 @@ class EventRepository {
     Invitation invitation, {
     String? responderEmail,
     String? responderName,
+    String? userId,
   }) async {
-    await _invitations.doc(invitation.id).update(
-      {'status': InviteStatus.rejected.name},
-    );
+    // Settle the participant row as well as the invitation.
+    //
+    // Only flipping the `invitations` document left the participant row reading
+    // `pending` forever, so a person who had clearly declined stayed in the
+    // countdown's list as "Viewer · pending" — which is what an owner sees when
+    // nobody has answered yet. The two documents describe the same decision and
+    // now move together.
+    final batch = _db.batch();
+    batch.update(_invitations.doc(invitation.id),
+        {'status': InviteStatus.declined.name});
+    if (userId != null && userId.isNotEmpty) {
+      final participant = _events
+          .doc(invitation.eventId)
+          .collection('participants')
+          .doc(userId);
+      // `update` on a row that exists; a missing row means there is nothing to
+      // settle, and creating one would add a declined stranger to the list.
+      batch.set(
+        participant,
+        {
+          'inviteStatus': InviteStatus.declined.name,
+          if (responderEmail != null) 'email': responderEmail.toLowerCase(),
+        },
+        SetOptions(merge: true),
+      );
+    }
+    await batch.commit();
+
     await _notifyInviter(
       inviterId: invitation.invitedBy,
       eventId: invitation.eventId,
@@ -738,13 +781,79 @@ class EventRepository {
     );
   }
 
+  /// Puts a settled answer back in front of the invitee so they can change it.
+  ///
+  /// Writes `reopened` on the participant row and moves the invitation back to
+  /// `pending`, which is the only shape the `invitations` update rule allows on
+  /// this row — so the invitee still has to answer for themselves. An admin
+  /// cannot flip someone to `accepted` by asking; only the person can.
+  Future<void> reopenInvitation({
+    required String eventId,
+    required String userId,
+    required String inviteeEmail,
+    required String eventTitle,
+    required String inviterId,
+  }) async {
+    final batch = _db.batch();
+    batch.set(
+      _events.doc(eventId).collection('participants').doc(userId),
+      {'inviteStatus': InviteStatus.reopened.name},
+      SetOptions(merge: true),
+    );
+
+    // The invitation document may have been deleted once it was answered, so
+    // this is a write, not an update — a fresh pending invitation is exactly what
+    // "ask them again" means.
+    batch.set(_invitations.doc(_uuid.v4()), {
+      'eventId': eventId,
+      'invitedBy': inviterId,
+      'inviteeEmail': inviteeEmail.toLowerCase(),
+      'role': ParticipantRole.viewer.name,
+      'status': InviteStatus.pending.name,
+      'createdAt': Timestamp.fromDate(DateTime.now()),
+      'expiresAt':
+          Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
+      'eventTitle': eventTitle,
+    });
+    await batch.commit();
+
+    await _notify(
+      userId: userId,
+      title: 'You were invited to “$eventTitle” again',
+      body:
+          'The invitation is open again — accept or decline whenever you like.',
+      kind: NotificationKind.invitation,
+    );
+  }
+
+  /// Refuses an invitation that has already been answered.
+  ///
+  /// This is the guard that stops the accept/decline loop. A settled invitation
+  /// used to be re-submitted on every rebuild, because the card stayed mounted
+  /// while the stream caught up and each pass fired another write. Guarding at
+  /// the data layer means no caller can accidentally start that loop, however
+  /// the UI is wired.
   void _guardInvitation(Invitation invitation) {
     if (invitation.isExpired) {
       throw const DataFailure('That invitation has expired.');
     }
     if (invitation.status != InviteStatus.pending) {
-      throw const DataFailure('That invitation is no longer pending.');
+      throw const DataFailure('That invitation has already been answered.');
     }
+  }
+
+  /// Whether [userId] still has a decision to make on [eventId].
+  ///
+  /// Read from the participant row rather than the invitation, because that is
+  /// the document the invitations list and the participant list both agree on,
+  /// and it survives the invitation being deleted.
+  bool participantAwaitsAnswer(CountdownEvent event, String userId) {
+    for (final participant in event.participants) {
+      if (participant.userId == userId) {
+        return participant.inviteStatus.isAwaitingAnswer;
+      }
+    }
+    return false;
   }
 
   /// Everyone in the given circles except [excludingUserId], as people who can

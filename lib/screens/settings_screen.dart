@@ -131,6 +131,15 @@ class SettingsScreen extends ConsumerWidget {
             label: 'Sync',
             value: 'Firebase',
           ),
+          const SizedBox(height: 20),
+          // Support is linked from Settings, which is the first place someone
+          // looks, and it is also reachable signed out so a locked-out account
+          // can still ask for help.
+          OutlinedButton.icon(
+            onPressed: () => context.push(Routes.support),
+            icon: const Icon(Icons.help_outline_rounded, size: 18),
+            label: const Text('Help & support'),
+          ),
           if (user != null) ...[
             const SizedBox(height: 32),
             OutlinedButton.icon(

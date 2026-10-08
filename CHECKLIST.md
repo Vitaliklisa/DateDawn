@@ -471,3 +471,146 @@ firebase deploy --only firestore:rules
 Verified with `firebase deploy --only firestore:rules --dry-run --project datedawn`
 → `rules file firestore.rules compiled successfully` (two pre-existing warnings:
 unused `isSharedWithMyCircle`, unused `eventId` parameter in `isOwner`).
+
+---
+
+# 11. Invitation states, the repeated-request loop, support and build size
+
+## 11.1 Declining left the person looking like they had not answered
+
+`rejectInvitation()` only flipped the `invitations` document. The
+`participants/{uid}` row stayed `pending` forever, so someone who had clearly
+declined kept appearing in the countdown as *"Viewer · pending"* — identical to
+a person who had never opened the invitation.
+
+**Fixed:** the participant row and the invitation now move together in one
+batch, and the row is written as `declined`.
+
+## 11.2 The repeated-request loop on Accept
+
+Three separate causes, all of which had to be fixed for it to stay fixed:
+
+1. **No key on the invite cards.** `InvitationsInbox` emits circle cards and
+   event cards from two loops into one `Column`. Without a key Flutter matches
+   them to element slots *by position*, so the moment a circle invitation was
+   answered and that list changed length, every event card was rebuilt as a
+   new widget — discarding its `_busy` flag mid-flight. Stable
+   `ValueKey('event-${id}')` / `ValueKey('circle-${id}')` keys fix the identity.
+
+2. **No re-entry lock.** `_busy` is visual state; it gets reset by a rebuild.
+   Each card now also has a plain `_submitted` bool that is *never* cleared
+   once set — the actual guard against a second write while the first is in
+   flight.
+
+3. **No guard in the data layer.** `_guardInvitation()` now throws
+   `DataFailure('That invitation has already been answered.')` for anything not
+   `pending`, so no caller can start the loop however the UI is wired.
+
+`InviteStatus.isAwaitingAnswer` / `isSettled` exist so the UI asks the question
+in one place instead of comparing statuses ad hoc.
+
+## 11.3 Status colours
+
+`InviteStatusChip` renders Accepted (green), Declined (red), Waiting (amber),
+Reopened (amber) and Removed (grey). Backed by new `success` and `warning`
+tokens in `AppPalette` — these are the only status colours in the app, so
+"accepted" is the same green everywhere.
+
+## 11.4 Changing an answer later
+
+`InviteStatus` gained **`declined`** and **`reopened`**, distinct from the
+existing **`rejected`**:
+
+| Status | Meaning |
+|---|---|
+| `pending` | invited, not answered |
+| `accepted` | said yes |
+| `declined` | said **no** — kept on the list so the owner can see who declined and ask again |
+| `rejected` | row cancelled / invitation cancelled — never engaged |
+| `reopened` | declined, then put back in front of the invitee to answer again |
+
+`reopenInvitation()` writes `reopened` on the participant row and issues a fresh
+`pending` invitation. The participant `update` rule now admits
+`pending|reopened -> accepted|declined` for the invitee themselves, and nothing
+else. An admin **cannot** write `accepted` on someone's behalf — the whole point
+of `reopened` is that the invitee answers for themselves.
+
+The declined row in the participants list shows a refresh button ("Invite
+again") instead of the remove button.
+
+## 11.5 "Remove" did not remove
+
+The participants list had an `IconButton` tooltipped **Remove** that called
+`updateParticipantRole(... role: viewer)` — it downgraded the role and left the
+person on the countdown. It now calls a real `removeParticipant()`, which
+deletes the row, behind a confirmation dialog.
+
+## 11.6 Support page
+
+`lib/screens/support_screen.dart`, at `/support`, with
+**vhomenko119@gmail.com** as the contact. Both stores require a reachable
+support contact for a published app, and the screen is written so a reviewer
+following the trail lands somewhere real:
+
+- Reaches **signed out** — the router's redirect explicitly exempts it, because
+  someone who cannot get into their account is exactly who needs support.
+- Copy-to-clipboard always works, then *offers* to open the mail client. A
+  `mailto:` silently does nothing on desktop web with no handler registered, so
+  copy-first means the address is in hand either way.
+- Five real FAQs covering the things that actually go wrong (Google vs password
+  accounts, circle invitations needing acceptance, changing a declined answer,
+  account deletion, no ads or data selling).
+- Privacy / terms links, plus `url_launcher` with a clipboard fallback so a
+  failed link is never a dead tap.
+
+Linked from Settings as "Help & support".
+
+**Still to do by hand:** the privacy and terms URLs point at
+`https://datedawn.app/privacy` and `/terms`. Those pages must exist before
+submission — a store reviewer will open them.
+
+## 11.7 Build size: 38.6 MB → 11.7 MB
+
+`flutter build web` stages **every renderer** it might pick at runtime plus the
+`.symbols` maps only a debugger wants. Measured on this project:
+
+| | Before | After |
+|---|---|---|
+| `.wasm` | 30.5 MB (4 renderers) | 7.3 MB (canvaskit only) |
+| `.symbols` | 7.3 MB | 0 |
+| **Total** | **38.6 MB** | **11.7 MB** |
+
+- `web/index.html` pins `renderer: 'canvaskit'` in `flutterConfiguration`, so
+  the app can only ever load one renderer.
+- `scripts/prune-web-build.mjs` then deletes the rest: `skwasm`, `skwasm_heavy`,
+  `wimp` (WebGPU), every `*.symbols`, and the `chromium/` + `webparagraph/`
+  shims. It **refuses to delete anything** if `canvaskit.wasm`/`canvaskit.js`
+  are not where it expects them, so a layout change ships a big build rather
+  than a blank one.
+- `scripts/build-web.mjs` runs both as one command: `npm run build:web`.
+- `MaterialIcons-Regular.otf` was already 99% tree-shaken (3.5 KB) — no work
+  needed there.
+
+### Verifying the prune
+
+`scripts/verify-web-build.mjs` (`npm run verify:web`) boots the real build in
+Chromium and requires: Flutter attaches a view, the frame is painted, zero
+console errors, zero failed requests.
+
+> **A note on how this was first got wrong.** The initial version measured
+> "painted" by `drawImage`-ing the CanvasKit WebGL canvas into a 2D context.
+> That returns an empty buffer even when the page is clearly painted, so it
+> reported `painted: false (0 colours)` for a perfectly good build — a false
+> negative that would have sent someone hunting a bug that did not exist. It now
+> screenshots the composited frame via Chromium and counts colours in that.
+> Result: `painted: true (21 colours)`, 0 errors, 0 failed requests, PASS.
+
+## Verifying § 11
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | **79/79 passing** (4 new `InviteStatus` tests) |
+| `firestore.rules` | compiled successfully (dry run) |
+| `npm run build:web` | built + pruned, 11.7 MB |
+| `npm run verify:web` | PASS — painted, 0 console errors, 0 failed requests |

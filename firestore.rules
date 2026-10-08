@@ -206,8 +206,15 @@ service cloud.firestore {
             || getAfter(/databases/$(database)/documents/events/$(eventId)).data.createdBy == request.auth.uid
           );
 
-        // An invitee may flip their OWN row from pending to accepted — that is
-        // what accepting an invitation does — but may not change their role.
+        // An invitee may flip their OWN row from an open invitation to accepted
+        // or declined — that is what answering does — but may not change their
+        // role.
+        //
+        // The starting state is checked explicitly. Without it a declined person
+        // could flip straight to `accepted`, and reopenInvitation would have no
+        // reason to exist: the whole point of the `reopened` state is that the
+        // invitee answers for themselves rather than anyone writing a yes on
+        // their behalf.
         allow update: if signedIn()
           && (
             isAdmin(eventId)
@@ -215,7 +222,8 @@ service cloud.firestore {
             || (
               userId == uid()
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inviteStatus'])
-              && request.resource.data.inviteStatus == 'accepted'
+              && resource.data.inviteStatus in ['pending', 'reopened']
+              && request.resource.data.inviteStatus in ['accepted', 'declined']
             )
           );
 

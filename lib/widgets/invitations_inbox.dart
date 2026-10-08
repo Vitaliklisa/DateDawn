@@ -36,12 +36,25 @@ class InvitationsInbox extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // The keys are load-bearing, not decoration.
+        //
+        // These cards are emitted from two separate loops into one `Column`, so
+        // without a key Flutter matches them to element slots **by position**.
+        // When the first list changes length — exactly what happens the moment a
+        // circle invitation is answered — every event card shifts position and
+        // is rebuilt as a brand-new widget, discarding its `_busy` flag and the
+        // in-flight guard with it. That is what let one Accept/Decline send a
+        // stream of requests: each rebuild re-entered the handler on an
+        // invitation that had already been settled. A stable key per invitation
+        // makes each card keep its own state, so answering one cannot disturb
+        // the next.
         for (final invite in circleInvites) ...[
-          _CircleInviteCard(invite: invite),
+          _CircleInviteCard(
+              key: ValueKey('circle-${invite.id}'), invite: invite),
           const SizedBox(height: 10),
         ],
         for (final invite in eventInvites) ...[
-          _EventInviteCard(invite: invite),
+          _EventInviteCard(key: ValueKey('event-${invite.id}'), invite: invite),
           const SizedBox(height: 10),
         ],
       ],
@@ -176,7 +189,7 @@ class _InviteShell extends StatelessWidget {
 }
 
 class _EventInviteCard extends ConsumerStatefulWidget {
-  const _EventInviteCard({required this.invite});
+  const _EventInviteCard({super.key, required this.invite});
 
   final Invitation invite;
 
@@ -187,7 +200,14 @@ class _EventInviteCard extends ConsumerStatefulWidget {
 class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
   bool _busy = false;
 
+  /// True from the first tap until the widget is disposed or the invite is
+  /// settled. Unlike `_busy` this is *not* visual state — it is the re-entry
+  /// lock that stops a second tap (or a rebuild that re-enters the handler)
+  /// from writing again while the first write is still in flight.
+  bool _submitted = false;
+
   Future<void> _accept() async {
+    if (_submitted) return;
     final user = ref.read(currentUserProvider);
     if (user == null) return;
     setState(() => _busy = true);
@@ -205,6 +225,7 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
     // `mounted` again after the dialog's own await: the user may have dismissed
     // the sheet while the confirm was open.
     if (!mounted) return;
+    _submitted = true;
     await runAction(
       context,
       () => ref.read(eventRepositoryProvider).acceptInvitation(
@@ -220,14 +241,17 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
   }
 
   Future<void> _decline() async {
+    if (_submitted) return;
     final user = ref.read(currentUserProvider);
     setState(() => _busy = true);
+    _submitted = true;
     await runAction(
       context,
       () => ref.read(eventRepositoryProvider).rejectInvitation(
             widget.invite,
             responderEmail: user?.email,
             responderName: user?.displayName,
+            userId: user?.id,
           ),
       successMessage: 'Invitation declined.',
     );
@@ -253,7 +277,7 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
 }
 
 class _CircleInviteCard extends ConsumerStatefulWidget {
-  const _CircleInviteCard({required this.invite});
+  const _CircleInviteCard({super.key, required this.invite});
 
   final CircleInvitation invite;
 
@@ -264,10 +288,16 @@ class _CircleInviteCard extends ConsumerStatefulWidget {
 class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
   bool _busy = false;
 
+  /// See `_EventInviteCardState._submitted` — the re-entry lock that stops a
+  /// settled invitation from being answered twice.
+  bool _submitted = false;
+
   Future<void> _accept() async {
+    if (_submitted) return;
     final user = ref.read(currentUserProvider);
     if (user == null) return;
     setState(() => _busy = true);
+    _submitted = true;
     await runAction(
       context,
       () => ref.read(eventRepositoryProvider).acceptCircleInvitation(
@@ -283,7 +313,9 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
   }
 
   Future<void> _decline() async {
+    if (_submitted) return;
     setState(() => _busy = true);
+    _submitted = true;
     await runAction(
       context,
       () => ref

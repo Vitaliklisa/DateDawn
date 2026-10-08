@@ -31,6 +31,9 @@ dependencies:
   uuid: ^4.5.1
   shared_preferences: ^2.3.2
   share_plus: ^13.3.0
+  # Support screen: opens mail and the policy links, with a clipboard fallback
+  # when the platform has no handler (desktop web often does not).
+  url_launcher: ^6.3.1
   # Confetti for the arrival celebration (drop-in replacement for the CSS burst).
   confetti: ^0.8.0
   # `UserAvatar` renders initials in a colour derived from the account id, which

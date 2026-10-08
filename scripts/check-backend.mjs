@@ -1,7 +1,7 @@
-﻿// Date Dawn - backend health check.
+// Date Dawn - backend health check.
 //
-// Tells you, in plain language, whether the two databases the app needs are
-// actually reachable. Run it from the project root:
+// Tells you, in plain language, whether the backend the app needs is actually
+// reachable. Run it from the project root:
 //
 //   node scripts/check-backend.mjs
 //
@@ -44,8 +44,12 @@ async function probe(url, options = {}) {
 }
 
 // --- Cloud Firestore --------------------------------------------------------
-// Countdowns, circles, invitations and participants all live here. If this
-// fails, nothing the user creates is saved anywhere.
+// Countdowns, circles, invitations, notes, the notification inbox and theme
+// sync all live here. If this fails, nothing the user creates is saved.
+//
+// Note there are no collections to create by hand: Firestore creates a
+// collection the first time a document is written into it, and the rules file
+// matches paths, not pre-declared names. An empty console is a healthy console.
 {
   const url =
     `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}` +
@@ -68,7 +72,7 @@ async function probe(url, options = {}) {
     );
   } else if (status === 403 || status === 401) {
     // A permission error is EXPECTED for an unauthenticated read once the
-    // database exists and rules are in place - it means the DB is live.
+    // database exists and rules are deployed - it means the DB is live.
     record('Cloud Firestore', true, 'Database is live.');
   } else if (status === 200) {
     record('Cloud Firestore', true, 'Database is live.');
@@ -77,26 +81,12 @@ async function probe(url, options = {}) {
   }
 }
 
-
-// --- Cloud Storage (avatars) ------------------------------------------------
-{
-  const url =
-    `https://firebasestorage.googleapis.com/v0/b/${FIREBASE_PROJECT}` +
-    '.firebasestorage.app/o?maxResults=1';
-  const { status } = await probe(url);
-  if (status === 200 || status === 403 || status === 401) {
-    record('Cloud Storage', true, 'Reachable - avatar uploads can work.');
-  } else if (status === 404) {
-    record(
-      'Cloud Storage',
-      false,
-      'Bucket not found. Enable Storage in the Firebase console:\n' +
-        '    https://console.firebase.google.com/project/datedawn/storage',
-    );
-  } else {
-    record('Cloud Storage', false, `HTTP ${status}`);
-  }
-}
+// --- Cloud Storage ----------------------------------------------------------
+// Deliberately NOT probed. Date Dawn ships without profile pictures: Cloud
+// Storage now requires the Blaze plan, so no bucket is expected to exist and a
+// missing one is the intended state, not a fault. Reporting it here would print
+// a permanent [FAIL] line and, worse, exit non-zero, which would make a healthy
+// backend look broken. There is nothing to check until avatars come back.
 
 // --- Report -----------------------------------------------------------------
 console.log('\nDate Dawn - backend health check\n' + '='.repeat(44));
