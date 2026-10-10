@@ -709,6 +709,12 @@ class EventRepository {
     await _guardInvitation(invitation);
 
     final batch = _db.batch();
+    // One write shape for a row that may or may not exist.
+    //
+    // `merge: true` is essential: an invitee who was previously added by an admin
+    // already has a participant row, and a plain `set` would wipe its `role` and
+    // demote them. The merge also means a brand-new row is created by this same
+    // call, which is the common case for an email invitation the person accepted.
     batch.set(
       _events.doc(invitation.eventId).collection('participants').doc(userId),
       {
@@ -743,6 +749,11 @@ class EventRepository {
     String? responderName,
     String? userId,
   }) async {
+    // Same guard as accept. Without it a second tap on Decline re-wrote an
+    // already-settled invitation, and the failure surfaced as a silent no-op
+    // rather than a message explaining that the answer was already given.
+    await _guardInvitation(invitation);
+
     // Settle the participant row as well as the invitation.
     //
     // Only flipping the `invitations` document left the participant row reading
@@ -758,13 +769,20 @@ class EventRepository {
           .doc(invitation.eventId)
           .collection('participants')
           .doc(userId);
-      // `update` on a row that exists; a missing row means there is nothing to
-      // settle, and creating one would add a declined stranger to the list.
+      // The row may not exist yet: someone invited by email has no participant
+      // record until they answer, so this is a create in every practical case.
+      // The rule allows a self-owned row to be born settled as accepted or
+      // declined, so send exactly the fields that shape needs and nothing more
+      // — `merge: true` is what lets a pre-existing row keep its role.
       batch.set(
         participant,
         {
+          'email': (responderEmail ?? '').toLowerCase(),
+          // `merge` keeps the stored role on an existing row; this value is what
+          // the rule sees for a brand-new one, and it is the role the invitation
+          // granted rather than one the client chose.
+          'role': invitation.role.name,
           'inviteStatus': InviteStatus.declined.name,
-          if (responderEmail != null) 'email': responderEmail.toLowerCase(),
         },
         SetOptions(merge: true),
       );

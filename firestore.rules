@@ -198,12 +198,20 @@ service cloud.firestore {
 
         // The creator seeds their own admin row as part of creating the event.
         // Everyone else is added by an admin, or by accepting an invitation.
+        //
+        // The invitee path is deliberately narrow: `userId == uid()` and the row
+        // may only be born settled as accepted/declined, never as an admin, and
+        // never with a role the client invented. Anything richer than that has to
+        // go through an admin.
         allow create: if signedIn()
           && (
-            userId == uid()
-            || isAdmin(eventId)
+            isAdmin(eventId)
             || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data)
             || getAfter(/databases/$(database)/documents/events/$(eventId)).data.createdBy == request.auth.uid
+            || (
+              userId == uid()
+              && request.resource.data.inviteStatus in ['accepted', 'declined']
+            )
           );
 
         // An invitee may flip their OWN row from an open invitation to accepted
@@ -215,6 +223,20 @@ service cloud.firestore {
         // reason to exist: the whole point of the `reopened` state is that the
         // invitee answers for themselves rather than anyone writing a yes on
         // their behalf.
+        //
+        // IMPORTANT: the invitee branch must accept a row that does not exist
+        // yet. `acceptInvitation` and `rejectInvitation` write the participant
+        // row with `SetOptions(merge: true)`, and when the row is absent — the
+        // normal case for someone who was invited by email and has no participant
+        // record — Firestore resolves that write against this `update` rule as
+        // well as `create`. On a missing document `resource.data` is empty, so an
+        // unconditional `resource.data.inviteStatus in [...]` was false and the
+        // whole batch died with "Missing or insufficient permissions". That was
+        // the accept *and* decline failure.
+        //
+        // `resource.data.inviteStatus` yields null on a missing row, and
+        // `null in ['pending','reopened']` is false, so the absent case is
+        // detected with `!exists(...)` rather than a null comparison.
         allow update: if signedIn()
           && (
             isAdmin(eventId)
@@ -222,8 +244,11 @@ service cloud.firestore {
             || (
               userId == uid()
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inviteStatus'])
-              && resource.data.inviteStatus in ['pending', 'reopened']
               && request.resource.data.inviteStatus in ['accepted', 'declined']
+              && (
+                !exists(/databases/$(database)/documents/events/$(eventId)/participants/$(userId))
+                || resource.data.inviteStatus in ['pending', 'reopened']
+              )
             )
           );
 
