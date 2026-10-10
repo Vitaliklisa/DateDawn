@@ -221,7 +221,9 @@ class _CircleCard extends ConsumerWidget {
                         ],
                         // The owner can remove anyone but themselves; a member
                         // can only ever leave, which is the button below.
-                        if (isOwner && !member.isOwner && member.userId != user?.id) ...[
+                        if (isOwner &&
+                            !member.isOwner &&
+                            member.userId != user?.id) ...[
                           const SizedBox(width: 4),
                           _KickOutButton(
                             label: member.label,
@@ -263,7 +265,8 @@ class _CircleCard extends ConsumerWidget {
                 // would be unsafe once this widget can be disposed mid-flight.
                 final userId = user?.id;
                 if (userId == null) return;
-                final confirmed = await _confirmLeaveCircle(context, circle.name);
+                final confirmed =
+                    await _confirmLeaveCircle(context, circle.name);
                 if (!confirmed) return;
                 if (!context.mounted) return;
                 await runAction(
@@ -286,7 +289,8 @@ class _CircleCard extends ConsumerWidget {
               onPressed: () async {
                 final userId = user?.id;
                 if (userId == null) return;
-                final confirmed = await _confirmDeleteCircle(context, circle.name);
+                final confirmed =
+                    await _confirmDeleteCircle(context, circle.name);
                 if (!confirmed) return;
                 if (!context.mounted) return;
                 await runAction(
@@ -299,7 +303,8 @@ class _CircleCard extends ConsumerWidget {
                 );
               },
               icon: const Icon(Icons.delete_outline_rounded, size: 16),
-              label: const Text('Delete circle', style: TextStyle(fontSize: 13)),
+              label:
+                  const Text('Delete circle', style: TextStyle(fontSize: 13)),
             ),
         ],
       ),

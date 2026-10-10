@@ -371,13 +371,10 @@ class EventRepository {
     final entries = await Future.wait(
       ids.map((id) async {
         try {
-          final rows =
-              await _events.doc(id).collection('participants').get();
+          final rows = await _events.doc(id).collection('participants').get();
           return MapEntry(
             id,
-            rows.docs
-                .map((d) => Participant.fromMap(d.id, d.data()))
-                .toList(),
+            rows.docs.map((d) => Participant.fromMap(d.id, d.data())).toList(),
           );
         } catch (_) {
           return MapEntry(id, const <Participant>[]);
