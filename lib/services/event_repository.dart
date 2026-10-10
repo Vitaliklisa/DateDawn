@@ -607,19 +607,48 @@ class EventRepository {
       }
     }
 
+    // The `invitations` document is written in BOTH branches, and the pending
+    // participant row carries its id.
+    //
+    // The known-account branch used to write only a participant row. That left
+    // the invitee with a `pending` row but no `invitations` document, so the
+    // accept rule — which authorises the write by checking the invitation the
+    // row points at — had nothing to verify and refused the join. Writing the
+    // invitation either way also fixes the inbox: it streams `inviteeEmail`,
+    // so without a document there was nothing to answer.
+    final id = _uuid.v4();
+    final now = DateTime.now();
+    final invitationBody = {
+      'eventId': event.id,
+      'invitedBy': inviterId,
+      'inviteeEmail': target,
+      'role': role.name,
+      'status': InviteStatus.pending.name,
+      'createdAt': Timestamp.fromDate(now),
+      'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
+      'eventTitle': event.title,
+    };
+
     if (targetUserId != null) {
-      await _events
-          .doc(event.id)
-          .collection('participants')
-          .doc(targetUserId)
-          .set({
-        'email': target,
-        'role': role.name,
-        'inviteStatus': InviteStatus.pending.name,
-        'joinedAt': Timestamp.fromDate(DateTime.now()),
-        if (displayName != null) 'displayName': displayName,
-        if (photoUrl != null) 'photoUrl': photoUrl,
-      }, SetOptions(merge: true));
+      final batch = _db.batch();
+      batch.set(_invitations.doc(id), invitationBody);
+      batch.set(
+        _events.doc(event.id).collection('participants').doc(targetUserId),
+        {
+          'email': target,
+          'role': role.name,
+          'inviteStatus': InviteStatus.pending.name,
+          'joinedAt': Timestamp.fromDate(now),
+          // The back-reference the accept rule resolves against.
+          'invitationId': id,
+          'invitationEmail': target,
+          if (displayName != null) 'displayName': displayName,
+          if (photoUrl != null) 'photoUrl': photoUrl,
+        },
+        SetOptions(merge: true),
+      );
+      await batch.commit();
+
       // Tell the invitee there is something waiting for them. This is the line
       // that makes the inbox useful rather than permanently empty.
       await _notify(
@@ -631,18 +660,7 @@ class EventRepository {
       return;
     }
 
-    final id = _uuid.v4();
-    await _invitations.doc(id).set({
-      'eventId': event.id,
-      'invitedBy': inviterId,
-      'inviteeEmail': target,
-      'role': role.name,
-      'status': InviteStatus.pending.name,
-      'createdAt': Timestamp.fromDate(DateTime.now()),
-      'expiresAt':
-          Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
-      'eventTitle': event.title,
-    });
+    await _invitations.doc(id).set(invitationBody);
   }
 
   Future<void> updateParticipantRole({
@@ -715,6 +733,13 @@ class EventRepository {
     // already has a participant row, and a plain `set` would wipe its `role` and
     // demote them. The merge also means a brand-new row is created by this same
     // call, which is the common case for an email invitation the person accepted.
+    //
+    // `invitationId` is what authorises this write in `firestore.rules`. Rules
+    // cannot query a collection, so the id is denormalised onto the row and the
+    // rule verifies it with a single `exists()` against the invitation, checking
+    // that it is still pending AND addressed to this caller's verified email.
+    // Without it the rule had no way to tell a real invitee from any signed-in
+    // user who knew an event id.
     batch.set(
       _events.doc(invitation.eventId).collection('participants').doc(userId),
       {
@@ -722,6 +747,10 @@ class EventRepository {
         'role': invitation.role.name,
         'inviteStatus': InviteStatus.accepted.name,
         'joinedAt': Timestamp.fromDate(DateTime.now()),
+        // Stamped last so it is present on a create. `merge` never removes a
+        // field, so this stays accurate on a re-accept after a reopen.
+        'invitationId': invitation.id,
+        'invitationEmail': invitation.inviteeEmail.toLowerCase(),
         if (displayName != null) 'displayName': displayName,
         if (photoUrl != null) 'photoUrl': photoUrl,
       },
@@ -774,6 +803,10 @@ class EventRepository {
       // The rule allows a self-owned row to be born settled as accepted or
       // declined, so send exactly the fields that shape needs and nothing more
       // — `merge: true` is what lets a pre-existing row keep its role.
+      //
+      // The `invitationId`/`invitationEmail` pair is the proof the rule checks;
+      // see `acceptInvitation`. Decline carries it too, so a row born declined
+      // is authorised by exactly the same evidence as one born accepted.
       batch.set(
         participant,
         {
@@ -783,6 +816,8 @@ class EventRepository {
           // granted rather than one the client chose.
           'role': invitation.role.name,
           'inviteStatus': InviteStatus.declined.name,
+          'invitationId': invitation.id,
+          'invitationEmail': invitation.inviteeEmail.toLowerCase(),
         },
         SetOptions(merge: true),
       );
@@ -812,17 +847,25 @@ class EventRepository {
     required String eventTitle,
     required String inviterId,
   }) async {
+    // A fresh pending invitation is exactly what "ask them again" means, and this
+    // is a write rather than an update because the answered document may already
+    // have been deleted.
+    final invitationId = _uuid.v4();
     final batch = _db.batch();
+    // The row must point at the NEW invitation. If it kept citing the old,
+    // settled one, the invitee's next accept would be refused by the rule —
+    // `invitationAuthorisesRow` requires a `pending` invitation addressed to
+    // them, and the previous document is no longer that.
     batch.set(
       _events.doc(eventId).collection('participants').doc(userId),
-      {'inviteStatus': InviteStatus.reopened.name},
+      {
+        'inviteStatus': InviteStatus.reopened.name,
+        'invitationId': invitationId,
+        'invitationEmail': inviteeEmail.toLowerCase(),
+      },
       SetOptions(merge: true),
     );
-
-    // The invitation document may have been deleted once it was answered, so
-    // this is a write, not an update — a fresh pending invitation is exactly what
-    // "ask them again" means.
-    batch.set(_invitations.doc(_uuid.v4()), {
+    batch.set(_invitations.doc(invitationId), {
       'eventId': eventId,
       'invitedBy': inviterId,
       'inviteeEmail': inviteeEmail.toLowerCase(),
@@ -966,6 +1009,10 @@ class EventRepository {
       if (!seen.add(targetUserId)) return;
       try {
         final batch = _db.batch();
+        // The invitation id is generated up front so the participant row can
+        // carry it. That back-reference is what `firestore.rules` resolves to
+        // authorise the later accept — see `acceptInvitation`.
+        final invitationId = _uuid.v4();
         batch.set(
           _events.doc(eventId).collection('participants').doc(targetUserId),
           {
@@ -973,6 +1020,8 @@ class EventRepository {
             'role': role.name,
             'inviteStatus': InviteStatus.pending.name,
             'joinedAt': nowStamp,
+            'invitationId': invitationId,
+            'invitationEmail': targetEmail.toLowerCase(),
             if (targetDisplayName != null) 'displayName': targetDisplayName,
             if (targetPhotoUrl != null) 'photoUrl': targetPhotoUrl,
           },
@@ -981,7 +1030,7 @@ class EventRepository {
         // The `invitations` document is what the invitee's inbox actually
         // streams — `invitationsProvider` queries `inviteeEmail`, not the
         // participant rows. Without it there is nothing to accept.
-        batch.set(_invitations.doc(_uuid.v4()), {
+        batch.set(_invitations.doc(invitationId), {
           'eventId': eventId,
           'invitedBy': inviterId,
           'inviteeEmail': targetEmail.toLowerCase(),
