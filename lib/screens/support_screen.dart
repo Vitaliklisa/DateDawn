@@ -45,7 +45,7 @@ class SupportScreen extends StatelessWidget {
         // when it was opened cold from a store link there is nothing to pop, so
         // it falls back to Home rather than stranding the visitor.
         leading: router.canPop()
-            ? DangerHoverIconButton(
+            ? HoverTintIconButton(
                 icon: Icons.arrow_back_rounded,
                 tooltip: 'Back',
                 onPressed: () {

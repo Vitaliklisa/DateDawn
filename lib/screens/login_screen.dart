@@ -105,7 +105,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: DangerHoverIconButton(
+        leading: HoverTintIconButton(
           icon: Icons.arrow_back_rounded,
           onPressed: () => context.pop(),
         ),

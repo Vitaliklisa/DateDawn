@@ -179,7 +179,7 @@ class _CircleCard extends ConsumerWidget {
                 ),
               ),
               if (isOwner)
-                DangerHoverIconButton(
+                HoverTintIconButton(
                   tooltip: 'Invite someone',
                   iconSize: 19,
                   icon: Icons.person_add_alt_1_rounded,
@@ -225,8 +225,11 @@ class _CircleCard extends ConsumerWidget {
               ],
             ),
           ],
-          if (!isOwner) ...[
-            const SizedBox(height: 12),
+          const SizedBox(height: 12),
+          // A member can leave; an owner can delete. The owner had neither —
+          // there was no way to remove a circle they created, which is why the
+          // screen looked like it simply could not delete anything.
+          if (!isOwner)
             TextButton.icon(
               onPressed: () async {
                 // Capture the id before the await: reading `user` afterwards
@@ -243,12 +246,64 @@ class _CircleCard extends ConsumerWidget {
               },
               icon: const Icon(Icons.logout_rounded, size: 16),
               label: const Text('Leave circle', style: TextStyle(fontSize: 13)),
+            )
+          else
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                foregroundColor: colors.danger,
+                overlayColor: colors.danger.withValues(alpha: 0.10),
+              ),
+              onPressed: () async {
+                final userId = user?.id;
+                if (userId == null) return;
+                final confirmed = await _confirmDeleteCircle(context, circle.name);
+                if (!confirmed) return;
+                if (!context.mounted) return;
+                await runAction(
+                  context,
+                  () => ref.read(eventRepositoryProvider).deleteCircle(
+                        circleId: circle.id,
+                        userId: userId,
+                      ),
+                  successMessage: 'Deleted “${circle.name}”.',
+                );
+              },
+              icon: const Icon(Icons.delete_outline_rounded, size: 16),
+              label: const Text('Delete circle', style: TextStyle(fontSize: 13)),
             ),
-          ],
         ],
       ),
     );
   }
+}
+
+/// Confirms removing a circle, spelling out that the countdowns survive.
+Future<bool> _confirmDeleteCircle(BuildContext context, String name) async {
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text('Delete “$name”?'),
+      content: const Text(
+        'The group goes away. Countdowns shared with it are kept and stay yours — '
+        'they are just no longer shared with these people.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Keep'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: dialogContext.colors.danger,
+            minimumSize: const Size(88, 42),
+          ),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+  return result ?? false;
 }
 
 /// Create a circle, optionally as a couple circle.

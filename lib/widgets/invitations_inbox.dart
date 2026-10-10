@@ -356,6 +356,7 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
 
   Future<void> _decline() async {
     if (_alreadyClaimed) return;
+    final user = ref.read(currentUserProvider);
     setState(() => _busy = true);
     if (!ref.read(invitationSubmissionProvider.notifier).claim(_claimKey)) {
       if (mounted) setState(() => _busy = false);
@@ -363,9 +364,14 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
     }
     final failure = await runAction(
       context,
-      () => ref
-          .read(eventRepositoryProvider)
-          .rejectCircleInvitation(widget.invite),
+      () => ref.read(eventRepositoryProvider).rejectCircleInvitation(
+            widget.invite,
+            // Passed so the inviter's notification can name who declined; the
+            // sender previously heard nothing at all.
+            responderEmail: user?.email,
+            responderName: user?.displayName,
+            userId: user?.id,
+          ),
       successMessage: 'Invitation declined.',
     );
     if (failure != null) _release();

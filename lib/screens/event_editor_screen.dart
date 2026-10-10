@@ -248,7 +248,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     if (user == null) {
       return Scaffold(
         appBar: AppBar(
-          leading: DangerHoverIconButton(
+          leading: HoverTintIconButton(
             icon: Icons.arrow_back_rounded,
             onPressed: () => context.pop(),
           ),
@@ -259,7 +259,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     }
     return Scaffold(
       appBar: AppBar(
-        leading: DangerHoverIconButton(
+        leading: HoverTintIconButton(
           icon: Icons.arrow_back_rounded,
           onPressed: () => context.pop(),
         ),

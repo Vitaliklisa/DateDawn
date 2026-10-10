@@ -303,23 +303,32 @@ class RemainingSummary extends StatelessWidget {
   }
 }
 
-/// An icon button that turns red while the pointer hovers it or a finger is
-/// pressing it, then eases back to its resting colour.
+/// An icon button that eases to the accent colour while the pointer hovers it
+/// or a finger is pressing it, then back to its resting colour.
 ///
-/// Used for the back arrows, the circle invite action and the inbox icons: the
-/// red is a clear "this will change or leave something" cue, and giving every
-/// such control the same reaction is what makes the app feel deliberate rather
-/// than only styling one arrow. The colour animates over [duration] so the
-/// change reads as a response, not a flicker.
-class DangerHoverIconButton extends StatefulWidget {
-  const DangerHoverIconButton({
+/// This was previously red-on-hover. Red is the app's danger colour, so using
+/// it as a generic hover reaction made ordinary, harmless controls — the circle
+/// invite action, the inbox icons, back arrows — read as destructive. Hover now
+/// lifts to the accent instead, which signals "this is interactive" without
+/// implying anything will be lost. Red is reserved for actions that really do
+/// destroy or remove, and those set it in their own style.
+///
+/// The colour animates over [duration] so the change reads as a response rather
+/// than a flicker.
+class HoverTintIconButton extends StatefulWidget {
+  const HoverTintIconButton({
     super.key,
     required this.icon,
     required this.onPressed,
     this.tooltip,
     this.iconSize = 20,
     this.duration = const Duration(milliseconds: 140),
+    this.hoverColor,
   });
+
+  /// Overrides the hover tint for the rare control that genuinely is
+  /// destructive, so it can opt back into red deliberately.
+  final Color? hoverColor;
 
   final IconData icon;
   final VoidCallback? onPressed;
@@ -328,10 +337,10 @@ class DangerHoverIconButton extends StatefulWidget {
   final Duration duration;
 
   @override
-  State<DangerHoverIconButton> createState() => _DangerHoverIconButtonState();
+  State<HoverTintIconButton> createState() => _HoverTintIconButtonState();
 }
 
-class _DangerHoverIconButtonState extends State<DangerHoverIconButton> {
+class _HoverTintIconButtonState extends State<HoverTintIconButton> {
   bool _active = false;
 
   void _set(bool value) {
@@ -344,7 +353,8 @@ class _DangerHoverIconButtonState extends State<DangerHoverIconButton> {
     final colors = context.colors;
     final enabled = widget.onPressed != null;
     final resting = enabled ? colors.fg : colors.subtle;
-    final color = enabled && _active ? colors.danger : resting;
+    final hover = widget.hoverColor ?? colors.accent;
+    final color = enabled && _active ? hover : resting;
 
     // `Listener` observes the pointer without competing for the tap, so the
     // IconButton below still receives its own press. MouseRegion covers hover

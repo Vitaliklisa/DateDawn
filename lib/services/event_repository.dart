@@ -140,6 +140,14 @@ class EventRepository {
     // load. Once *any* feed has produced data (or the caller has received one
     // real list), emissions pass through unchanged.
     bool emittedAnything = false;
+
+    // Declared before `emit` because a local function cannot reference a local
+    // declared after it — Dart resolves locals at their point of definition.
+    //
+    /// Participant rows per event id, filled in by [hydrateParticipants].
+    Map<String, List<Participant>> participantsByEvent = const {};
+    Set<String> hydrating = <String>{};
+
     void emit({bool force = false}) {
       // Owned events win on id collision: they are the authoritative copy and
       // are ordered in memory.
@@ -148,10 +156,47 @@ class EventRepository {
       };
       fetchedShared.forEach((id, event) => byId.putIfAbsent(id, () => event));
 
-      final merged = byId.values.toList()..sort((a, b) => a.at.compareTo(b.at));
+      // Attach whatever participants have already been loaded. Each event is
+      // emitted with its rows attached so `canEdit`/`canManage` have the role
+      // list they read; an event with none yet keeps its parent-document data
+      // rather than blocking the emission, and a later pass fills it in.
+      final merged = byId.values
+          .map((event) => participantsByEvent[event.id] == null
+              ? event
+              : event.copyWith(
+                  participants: participantsByEvent[event.id],
+                ))
+          .toList()
+        ..sort((a, b) => a.at.compareTo(b.at));
       if (merged.isEmpty && !emittedAnything && !force) return;
       emittedAnything = true;
       if (!controller.isClosed) controller.add(merged);
+    }
+
+    /// Loads participants for any event in [latestOwned]/`fetchedShared` that
+    /// has not been hydrated yet, then re-emits so permissions are correct.
+    ///
+    /// Guarded by [hydrating] so the several feeds that trigger it in the same
+    /// frame do not each issue the same queries.
+    Future<void> hydrateParticipants() async {
+      final known = <String>{
+        ...latestOwned.map((e) => e.id),
+        ...fetchedShared.keys,
+      };
+      final wanted = known
+          .where((id) => !participantsByEvent.containsKey(id))
+          .where((id) => !hydrating.contains(id))
+          .toList(growable: false);
+      if (wanted.isEmpty) return;
+      hydrating = {...hydrating, ...wanted};
+      try {
+        final loaded = await _loadParticipants(wanted);
+        if (disposed) return;
+        participantsByEvent = {...participantsByEvent, ...loaded};
+        emit();
+      } finally {
+        hydrating = hydrating.difference(wanted.toSet());
+      }
     }
 
     /// Runs the `whereIn` queries for whatever ids are missing from
@@ -214,6 +259,7 @@ class EventRepository {
             }
           }
           fetchedShared = {...fetchedShared, ...fetched};
+          unawaited(hydrateParticipants());
           emit();
         } while (fetchAgain);
       } finally {
@@ -254,6 +300,7 @@ class EventRepository {
           .where((doc) => doc.data()['deletedAt'] == null)
           .map(_fromDoc)
           .toList();
+      unawaited(hydrateParticipants());
       emit();
       // If this first owned snapshot is empty, the held-back emission above
       // would leave the UI on its spinner forever for a genuinely empty
@@ -297,9 +344,47 @@ class EventRepository {
   CountdownEvent _fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = Map<String, dynamic>.from(doc.data() ?? {});
     // Participants live in a subcollection, so they are not part of the parent
-    // document payload. They are filled in by `watchParticipants` where needed;
-    // the fields a countdown face needs are all on the parent.
+    // document payload.
     return CountdownEvent.fromDoc(doc.id, data);
+  }
+
+  /// Loads the participant rows for each event, keyed by event id.
+  ///
+  /// **Why the list feed needs this, not just the detail screen.**
+  /// `participants` is a subcollection, so `_fromDoc` always left the list's
+  /// `CountdownEvent` with an empty participant list. `roleFor`/`canEdit` read
+  /// that list, and although the creator short-circuits via `createdBy`, a
+  /// *freshly created* countdown is rendered from the object `createEvent`
+  /// returned rather than a re-read, so its participant list was empty and its
+  /// owner fell through to `viewer`. That hid Edit/Share/Note on the first
+  /// event only; opening an event re-fetched it and made the actions appear,
+  /// which is why the second and third behaved differently.
+  ///
+  /// Runs the per-event queries in parallel so the cost is one round-trip, not
+  /// one per event, and is best-effort throughout: an event whose rows cannot
+  /// be read still renders, it just falls back to the `createdBy` check.
+  Future<Map<String, List<Participant>>> _loadParticipants(
+      Iterable<String> eventIds) async {
+    final ids = eventIds.toSet().toList();
+    if (ids.isEmpty) return const {};
+
+    final entries = await Future.wait(
+      ids.map((id) async {
+        try {
+          final rows =
+              await _events.doc(id).collection('participants').get();
+          return MapEntry(
+            id,
+            rows.docs
+                .map((d) => Participant.fromMap(d.id, d.data()))
+                .toList(),
+          );
+        } catch (_) {
+          return MapEntry(id, const <Participant>[]);
+        }
+      }),
+    );
+    return {for (final entry in entries) entry.key: entry.value};
   }
 
   /// Live stream of one event's participants.
@@ -512,6 +597,9 @@ class EventRepository {
         ...autoParticipants,
       ],
     );
+    // NOTE: this returned object carries the creator's admin row so the new
+    // countdown is immediately editable from the screen that created it. The
+    // list feed also hydrates participants from Firestore now, so the two agree.
   }
 
   Future<void> updateEvent({
@@ -1391,10 +1479,41 @@ class EventRepository {
     }
   }
 
-  Future<void> rejectCircleInvitation(CircleInvitation invitation) async {
+  /// Declines a circle invitation and tells the inviter.
+  ///
+  /// The notification is the point of this method being more than a status
+  /// flip: the person who sent the invitation had no way to learn it was turned
+  /// down, so a couple invitation in particular sat in limbo with the sender
+  /// assuming it was still pending. It is best-effort — the status write is the
+  /// user's actual action, and it must not fail because a courtesy note did.
+  Future<void> rejectCircleInvitation(
+    CircleInvitation invitation, {
+    String? responderEmail,
+    String? responderName,
+    String? userId,
+  }) async {
+    await _guardCircleInvitation(invitation);
+
     await _circleInvitations
         .doc(invitation.id)
         .update({'status': InviteStatus.rejected.name});
+
+    if (invitation.invitedBy.isEmpty || invitation.invitedBy == userId) return;
+
+    final who = (responderName?.trim().isNotEmpty ?? false)
+        ? responderName!
+        : (responderEmail ?? 'They');
+
+    await _notify(
+      userId: invitation.invitedBy,
+      title: invitation.isCouple
+          ? '$who declined your partner invitation'
+          : '$who declined your invitation to “${invitation.circleName}”',
+      body: invitation.isCouple
+          ? 'Nothing was shared. Their countdowns stay private.'
+          : 'They are not part of this circle.',
+      kind: NotificationKind.circle,
+    );
   }
 
   Future<void> leaveCircle({
@@ -1407,6 +1526,66 @@ class EventRepository {
       'memberIds': FieldValue.arrayRemove([userId]),
     });
     await batch.commit();
+  }
+
+  /// Deletes a circle outright. Owner only.
+  ///
+  /// **The documents are removed, the countdowns are not.** A circle is a
+  /// sharing group, not a container: `events.sharedWithCircleIds` is what made
+  /// a countdown visible to the group, so deleting the circle also strips its
+  /// id from every countdown that referenced it. Leaving those ids behind would
+  /// keep the events matched by `fetchCircleShared`, and worse, would leave a
+  /// dangling id that could silently re-attach if an id were ever reused.
+  ///
+  /// Member rows go too — they belong to the circle and nothing else reads them.
+  ///
+  /// Everything is chunked: a batch caps at 500 writes and a circle can be
+  /// shared with more countdowns than that.
+  Future<void> deleteCircle({
+    required String circleId,
+    required String userId,
+  }) async {
+    final circleDoc = await _circles.doc(circleId).get();
+    final data = circleDoc.data();
+    if (data == null) return;
+
+    // Fail early with a readable message rather than letting the rules refuse
+    // the first write of the batch.
+    if (data['ownerId'] != userId) {
+      throw const DataFailure('Only the circle owner can delete it.');
+    }
+
+    // Every countdown shared with this circle, so the reference can be pulled.
+    final shared = await _events
+        .where('sharedWithCircleIds', arrayContains: circleId)
+        .get();
+    final members = await _circles.doc(circleId).collection('members').get();
+
+    final refs = <DocumentReference<Map<String, dynamic>>>[
+      // The member rows.
+      for (final member in members.docs) member.reference,
+      // The circle document itself.
+      _circles.doc(circleId),
+      // Every countdown's link back to the circle.
+      for (final event in shared.docs) event.reference,
+    ];
+
+    for (var i = 0; i < refs.length; i += 400) {
+      final end = i + 400 > refs.length ? refs.length : i + 400;
+      final batch = _db.batch();
+      for (final ref in refs.sublist(i, end)) {
+        if (ref.parent.id == 'events') {
+          // Unshare rather than delete the countdown.
+          batch.update(ref, {
+            'sharedWithCircleIds': FieldValue.arrayRemove([circleId]),
+            'updatedAt': Timestamp.fromDate(DateTime.now()),
+          });
+        } else {
+          batch.delete(ref);
+        }
+      }
+      await batch.commit();
+    }
   }
 
   /// Shares (or unshares) a countdown with a circle.

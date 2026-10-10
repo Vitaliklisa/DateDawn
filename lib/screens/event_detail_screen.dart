@@ -89,7 +89,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     if (event == null) {
       return Scaffold(
         appBar: AppBar(
-          leading: DangerHoverIconButton(
+          leading: HoverTintIconButton(
             icon: Icons.arrow_back_rounded,
             onPressed: () => context.pop(),
           ),
@@ -123,7 +123,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: DangerHoverIconButton(
+        leading: HoverTintIconButton(
           icon: Icons.arrow_back_rounded,
           onPressed: () => context.pop(),
         ),
