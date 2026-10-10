@@ -1528,6 +1528,44 @@ class EventRepository {
     await batch.commit();
   }
 
+  /// Removes someone else from a circle. Owner only.
+  ///
+  /// The mirror of [leaveCircle] performed on another person's behalf, so it
+  /// deletes their member row and pulls their uid out of `memberIds` in one
+  /// batch — a partial write would leave them able to see the circle through
+  /// the denormalised list while holding no member row.
+  ///
+  /// The owner cannot remove themselves this way; that is what deleting the
+  /// circle is for, and a circle with no owner would be unmanageable.
+  Future<void> removeCircleMember({
+    required String circleId,
+    required String ownerId,
+    required String memberId,
+  }) async {
+    if (memberId == ownerId) {
+      throw const DataFailure(
+          'You cannot remove yourself — delete the circle instead.');
+    }
+
+    final circleDoc = await _circles.doc(circleId).get();
+    final data = circleDoc.data();
+    if (data == null) {
+      throw const DataFailure('That circle no longer exists.');
+    }
+    // Checked here as well as in the rules so the user gets a sentence rather
+    // than a bare permission error.
+    if (data['ownerId'] != ownerId) {
+      throw const DataFailure('Only the circle owner can remove people.');
+    }
+
+    final batch = _db.batch();
+    batch.delete(_circles.doc(circleId).collection('members').doc(memberId));
+    batch.update(_circles.doc(circleId), {
+      'memberIds': FieldValue.arrayRemove([memberId]),
+    });
+    await batch.commit();
+  }
+
   /// Deletes a circle outright. Owner only.
   ///
   /// **The documents are removed, the countdowns are not.** A circle is a

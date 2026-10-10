@@ -62,23 +62,31 @@ service cloud.firestore {
     // The client denormalises the invitation id onto the participant row, which
     // is what makes this checkable at all: rules cannot query a collection, so
     // there is no way to ask "is there an invitation for event X and my email".
-    // Instead the row points at one document, and we verify it three ways:
+    // Instead the row points at one document, and we verify it two ways:
     //
-    //   1. it exists,
-    //   2. it is still `pending` (an answered invitation must not authorise a
-    //      second join), and
-    //   3. it is addressed to the caller's VERIFIED auth email — read from the
+    //   1. it is still `pending` — an answered invitation must not authorise a
+    //      second join, and
+    //   2. it is addressed to the caller's VERIFIED auth email — read from the
     //      token, never from the request body, so a client cannot claim someone
     //      else's invitation.
     //
-    // `getAfter` rather than `get` because the invitation and the participant row
-    // are committed in the same batch; a plain `get` sees the pre-batch database
-    // and would report the invitation as absent.
+    // `get`, NOT `getAfter`. This is the whole reason accept and decline were
+    // refused: the client answers an invitation with ONE batch that writes the
+    // participant row AND flips the invitation to `accepted`/`declined`.
+    // `getAfter()` resolves as of the END of that batch, so it saw the
+    // invitation in its new, settled state — `status == 'pending'` was false by
+    // construction, and every answer died with "Missing or insufficient
+    // permissions". The plain `get()` sees the document as it was when the
+    // batch started, which is exactly the state that authorises the answer.
+    //
+    // The trade is safe because the invitation's own update rule independently
+    // requires the caller to be its addressee, so a row still cannot cite an
+    // invitation that was never theirs.
     function invitationAuthorisesRow(invitationId) {
       return invitationId is string
         && invitationId.size() > 0
-        && getAfter(/databases/$(database)/documents/invitations/$(invitationId)).data.status == 'pending'
-        && getAfter(/databases/$(database)/documents/invitations/$(invitationId)).data.inviteeEmail == myEmail();
+        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.status == 'pending'
+        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.inviteeEmail == myEmail();
     }
 
     // Membership of a circle, checked against the denormalised `memberIds`

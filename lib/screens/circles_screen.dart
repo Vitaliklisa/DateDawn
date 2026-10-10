@@ -219,6 +219,26 @@ class _CircleCard extends ConsumerWidget {
                           Icon(Icons.star_rounded,
                               size: 13, color: colors.accent),
                         ],
+                        // The owner can remove anyone but themselves; a member
+                        // can only ever leave, which is the button below.
+                        if (isOwner && !member.isOwner && member.userId != user?.id) ...[
+                          const SizedBox(width: 4),
+                          _KickOutButton(
+                            label: member.label,
+                            onConfirmed: () => runAction(
+                              context,
+                              () => ref
+                                  .read(eventRepositoryProvider)
+                                  .removeCircleMember(
+                                    circleId: circle.id,
+                                    ownerId: user!.id,
+                                    memberId: member.userId,
+                                  ),
+                              successMessage:
+                                  '${member.label} was removed from “${circle.name}”.',
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -231,11 +251,21 @@ class _CircleCard extends ConsumerWidget {
           // screen looked like it simply could not delete anything.
           if (!isOwner)
             TextButton.icon(
+              // Leaving is destructive — you lose the circle's shared
+              // countdowns — so it carries the danger colour on both its label
+              // and its hover wash, rather than looking like a neutral action.
+              style: TextButton.styleFrom(
+                foregroundColor: colors.danger,
+                overlayColor: colors.danger.withValues(alpha: 0.10),
+              ),
               onPressed: () async {
                 // Capture the id before the await: reading `user` afterwards
                 // would be unsafe once this widget can be disposed mid-flight.
                 final userId = user?.id;
                 if (userId == null) return;
+                final confirmed = await _confirmLeaveCircle(context, circle.name);
+                if (!confirmed) return;
+                if (!context.mounted) return;
                 await runAction(
                   context,
                   () => ref
@@ -275,6 +305,88 @@ class _CircleCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// The small "x" on another member's chip, for the circle owner.
+///
+/// Confirms before removing, because the chip is small and sits beside the name
+/// it destroys — a stray tap on a touch screen should not eject somebody.
+class _KickOutButton extends StatelessWidget {
+  const _KickOutButton({required this.label, required this.onConfirmed});
+
+  final String label;
+  final Future<void> Function() onConfirmed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Tooltip(
+      message: 'Remove from circle',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () async {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text('Remove $label?'),
+              content: const Text(
+                'They will stop seeing countdowns shared with this circle. '
+                'Nothing they created is deleted.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Keep'),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: dialogContext.colors.danger,
+                    minimumSize: const Size(88, 42),
+                  ),
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Remove'),
+                ),
+              ],
+            ),
+          );
+          if (confirmed ?? false) await onConfirmed();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: Icon(Icons.close_rounded, size: 14, color: colors.danger),
+        ),
+      ),
+    );
+  }
+}
+
+/// Confirms leaving a circle.
+Future<bool> _confirmLeaveCircle(BuildContext context, String name) async {
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text('Leave “$name”?'),
+      content: const Text(
+        'Countdowns shared with this circle will no longer appear for you. '
+        'You can be invited back.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Stay'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: dialogContext.colors.danger,
+            minimumSize: const Size(88, 42),
+          ),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Leave'),
+        ),
+      ],
+    ),
+  );
+  return result ?? false;
 }
 
 /// Confirms removing a circle, spelling out that the countdowns survive.

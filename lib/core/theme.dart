@@ -234,6 +234,22 @@ class AppTheme {
         centerTitle: false,
       ),
       textTheme: _textTheme(base.textTheme, palette),
+      // Every bare IconButton in the app — the circle invite action, the inbox
+      // icons, the app-bar controls.
+      //
+      // Without this theme, Material derives an IconButton's hover and splash
+      // overlay from the colour scheme's `error` role, so *any* icon button
+      // flashed red on hover no matter what colour its icon was. Restyling the
+      // icon alone could never fix it, because the red came from the overlay
+      // behind the icon, not the icon itself.
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          foregroundColor: palette.fg,
+          // Neutral wash on hover/focus, and no red splash on press.
+          overlayColor: palette.fg.withValues(alpha: 0.06),
+          highlightColor: Colors.transparent,
+        ),
+      ),
       dividerTheme:
           DividerThemeData(color: palette.border, thickness: 1, space: 1),
       inputDecorationTheme: InputDecorationTheme(
