@@ -172,8 +172,10 @@ service cloud.firestore {
     // Only the email and display name are readable, and only to signed-in
     // users — never the whole auth record.
     //
-    // The same document also carries per-user settings (`themeMode`) and owns
-    // the notification inbox below, so a user must be able to write their own.
+    // The same document also carries per-user settings (`themeMode`,
+    // `timeFormat`) and owns the notification inbox below, so a user must be
+    // able to write their own. Those settings are plain display preferences and
+    // nothing reads them across users, so no field-level check is needed here.
     match /users/{userId} {
       allow read: if signedIn();
       allow create, update: if signedIn() && userId == uid();

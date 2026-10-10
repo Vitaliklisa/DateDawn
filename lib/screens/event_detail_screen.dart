@@ -77,6 +77,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final timeFormat = ref.watch(timeFormatProvider);
     final eventsAsync = ref.watch(eventsProvider);
     final event = _find();
     final now = ref.watch(clockProvider).value ?? DateTime.now();
@@ -177,7 +178,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               Icon(Icons.schedule_rounded, size: 14, color: colors.subtle),
               const SizedBox(width: 7),
               Text(
-                formatMomentFull(event.at),
+                formatMomentFull(event.at, format: timeFormat),
                 style: TextStyle(fontSize: 13, color: colors.subtle),
               ),
             ],
@@ -274,7 +275,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                           style: const TextStyle(fontSize: 13.5, height: 1.4)),
                       const SizedBox(height: 6),
                       Text(
-                        formatMomentShort(note.createdAt),
+                        formatMomentShort(note.createdAt, format: timeFormat),
                         style: TextStyle(fontSize: 11, color: colors.subtle),
                       ),
                     ],

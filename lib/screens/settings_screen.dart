@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme.dart';
+import '../core/time_format.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../widgets/brand_kit.dart';
@@ -17,6 +18,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
     final user = ref.watch(currentUserProvider);
+    final timeFormat = ref.watch(timeFormatProvider);
     final themeMode = ref.watch(themeModeProvider);
     final eventCount = ref.watch(eventsProvider).value?.length ?? 0;
 
@@ -118,6 +120,20 @@ class SettingsScreen extends ConsumerWidget {
             onChanged: (mode) => ref.read(themeModeProvider.notifier).set(mode),
           ),
           const SizedBox(height: 28),
+          Text('TIME', style: Theme.of(context).textTheme.labelSmall),
+          const SizedBox(height: 6),
+          Text(
+            'How clock times are written. Your countdowns are stored as exact '
+            'moments either way — this only changes how they read.',
+            style: TextStyle(fontSize: 13, height: 1.45, color: colors.muted),
+          ),
+          const SizedBox(height: 12),
+          _TimeFormatSelector(
+            value: timeFormat,
+            onChanged: (format) =>
+                ref.read(timeFormatProvider.notifier).set(format),
+          ),
+          const SizedBox(height: 28),
           Text('ABOUT', style: Theme.of(context).textTheme.labelSmall),
           const SizedBox(height: 12),
           const _InfoRow(
@@ -157,6 +173,75 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Two side-by-side choices, each showing a live worked example of the format.
+///
+/// The example is the point: "12-hour (AM/PM)" is jargon, `3:40 PM` is not, and
+/// seeing both next to each other is what makes the choice obvious.
+class _TimeFormatSelector extends StatelessWidget {
+  const _TimeFormatSelector({required this.value, required this.onChanged});
+
+  final TimeFormat value;
+  final ValueChanged<TimeFormat> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    // Two entries in a fixed order; a plain list keeps the "last one" check
+    // below honest, which a map's iteration order would not.
+    const options = <TimeFormat>[
+      TimeFormat.twelveHour,
+      TimeFormat.twentyFourHour,
+    ];
+
+    return Row(
+      children: [
+        for (final option in options) ...[
+          Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(option),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: value == option ? colors.accentSoft : colors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: value == option ? colors.accent : colors.border,
+                    width: value == option ? 1.5 : 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // The sample is formatted the real way, not a hand-typed
+                    // string, so it can never drift from what the app shows.
+                    Text(
+                      option.example,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: value == option ? colors.accent : colors.fg,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      option.label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: value == option ? colors.accent : colors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (option != options.last) const SizedBox(width: 10),
+        ],
+      ],
     );
   }
 }

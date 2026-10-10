@@ -7,6 +7,7 @@ import '../core/circles.dart';
 import '../core/countdown.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
+import '../core/time_format.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../services/event_repository.dart';
@@ -41,6 +42,17 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   /// current sharing is visible.
   final Set<String> _selectedCircleIds = {};
 
+  /// The user's clock preference, read once so the tiles below do not each
+  /// subscribe to the provider.
+  late final TimeFormat _timeFormat = ref.read(timeFormatProvider);
+
+  /// Whether the couple pre-selection has already run for this screen.
+  ///
+  /// `circlesProvider` is a stream, so on a cold start it is still empty when
+  /// `initState` runs. The listener below waits for the first real list and
+  /// ticks the couple circle then, exactly once.
+  bool _couplePreselected = false;
+
   /// Quick jumps for the dates people actually pick — days to years ahead.
   static const _presets = <(String, int)>[
     ('+1 week', 7),
@@ -65,6 +77,40 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     // Pre-tick whatever this countdown is already shared with, so editing does
     // not silently drop a circle.
     if (event != null) _selectedCircleIds.addAll(event.sharedWithCircleIds);
+
+    // On a NEW countdown, a couple circle is ticked from the start.
+    //
+    // That is the entire promise of a couple circle: what one of you counts
+    // down to, the other sees, with no invitation step. Leaving it unticked
+    // meant the partner got nothing unless the creator remembered to open the
+    // circle picker and select it — which made the feature behave like an
+    // ordinary circle and contradicted the copy on the Circles screen.
+    //
+    // Deliberately only `isCouple`: an ordinary friend circle must never be
+    // auto-shared, or a private plan would be broadcast to the group.
+    if (event == null) {
+      _preselectCoupleCircles(ref.read(circlesProvider).value ?? const []);
+      // Circles may not have arrived yet; catch the first real list.
+      ref.listenManual(circlesProvider, (previous, next) {
+        if (_couplePreselected) return;
+        final circles = next.value;
+        if (circles == null || circles.isEmpty) return;
+        _couplePreselected = true;
+        if (!mounted) return;
+        setState(() => _preselectCoupleCircles(circles));
+      });
+    }
+  }
+
+  /// Adds each couple circle the user belongs to into the selection.
+  void _preselectCoupleCircles(List<Circle> circles) {
+    final userId = ref.read(currentUserProvider)?.id;
+    if (userId == null) return;
+    for (final circle in circles) {
+      if (circle.isCouple && circle.contains(userId)) {
+        _selectedCircleIds.add(circle.id);
+      }
+    }
   }
 
   @override
@@ -326,7 +372,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                   child: _MomentTile(
                     icon: Icons.schedule_rounded,
                     label: 'Time',
-                    value: DateFormat('h:mm a').format(_at),
+                    value: formatClock(_at, format: _timeFormat),
                     onTap: canEdit ? _pickTime : null,
                   ),
                 ),

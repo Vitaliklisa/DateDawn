@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/circles.dart';
 import '../core/models.dart';
 import '../core/notifications.dart';
+import '../core/time_format.dart';
 import '../services/auth_service.dart';
 import '../services/event_repository.dart';
 import '../services/notification_service.dart';
@@ -398,6 +400,116 @@ class ThemeModeController extends Notifier<ThemeMode> {
 
 final themeModeProvider =
     NotifierProvider<ThemeModeController, ThemeMode>(ThemeModeController.new);
+
+/// Clock display format, stored per account so it follows the user between
+/// devices — the same shape as [ThemeModeController].
+///
+/// The initial value follows the device locale rather than a hard-coded default,
+/// so a phone set to a 24-hour region reads correctly before anything is chosen.
+class TimeFormatController extends Notifier<TimeFormat> {
+  static const _preferenceKey = 'time_format';
+
+  String? _userId;
+  bool _hasExplicitChoice = false;
+  int _accountRevision = 0;
+  Future<void> _remoteWrites = Future<void>.value();
+
+  @override
+  TimeFormat build() {
+    final user = ref.read(currentUserProvider);
+    _userId = user?.id;
+    ref.listen<AppUser?>(currentUserProvider, (previous, next) {
+      _onUserChanged(next?.id);
+    });
+    unawaited(_restore(user?.id, _accountRevision));
+    // Resolved from the platform locale; replaced the moment a stored choice is
+    // found, locally or remotely.
+    return defaultTimeFormatFor(PlatformDispatcher.instance.locale);
+  }
+
+  void set(TimeFormat format) {
+    state = format;
+    _hasExplicitChoice = true;
+    final accountRevision = _accountRevision;
+    final userId = _userId;
+    unawaited(_saveLocally(format));
+    if (userId != null) {
+      _queueRemoteSave(userId, format, accountRevision);
+    }
+  }
+
+  void _onUserChanged(String? userId) {
+    if (_userId == userId) return;
+    _userId = userId;
+    final revision = ++_accountRevision;
+    unawaited(_restore(userId, revision));
+  }
+
+  Future<void> _restore(String? userId, int accountRevision) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final localFormat =
+          timeFormatFromWire(preferences.getString(_preferenceKey));
+      if (accountRevision != _accountRevision) return;
+      // A local choice wins until the account is known to disagree; the remote
+      // read below is what settles that.
+      if (localFormat != null && !_hasExplicitChoice) {
+        _hasExplicitChoice = true;
+        state = localFormat;
+      }
+
+      if (userId == null) return;
+      final remoteWire =
+          await ref.read(notificationServiceProvider).fetchTimeFormat(userId);
+      if (accountRevision != _accountRevision || _userId != userId) return;
+
+      final remoteFormat = timeFormatFromWire(remoteWire);
+      if (remoteFormat != null) {
+        // The account is the source of truth once it holds a value: it is the
+        // one that survives reinstalls and reaches every other device.
+        state = remoteFormat;
+        _hasExplicitChoice = true;
+        await preferences.setString(
+            _preferenceKey, timeFormatToWire(remoteFormat));
+      } else if (_hasExplicitChoice) {
+        // Nothing on the account yet — push whatever this device has.
+        _queueRemoteSave(userId, state, accountRevision);
+      }
+    } catch (error, stackTrace) {
+      debugPrint('[datedawn] Could not restore time format: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  Future<void> _saveLocally(TimeFormat format) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(_preferenceKey, timeFormatToWire(format));
+    } catch (error, stackTrace) {
+      debugPrint('[datedawn] Could not save local time format: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  void _queueRemoteSave(
+    String userId,
+    TimeFormat format,
+    int accountRevision,
+  ) {
+    _remoteWrites = _remoteWrites.then((_) async {
+      if (accountRevision != _accountRevision || _userId != userId) return;
+      await ref
+          .read(notificationServiceProvider)
+          .saveTimeFormat(userId, timeFormatToWire(format));
+    }).catchError((Object error, StackTrace stackTrace) {
+      debugPrint('[datedawn] Could not save the time format: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    });
+  }
+}
+
+final timeFormatProvider = NotifierProvider<TimeFormatController, TimeFormat>(
+    TimeFormatController.new);
 
 /// Small helper so screens can run an action and show either a success or a
 /// failure message without repeating try/catch.

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/countdown.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
+import '../core/time_format.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../services/event_repository.dart';
@@ -264,6 +265,9 @@ class _HeroHome extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    // Read here rather than in `_FeaturedContent`, which is a plain
+    // `StatelessWidget` and takes the format as a parameter.
+    final timeFormat = ref.watch(timeFormatProvider);
     final arrived = !featured.at.isAfter(now);
 
     return Stack(
@@ -306,6 +310,7 @@ class _HeroHome extends ConsumerWidget {
                     featured: featured,
                     arrived: arrived,
                     now: now,
+                    timeFormat: timeFormat,
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -370,6 +375,7 @@ class _HeroHome extends ConsumerWidget {
                               featured: featured,
                               arrived: arrived,
                               now: now,
+                              timeFormat: timeFormat,
                             ),
                             const SizedBox(height: 28),
                             Row(
@@ -466,11 +472,16 @@ class _FeaturedContent extends StatelessWidget {
     required this.featured,
     required this.arrived,
     required this.now,
+    required this.timeFormat,
   });
 
   final CountdownEvent featured;
   final bool arrived;
   final DateTime now;
+
+  /// Passed in rather than read from a provider: this is a plain
+  /// `StatelessWidget`, and threading the value keeps it that way.
+  final TimeFormat timeFormat;
 
   @override
   Widget build(BuildContext context) {
@@ -511,7 +522,7 @@ class _FeaturedContent extends StatelessWidget {
             Icon(Icons.schedule_rounded, size: 14, color: colors.subtle),
             const SizedBox(width: 7),
             Text(
-              formatMomentFull(featured.at),
+              formatMomentFull(featured.at, format: timeFormat),
               style: TextStyle(fontSize: 13, color: colors.subtle),
             ),
           ],
@@ -539,6 +550,7 @@ class _EventRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final timeFormat = ref.watch(timeFormatProvider);
     final past = event.isPast;
     final remaining = remainingUntil(event.at, now);
 
@@ -571,8 +583,8 @@ class _EventRow extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       past
-                          ? formatMomentShort(event.at)
-                          : '${describeRemaining(remaining, compact: true)} · ${formatMomentShort(event.at)}',
+                          ? formatMomentShort(event.at, format: timeFormat)
+                          : '${describeRemaining(remaining, compact: true)} · ${formatMomentShort(event.at, format: timeFormat)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 12, color: colors.muted),

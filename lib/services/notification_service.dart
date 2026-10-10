@@ -131,6 +131,33 @@ class NotificationService {
     );
   }
 
+  /// Reads the stored clock format (`'12h'`/`'24h'`), or `null` if unset.
+  ///
+  /// `null` rather than a default, for the same reason [fetchThemeMode]
+  /// returns one: it lets the caller distinguish "never chose" from "chose
+  /// 12-hour", which is what decides whether the device default should win.
+  Future<String?> fetchTimeFormat(String userId) async {
+    if (userId.isEmpty) return null;
+    try {
+      final doc = await _db.collection('users').doc(userId).get();
+      final value = doc.data()?['timeFormat'];
+      return value is String ? value : null;
+    } catch (error) {
+      // Formatting is a preference; a read failure must never block startup.
+      debugPrint('[datedawn] Could not read the time format: $error');
+      return null;
+    }
+  }
+
+  /// Saves the clock format for a user, creating the doc on first write.
+  Future<void> saveTimeFormat(String userId, String wireFormat) async {
+    if (userId.isEmpty) return;
+    await _db.collection('users').doc(userId).set(
+      {'timeFormat': wireFormat},
+      SetOptions(merge: true),
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // profiles
   // ---------------------------------------------------------------------------

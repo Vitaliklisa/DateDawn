@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import 'time_format.dart';
+
 /// How much time is left until a target moment, broken into calendar units.
 ///
 /// Direct port of `src/lib/countdown.ts` from the web app: years and months are
@@ -164,9 +166,18 @@ String describeRemaining(Remaining r, {bool compact = false}) {
 String _plural(int n, String unit) => n == 1 ? unit : '${unit}s';
 
 /// "Wed, March 14, 2026 · 6:00 PM" — the format used across the detail header.
-String formatMomentFull(DateTime when) =>
-    DateFormat('EEE, MMMM d, yyyy · h:mm a').format(when);
+///
+/// [format] defaults to 12-hour so an existing call site keeps the wording it
+/// had; screens that honour the user's preference pass it in explicitly.
+String formatMomentFull(DateTime when, {TimeFormat? format}) => DateFormat(
+      'EEE, MMMM d, yyyy · ${(format ?? TimeFormat.twelveHour).timePattern}',
+    ).format(when);
 
 /// "Mar 14, 2026 · 6:00 PM" — the compact form used in event rows.
-String formatMomentShort(DateTime when) =>
-    DateFormat('MMM d, yyyy · h:mm a').format(when);
+String formatMomentShort(DateTime when, {TimeFormat? format}) => DateFormat(
+      'MMM d, yyyy · ${(format ?? TimeFormat.twelveHour).timePattern}',
+    ).format(when);
+
+/// A time with no date, for "at 6:00 PM" style copy.
+String formatClock(DateTime when, {TimeFormat? format}) =>
+    DateFormat((format ?? TimeFormat.twelveHour).timePattern).format(when);
