@@ -73,9 +73,75 @@ TimeFormat? timeFormatFromWire(Object? value) {
 /// Follows the device's own locale rather than hard-coding a US default: an
 /// Italian phone that has never opened Settings should see `15:40`, not
 /// `3:40 PM`. A locale whose time pattern contains `H` is a 24-hour one.
+///
+/// **This must never throw.** It runs inside a provider's `build`, during the
+/// first widget build of the app, so an exception here takes out the whole
+/// routed screen and leaves the user looking at the navigation shell over a
+/// blank canvas.
+///
+/// `DateFormat.jm(tag)` is the right way to ask a locale what its time pattern
+/// is, but `intl` only carries data for `en_US` until
+/// `initializeDateFormatting` has run — which this app deliberately does not do
+/// (it would pull every locale's data into the web bundle). Every other tag,
+/// including plain `en`, `en_GB` and `uk`, raises `LocaleDataException`.
+///
+/// On web the tag comes from the *browser*, so `en_US` is not the common case
+/// and the throw was the common case. A locale we cannot read is therefore not
+/// an error: it is simply a locale whose clock convention we cannot determine,
+/// and the documented default applies. The region-prefix check below keeps the
+/// common 24-hour regions correct without touching `intl` at all.
 TimeFormat defaultTimeFormatFor(Locale locale) {
-  final pattern = DateFormat.jm(locale.toString()).pattern ?? '';
-  return pattern.contains('H')
-      ? TimeFormat.twentyFourHour
-      : TimeFormat.twelveHour;
+  final tag = locale.toString();
+
+  try {
+    final pattern = DateFormat.jm(tag).pattern ?? '';
+    return pattern.contains('H')
+        ? TimeFormat.twentyFourHour
+        : TimeFormat.twelveHour;
+  } catch (_) {
+    // No locale data for this tag. Fall back to the language's convention
+    // rather than throwing; see the note above for why this must not propagate.
+    final language = tag.split(RegExp('[-_]')).first.toLowerCase();
+    return _twentyFourHourLanguages.contains(language)
+        ? TimeFormat.twentyFourHour
+        : TimeFormat.twelveHour;
+  }
 }
+
+/// Languages whose default clock is 24-hour, used only when `intl` has no data
+/// for the locale. Deliberately coarse — it decides a display default, not a
+/// timestamp, and the user can override it in Settings at any time.
+const _twentyFourHourLanguages = <String>{
+  'bg',
+  'ca',
+  'cs',
+  'da',
+  'de',
+  'el',
+  'es',
+  'et',
+  'eu',
+  'fi',
+  'fr',
+  'gl',
+  'hr',
+  'hu',
+  'id',
+  'it',
+  'lt',
+  'lv',
+  'nl',
+  'no',
+  'pl',
+  'pt',
+  'ro',
+  'ru',
+  'sk',
+  'sl',
+  'sr',
+  'sv',
+  'tr',
+  'uk',
+  'vi',
+  'zh',
+};

@@ -424,7 +424,18 @@ class TimeFormatController extends Notifier<TimeFormat> {
     unawaited(_restore(user?.id, _accountRevision));
     // Resolved from the platform locale; replaced the moment a stored choice is
     // found, locally or remotely.
-    return defaultTimeFormatFor(PlatformDispatcher.instance.locale);
+    //
+    // Wrapped because this runs during the first widget build: anything thrown
+    // here propagates out of `build` and takes the whole routed screen with it.
+    // A clock preference is never worth a blank page, so an unexpected failure
+    // degrades to the app's stated default instead.
+    try {
+      return defaultTimeFormatFor(PlatformDispatcher.instance.locale);
+    } catch (error, stackTrace) {
+      debugPrint('[datedawn] Could not resolve the device time format: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      return TimeFormat.twelveHour;
+    }
   }
 
   void set(TimeFormat format) {
