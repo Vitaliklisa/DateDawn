@@ -266,10 +266,21 @@ class AppTheme {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          // Without an explicit overlay, Material derives the hover and pressed
+          // tint from the seed's `error` role — so every outlined button turned
+          // red on hover, which read as "danger" on the Decline button and on
+          // ordinary Cancel-style actions everywhere. These pin the wash to the
+          // foreground so hovering is a neutral emphasis, never a warning.
+          overlayColor: palette.fg.withValues(alpha: 0.06),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: palette.muted),
+        style: TextButton.styleFrom(
+          foregroundColor: palette.muted,
+          // Same reason as the outlined buttons: an unset overlay picks up the
+          // seed's error colour and flashes red.
+          overlayColor: palette.fg.withValues(alpha: 0.06),
+        ),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: palette.surface2,

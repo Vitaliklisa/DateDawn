@@ -174,8 +174,20 @@ class _InviteShell extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton(
+                  // Decline is the one destructive-looking action on this card,
+                  // so it carries the danger colour deliberately — a neutral
+                  // hover was inherited from the theme, which meant the only
+                  // signal that this button was different was its label.
                   style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(42)),
+                    minimumSize: const Size.fromHeight(42),
+                    foregroundColor: colors.danger,
+                    side: BorderSide(
+                      color: busy
+                          ? colors.borderStrong
+                          : colors.danger.withValues(alpha: 0.5),
+                    ),
+                    overlayColor: colors.danger.withValues(alpha: 0.10),
+                  ),
                   onPressed: busy ? null : onDecline,
                   child: const Text('Decline'),
                 ),

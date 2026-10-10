@@ -1166,6 +1166,15 @@ class EventRepository {
     await _responses.doc(responseId).update({'read': true});
   }
 
+  /// Removes one answer from the inviter's log.
+  ///
+  /// A response is a one-way courtesy note, so clearing it is a real delete
+  /// rather than a hidden flag — nothing else references it.
+  Future<void> deleteResponse(String responseId) async {
+    if (responseId.isEmpty) return;
+    await _responses.doc(responseId).delete();
+  }
+
   // ---------------------------------------------------------------------------
   // Circles
   // ---------------------------------------------------------------------------

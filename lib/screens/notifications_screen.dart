@@ -59,6 +59,20 @@ class NotificationsScreen extends ConsumerWidget {
           : _InboxList(
               responses: responses,
               notifications: notifications,
+              // Clearing an inbox item is a plain delete; there is no undo, so
+              // the swipe is the confirmation.
+              onNotificationDismiss: (notification) => unawaited(runAction(
+                context,
+                () => ref
+                    .read(notificationServiceProvider)
+                    .deleteNotification(user.id, notification.id),
+              )),
+              onResponseDismiss: (response) => unawaited(runAction(
+                context,
+                () => ref
+                    .read(eventRepositoryProvider)
+                    .deleteResponse(response.id),
+              )),
               onResponseTap: (response) {
                 if (!response.read) {
                   unawaited(runAction(
@@ -93,12 +107,18 @@ class _InboxList extends StatelessWidget {
     required this.notifications,
     required this.onResponseTap,
     required this.onNotificationTap,
+    this.onNotificationDismiss,
+    this.onResponseDismiss,
   });
 
   final AsyncValue<List<InvitationResponse>> responses;
   final AsyncValue<List<AppNotification>> notifications;
   final ValueChanged<InvitationResponse> onResponseTap;
   final ValueChanged<AppNotification> onNotificationTap;
+
+  /// Null while signed out, where there is no uid to delete against.
+  final ValueChanged<AppNotification>? onNotificationDismiss;
+  final ValueChanged<InvitationResponse>? onResponseDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -142,11 +162,30 @@ class _InboxList extends StatelessWidget {
         if (notificationItems.isNotEmpty) ...[
           const _SectionLabel('INBOX'),
           for (final notification in notificationItems) ...[
-            _AppNotificationTile(
-              key: ValueKey('notification-${notification.id}'),
-              notification: notification,
-              onTap: () => onNotificationTap(notification),
-            ),
+            // Swipe left to clear. The service always had `deleteNotification`,
+            // but nothing in the UI ever called it, so an inbox could only ever
+            // grow — the only way to empty it was the console, and the inbox is
+            // a `users/{uid}/notifications` subcollection there, which is not
+            // visible until you expand the user document.
+            if (onNotificationDismiss != null)
+              Dismissible(
+                key: ValueKey('notification-${notification.id}'),
+                direction: DismissDirection.endToStart,
+                background: const _DismissBackground(
+                  icon: Icons.delete_outline_rounded,
+                ),
+                onDismissed: (_) => onNotificationDismiss!(notification),
+                child: _AppNotificationTile(
+                  notification: notification,
+                  onTap: () => onNotificationTap(notification),
+                ),
+              )
+            else
+              _AppNotificationTile(
+                key: ValueKey('notification-${notification.id}'),
+                notification: notification,
+                onTap: () => onNotificationTap(notification),
+              ),
             const SizedBox(height: 8),
           ],
         ],
@@ -154,13 +193,29 @@ class _InboxList extends StatelessWidget {
           if (notificationItems.isNotEmpty) const SizedBox(height: 20),
           const _SectionLabel('INVITATION RESPONSES'),
           for (final response in responseItems) ...[
-            _ResponseTile(
-              key: ValueKey('response-${response.id}'),
-              message: response.message,
-              accepted: response.accepted,
-              unread: !response.read,
-              onTap: () => onResponseTap(response),
-            ),
+            if (onResponseDismiss != null)
+              Dismissible(
+                key: ValueKey('response-${response.id}'),
+                direction: DismissDirection.endToStart,
+                background: const _DismissBackground(
+                  icon: Icons.delete_outline_rounded,
+                ),
+                onDismissed: (_) => onResponseDismiss!(response),
+                child: _ResponseTile(
+                  message: response.message,
+                  accepted: response.accepted,
+                  unread: !response.read,
+                  onTap: () => onResponseTap(response),
+                ),
+              )
+            else
+              _ResponseTile(
+                key: ValueKey('response-${response.id}'),
+                message: response.message,
+                accepted: response.accepted,
+                unread: !response.read,
+                onTap: () => onResponseTap(response),
+              ),
             const SizedBox(height: 8),
           ],
         ],
@@ -169,6 +224,27 @@ class _InboxList extends StatelessWidget {
             message: 'Invitation responses could not be loaded.',
           ),
       ],
+    );
+  }
+}
+
+/// What shows behind a row while it is being swiped away.
+class _DismissBackground extends StatelessWidget {
+  const _DismissBackground({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 20),
+      decoration: BoxDecoration(
+        color: colors.danger.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, size: 20, color: colors.danger),
     );
   }
 }
