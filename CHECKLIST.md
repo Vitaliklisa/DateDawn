@@ -1843,3 +1843,87 @@ That is why § 17.1 exists. Until the console is watched on a real device with
 the rules deployed, the difference between "fixed" and "still broken, quietly"
 is not observable from here — and a silent `catch` makes those two states look
 identical.
+
+---
+
+# 18. The join-time resync could never work
+
+## What was wrong
+
+§ 16 added `_resyncCircleShares`, called on join, to push a new member's uid
+into `sharedWithMemberIds` on countdowns that were shared with the circle
+*before* they joined.
+
+It could not work. The method finds those countdowns with:
+
+```dart
+_events.where('sharedWithMemberIds', arrayContains: actorId).get()
+```
+
+On **join**, `acceptCircleInvitation` adds the uid to the circle's `memberIds`
+first, then calls the resync. So the branch that runs is the `arrayContains:
+actorId` one — and the joiner is **not in `sharedWithMemberIds` on any event
+yet**. That is precisely what the resync exists to add. The query returned
+nothing, no event was updated, and the new member saw only countdowns shared
+after they joined.
+
+The other branch could not be used either: `sharedWithCircleIds arrayContains
+circleId` is not authorisable for a joiner, because they are not yet in
+`sharedWithMemberIds` and no branch of the read rule passes for a query.
+
+It was the same shape as the bug § 16 had just fixed — a share that predates a
+membership, with nothing connecting the two — one layer further in.
+
+## Why the joiner cannot fix it themselves
+
+The write is to `events/{id}`, and the update rule requires `isOwner` or
+`isEditor`. A brand-new member is neither. So no amount of client-side
+cleverness on the accept path works.
+
+## The fix: seed at invite time, as the owner
+
+`inviteToCircle` already resolves the invitee's uid (`lookupUserByEmail`) to
+send the inbox notification. That uid is now also written into
+`sharedWithMemberIds` on **every countdown already shared with the circle**, via
+the new `_seedInviteeIntoCircleShares`.
+
+- The **owner** is authorized on those events, and is the one person guaranteed
+  to be online at the moment the membership is about to change.
+- By the time the invitee accepts, they are **already in the array**, so the
+  visibility rule covers them from their first frame — and
+  `_resyncCircleShares`'s query branch works for every later membership change.
+- `arrayUnion` is used rather than a whole-array rewrite, so a concurrent
+  membership change elsewhere is not clobbered by a stale read.
+- Chunked at 400 writes; best-effort, because the invitation is already written
+  and a fan-out failure must not fail the invite. A miss degrades to the old
+  behaviour (they see countdowns shared after they join), not to a broken invite.
+
+The join-time call to `_resyncCircleShares` was removed — it was dead weight that
+read as though it worked. `_resyncCircleShares` is now only for **leave** and
+**remove**, where the actor *is* still in the array at query time. That ordering
+dependency is now documented on the method, because it is invisible and a future
+reorder would break it silently.
+
+## Cost, stated plainly
+
+One write per countdown already shared with the circle, at invite time. A circle
+with no countdowns yet does nothing at all — which is the common case, and the
+reason this went unnoticed: if a couple circle is created and the partner
+invited before any countdown exists, the gap never fires.
+
+## Verifying § 18
+
+| Check | Result |
+|---|---|
+| `dart format --set-exit-if-changed lib test` | exit 0 (0 changed) |
+| `flutter analyze` | No issues found |
+| `flutter test` | **98/98 passing** |
+| `firebase deploy --dry-run` | rules + indexes compile (one pre-existing warning) |
+
+## Still not verified
+
+No query in this app has ever been run against the live project. The rules are
+grammar-checked, not executed. The invite-time fan-out is exercised only by
+reading the code — there is no test that drives it, because `EventRepository`
+talks to Firestore directly and has no fake. That is the largest remaining gap
+between "reasoned through" and "known to work".

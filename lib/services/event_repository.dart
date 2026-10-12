@@ -1328,10 +1328,23 @@ class EventRepository {
   /// Re-denormalises [sharedWithMemberIds] onto every countdown shared with a
   /// circle whose membership just changed.
   ///
-  /// Called after joining, leaving or being removed from a circle. The array on
-  /// the event is what the visibility rule reads, so a countdown shared before a
-  /// member joined would otherwise never become visible to them — the share
-  /// happened, the membership changed, and nothing connected the two.
+  /// Called after leaving or being removed from a circle. The array on the event
+  /// is what the visibility rule reads, so a stale one would keep serving
+  /// countdowns to someone who is no longer in the circle.
+  ///
+  /// **Ordering is load-bearing.** The query below reaches the affected
+  /// countdowns through `sharedWithMemberIds arrayContains <actor>`, which only
+  /// works while the actor is *still in that array*. Every caller therefore
+  /// prunes the array first and only then removes the actor from the circle's
+  /// `memberIds` — or, for a leave/remove, is querying with a uid that is still
+  /// present on the events. Reorder either one (delete the participant row
+  /// first, resync second) and this silently returns nothing: the same class of
+  /// bug as the join path, where the actor was absent from the array and the
+  /// query found nothing.
+  ///
+  /// **This is not called on join.** A joiner is not in the array yet, so this
+  /// query cannot find their events; the seeding is done at invite time by
+  /// [_seedInviteeIntoCircleShares], which runs as the owner. See that method.
   ///
   /// Best-effort and chunked: a batch caps at 500 writes, and the caller's own
   /// action has already committed by the time this runs.
@@ -1604,10 +1617,35 @@ class EventRepository {
     });
 
     // If the invitee already has an account, drop a line in their inbox so they
-    // notice without having to open the Invitations screen first.
+    // notice without having to open the Invitations screen first, AND seed their
+    // uid into every countdown already shared with this circle.
     final match = await lookupUserByEmail(target);
     final inviteeId = match?['userId'];
     if (inviteeId != null && inviteeId.isNotEmpty && inviteeId != inviterId) {
+      // **The join-time resync cannot do this, so it happens here.**
+      //
+      // `_resyncCircleShares` finds the affected countdowns by querying
+      // `sharedWithMemberIds arrayContains <actor>`. That works for leave and
+      // remove, because the leaver is still in the array at the moment of the
+      // query — pruning is what removes them. It cannot work for a join: the
+      // joiner is not in the array yet, that is precisely what the resync exists
+      // to add, so the query returns nothing and no event is ever updated.
+      //
+      // The joiner also cannot do it themselves: writing to `events/{id}` needs
+      // `isOwner` or `isEditor`, and a brand-new member is neither. The owner
+      // IS authorized, and is the one person guaranteed to be online at the
+      // moment the membership is about to change — so the work happens at invite
+      // time, on the owner's client, before the invitee ever answers.
+      //
+      // Cost: one write per countdown already shared with the circle. A circle
+      // with no countdowns yet — which is the common case, and the reason this
+      // gap went unnoticed — does nothing here at all.
+      await _seedInviteeIntoCircleShares(
+        circleId: circle.id,
+        inviteeId: inviteeId,
+        actorId: inviterId,
+      );
+
       await _notify(
         userId: inviteeId,
         title: circle.isCouple
@@ -1616,6 +1654,60 @@ class EventRepository {
         body: 'Open Invitations to accept or decline.',
         kind: NotificationKind.circle,
       );
+    }
+  }
+
+  /// Adds [inviteeId] to `sharedWithMemberIds` on every countdown shared with
+  /// [circleId].
+  ///
+  /// Run by the circle **owner** at invite time. The uid is seeded while the
+  /// invitation is still pending, so the invitee is already covered by the
+  /// visibility rule on the day they accept — and `_resyncCircleShares` can
+  /// then find those events, because by that point the joiner IS in the array.
+  ///
+  /// Querying by `sharedWithCircleIds` rather than `sharedWithMemberIds` is
+  /// deliberate here: this runs as the owner, who is in the array for every
+  /// event they shared, but an event shared by a co-owner would be missed by an
+  /// `arrayContains: actorId` query. The circle id matches all of them.
+  ///
+  /// Best-effort: the invitation itself is already written and must not fail
+  /// because this fan-out did. A miss degrades to the pre-existing behaviour
+  /// (the invitee sees countdowns shared *after* they joined), not to a broken
+  /// invite.
+  Future<void> _seedInviteeIntoCircleShares({
+    required String circleId,
+    required String inviteeId,
+    required String actorId,
+  }) async {
+    try {
+      final shared = await _events
+          .where('sharedWithCircleIds', arrayContains: circleId)
+          .get();
+      if (shared.docs.isEmpty) return;
+
+      for (var i = 0; i < shared.docs.length; i += 400) {
+        final end = i + 400 > shared.docs.length ? shared.docs.length : i + 400;
+        final batch = _db.batch();
+        for (final doc in shared.docs.sublist(i, end)) {
+          // `arrayUnion` rather than a whole-array rewrite: this is one uid
+          // being added, and a concurrent membership change elsewhere must not
+          // be clobbered by a stale list read here.
+          batch.update(doc.reference, {
+            'sharedWithMemberIds': FieldValue.arrayUnion([inviteeId]),
+            'updatedAt': Timestamp.fromDate(DateTime.now()),
+          });
+        }
+        await batch.commit();
+      }
+    } on FirebaseException catch (error) {
+      debugPrint(
+        '[datedawn] Could not seed $inviteeId into circle $circleId shares '
+        '(${error.code}). Countdowns shared with this circle BEFORE the '
+        'invitation will not be visible to them until they are re-shared.',
+      );
+    } catch (error) {
+      debugPrint(
+          '[datedawn] Could not seed circle shares for $circleId: $error');
     }
   }
 
@@ -1674,10 +1766,19 @@ class EventRepository {
         {'status': InviteStatus.accepted.name});
     await batch.commit();
 
-    // Any countdown already shared with this circle must learn about the new
-    // member, or it stays invisible to them however many times they reopen the
-    // app: the share predates their membership and nothing else connects them.
-    await _resyncCircleShares(invitation.circleId, actorId: userId);
+    // Deliberately NO resync here.
+    //
+    // The invitee's uid was already seeded into `sharedWithMemberIds` on every
+    // countdown shared with this circle, back when the owner sent the
+    // invitation (see `_seedInviteeIntoCircleShares`). Doing it here instead
+    // could not work: `_resyncCircleShares` reaches the affected countdowns
+    // through `sharedWithMemberIds arrayContains <joiner>`, and the joiner is
+    // not in that array yet — that is the whole thing the resync would be
+    // adding. The query would return nothing, no event would be updated, and
+    // the new member would see only countdowns shared after they joined.
+    //
+    // The joiner also cannot do this write at all: it needs `isOwner` or
+    // `isEditor` on the event, and a brand-new member is neither.
 
     // Tell the person who invited them. Best-effort: they have already joined.
     if (invitation.invitedBy.isNotEmpty && invitation.invitedBy != userId) {
