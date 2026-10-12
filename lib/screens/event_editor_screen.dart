@@ -161,8 +161,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       context: context,
       initialTime: TimeOfDay.fromDateTime(_at),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(alwaysUse24HourFormat: use24Hour),
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: use24Hour),
         child: child!,
       ),
     );

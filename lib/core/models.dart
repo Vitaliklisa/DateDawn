@@ -133,9 +133,7 @@ class Participant {
   factory Participant.fromMap(String userId, Map<String, dynamic> map) {
     final bodyId = map['userId'];
     return Participant(
-      userId: userId.isNotEmpty
-          ? userId
-          : (bodyId is String ? bodyId : ''),
+      userId: userId.isNotEmpty ? userId : (bodyId is String ? bodyId : ''),
       email: (map['email'] as String?) ?? '',
       role: ParticipantRole.fromWire(map['role']),
       inviteStatus: InviteStatus.fromWire(map['inviteStatus']),
