@@ -1778,3 +1778,68 @@ worth fixing, but it was not sufficient: the row it made queryable was on a
 query Firestore refused for an unrelated reason. Two independent faults, one
 symptom, and the second one was silent by design — the catch that kept the UI
 alive is also what hid the cause.
+
+---
+
+# 17. Making the silent failure audible, and a stale-array leak
+
+Two follow-ups to § 16, both about the same habit: a `catch` that kept the UI
+alive while hiding the cause.
+
+## 17.1 The failure is logged now, not swallowed
+
+`fetchCircleShared` used to end in `catch (_) {}`. That single line is why a
+`permission-denied` looked exactly like "you have no shared countdowns": the
+countdown existed, was shared, and the one read that could have shown it was
+refused in silence.
+
+It now distinguishes the two:
+
+- **`FirebaseException`** — a rules or transport error. Logged with the code and
+  the exact deploy command, because `permission-denied` here means the rules
+  have not been deployed, not that the account is empty.
+- **Anything else** — offline. Logged plainly; the screen keeps what it has.
+
+`_addCoupleMembers` got the same treatment. It was already logging, but flatly.
+A refusal there is not cosmetic — the entire promise of a couple circle is that
+the partner gets the countdown with no action of their own — so it now says so,
+names the event, and names the fix.
+
+This matters beyond the current bug. The next time something in this area fails,
+the console will say which query failed and why, instead of the two of us
+reasoning about it from the outside.
+
+## 17.2 Deleting a circle left its members in `sharedWithMemberIds`
+
+Found while working on the above. `deleteCircle` strips the circle's id from
+`sharedWithCircleIds` on every countdown it was shared with — but
+`sharedWithMemberIds`, which the visibility rule actually reads, was left
+untouched. So deleting a circle removed the group and left every one of its
+members still able to read the countdowns, through an array nothing else
+cleaned up.
+
+`_pruneDeletedCircleShares` now re-derives the array from the circles that
+*remain* on each event. It runs after the delete batch, per event, and is
+best-effort — the circle is already gone by then and this is cleanup.
+
+## Verifying § 17
+
+| Check | Result |
+|---|---|
+| `dart format --set-exit-if-changed lib test` | exit 0 (0 changed) |
+| `flutter analyze` | No issues found |
+| `flutter test` | **98/98 passing** |
+| `firebase deploy --dry-run` | rules + indexes compile |
+
+## What is still not verified, and why it matters
+
+**No query in this app has ever been executed against the live Firebase
+project.** There are no credentials for it in this workspace, so every claim
+about rules behaviour here is reasoning from Firestore's documented semantics,
+not an observed result. The client side is covered by unit tests; the security
+rules are only grammar-checked.
+
+That is why § 17.1 exists. Until the console is watched on a real device with
+the rules deployed, the difference between "fixed" and "still broken, quietly"
+is not observable from here — and a silent `catch` makes those two states look
+identical.

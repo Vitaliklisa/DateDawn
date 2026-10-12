@@ -274,10 +274,14 @@ class EventRepository {
     /// can be authorised: the rule for the former is `uid() in
     /// data.sharedWithMemberIds`, a field check Firestore can prove for a
     /// collection query, whereas the latter required looking the circle up with
-    /// a cross-collection `get()` that a query cannot evaluate. That query was
-    /// refused with `permission-denied` on every device and swallowed by the
-    /// catch below, which is why a circle-shared countdown never appeared for
-    /// the person it was shared with.
+    /// a cross-collection `get()` that a query cannot evaluate.
+    ///
+    /// **The failure is logged, not swallowed.** This used to be `catch (_) {}`,
+    /// which is why a refused query looked identical to "there is nothing
+    /// shared": the countdown existed, was shared, and the only read that could
+    /// have shown it was rejected in silence. A `permission-denied` here is a
+    /// rules problem, not an empty account, and the two must not look the same
+    /// in the console.
     Future<void> fetchCircleShared() async {
       if (latestCircleIds.isEmpty) return;
       try {
@@ -294,8 +298,15 @@ class EventRepository {
         }
         latestSharedIds = ids;
         await fetchShared();
-      } catch (_) {
-        // Offline or permission-denied: keep whatever is already on screen.
+      } on FirebaseException catch (error) {
+        debugPrint(
+          '[datedawn] Circle-share query failed (${error.code}). If this is '
+          'permission-denied, the firestore.rules fix has not been deployed: '
+          'firebase deploy --only firestore:rules,firestore:indexes',
+        );
+      } catch (error) {
+        // Offline: keep whatever is already on screen.
+        debugPrint('[datedawn] Circle-share query failed: $error');
       }
     }
 
@@ -1190,9 +1201,22 @@ class EventRepository {
     if (written.isEmpty) return const [];
     try {
       await batch.commit();
+    } on FirebaseException catch (error) {
+      // Logged loudly, not swallowed. This is the couple auto-share: the whole
+      // promise of the feature is that the partner gets the countdown with no
+      // action of their own, so a refusal here is not a cosmetic failure — it
+      // is the feature not working. `permission-denied` means the deployed
+      // rules do not match this client.
+      debugPrint(
+        '[datedawn] Couple auto-share FAILED for event $eventId '
+        '(${error.code}). The countdown was created but the partner was NOT '
+        'added. If this is permission-denied, deploy the rules: '
+        'firebase deploy --only firestore:rules,firestore:indexes',
+      );
+      return const [];
     } catch (error) {
-      // One write for the whole group: if it is refused, the countdown still
-      // exists and the creator can share it from the countdown screen.
+      // Offline, or a transient failure. The countdown still exists and the
+      // creator can share it from the countdown screen.
       debugPrint('[datedawn] Could not add couple members to $eventId: $error');
       return const [];
     }
@@ -1814,7 +1838,10 @@ class EventRepository {
       final batch = _db.batch();
       for (final ref in refs.sublist(i, end)) {
         if (ref.parent.id == 'events') {
-          // Unshare rather than delete the countdown.
+          // Unshare rather than delete the countdown. `sharedWithMemberIds` is
+          // left to `_pruneDeletedCircleShares` below: it is derived from the
+          // circles that REMAIN on the event, which needs a read per event — not
+          // something to do inside a batch.
           batch.update(ref, {
             'sharedWithCircleIds': FieldValue.arrayRemove([circleId]),
             'updatedAt': Timestamp.fromDate(DateTime.now()),
@@ -1824,6 +1851,44 @@ class EventRepository {
         }
       }
       await batch.commit();
+    }
+
+    // Re-derive `sharedWithMemberIds` for every countdown that was shared with
+    // the deleted circle. Without this the array keeps the deleted circle's
+    // members in it, and the visibility rule reads exactly that array — so the
+    // countdown would go on being served to people who are no longer in any
+    // circle it belongs to.
+    await _pruneDeletedCircleShares(circleId, shared.docs);
+  }
+
+  /// Recomputes `sharedWithMemberIds` from the circles that remain on each event
+  /// after [circleId] was deleted.
+  Future<void> _pruneDeletedCircleShares(
+    String circleId,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> events,
+  ) async {
+    if (events.isEmpty) return;
+    try {
+      for (final event in events) {
+        final remaining =
+            (event.data()['sharedWithCircleIds'] as List? ?? const [])
+                .whereType<String>()
+                .where((id) => id != circleId)
+                .toList();
+        final memberIds = <String>{};
+        for (final id in remaining) {
+          final doc = await _circles.doc(id).get();
+          final raw = doc.data()?['memberIds'];
+          if (raw is List) memberIds.addAll(raw.whereType<String>());
+        }
+        await _events.doc(event.id).update({
+          'sharedWithMemberIds': memberIds.toList(),
+          'updatedAt': Timestamp.fromDate(DateTime.now()),
+        });
+      }
+    } catch (error) {
+      // The circle is already deleted; this is cleanup.
+      debugPrint('[datedawn] Could not prune shares for $circleId: $error');
     }
   }
 
