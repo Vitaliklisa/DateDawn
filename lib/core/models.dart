@@ -122,9 +122,20 @@ class Participant {
   /// placeholder which has no answer to give.
   bool get hasAnswered => !isCircle && inviteStatus.isSettled;
 
+  /// Reads one participant row.
+  ///
+  /// [userId] is the **document id**, which is the authority: rows are written
+  /// at `events/{id}/participants/{uid}`. The body also carries a `userId`
+  /// field, because `watchEvents` discovers shared countdowns with a
+  /// collection-group query on that field and a document id is not queryable
+  /// that way. The body value is used when present and the id when not, so a
+  /// row written by an older build still parses.
   factory Participant.fromMap(String userId, Map<String, dynamic> map) {
+    final bodyId = map['userId'];
     return Participant(
-      userId: userId,
+      userId: userId.isNotEmpty
+          ? userId
+          : (bodyId is String ? bodyId : ''),
       email: (map['email'] as String?) ?? '',
       role: ParticipantRole.fromWire(map['role']),
       inviteStatus: InviteStatus.fromWire(map['inviteStatus']),
@@ -137,6 +148,10 @@ class Participant {
   }
 
   Map<String, dynamic> toMap() => {
+        // Mirrors what the repository writes: the uid both as the document id
+        // and as a body field, because the collection-group visibility query
+        // filters on the field.
+        'userId': userId,
         'email': email,
         'role': role.name,
         'inviteStatus': inviteStatus.name,

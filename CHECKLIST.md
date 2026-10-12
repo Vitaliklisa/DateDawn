@@ -1541,3 +1541,89 @@ sandbox contract rather than on a live capture. That is exactly why the two file
 that *looked* dead but are imported by platform code were kept: the cost of
 keeping an unused file is a few KB, and the cost of deleting a live one is a
 broken preview.
+
+---
+
+# 14. Two bugs with one root cause: the missing `userId` field
+
+Both reports — *"when a circle is a couple it doesn't automatically share with
+the other person"* and *"accepting a countdown the first time doesn't work,
+though it says it is accepted"* — were the same defect.
+
+## The root cause
+
+`watchEvents` discovers every countdown shared with you through a
+**collection-group query on a field**:
+
+```dart
+_db.collectionGroup('participants').where('userId', isEqualTo: userId)
+```
+
+A document **id** is not queryable that way. Every participant write used the uid
+as the document id and **never wrote it into the document body**, so the field
+was absent, the query matched nothing, and the countdown never reached the
+person it was shared with.
+
+Two very different-looking symptoms, one cause:
+
+| Report | What actually happened |
+|---|---|
+| Couple circle does not share | `createEvent` wrote the partner's `participants/{partnerUid}` row, but with no `userId` field, so the partner's feed never matched it. The countdown existed and the partner was "on" it — invisibly. |
+| First-time accept "works" but nothing appears | `acceptInvitation` wrote `participants/{myUid}` with no `userId` field. The batch committed, so the snackbar said *"You joined …"* — but the countdown never appeared in the list, because the query that would have surfaced it matched nothing. |
+
+**Fix.** Every participant write now stamps `userId` into the body:
+`createEvent` (creator row), `_addCoupleMembers`, `inviteByEmail`,
+`acceptInvitation`, `rejectInvitation`, `reopenInvitation`, `_inviteAll`.
+`Participant.toMap()` writes it too, and `Participant.fromMap` falls back to the
+body field when the document id is empty, so a row written by an older build
+still parses.
+
+## The second, hidden bug in the couple path
+
+Fixing the field alone was not enough. The couple auto-share rows were written
+**inside the atomic create batch**, and adding *someone else's* participant row
+requires `isAdmin(eventId)` or `isOwner(...)` in `firestore.rules` — both plain
+`get()` calls that resolve against the database **as it was when the request
+started**. They cannot see the admin row the same batch is writing, so the write
+was refused and — because a batch is atomic — **the whole countdown failed with
+it**.
+
+This is the exact `get()`-vs-`getAfter()` trap recorded in § 9.1 and § 10. It is
+fixed the same way: `createEvent` now commits the event and the creator's own
+rows first, then calls a new `_addCoupleMembers()` best-effort, one batch for the
+group. By then the event and the admin row are committed, so `isAdmin()` is
+satisfied on its own. A failure there degrades to *"created, but the partner was
+not added"* — recoverable from the countdown screen — instead of losing the
+countdown entirely.
+
+## The rules change
+
+`firestore.rules` — the invitee `update` branch's `hasOnly` allow-list gained
+`userId`, since `acceptInvitation` now writes that field alongside `inviteStatus`
+and the rest. Without it the merge would be refused and the first-time accept
+would fail outright rather than silently.
+
+**Still requires a deploy:**
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Verified with `firebase deploy --only firestore:rules --dry-run --project datedawn`
+→ `rules file firestore.rules compiled successfully` (same two pre-existing
+warnings as § 10).
+
+## Verifying § 14
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | **89/89 passing** (4 new participant-row-shape tests) |
+| `firestore.rules` | compiled successfully (dry run) |
+
+### What is NOT verified
+
+The live behaviour on the deployed project. The repository is exercised against
+an in-memory fake; the rules compile but are not executed against a real session,
+and **the rules fix does nothing until they are deployed** (§ 10's warning
+applies here too).

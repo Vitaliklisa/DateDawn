@@ -142,6 +142,55 @@ void main() {
     });
   });
 
+  group('Participant row shape', () {
+    // The bug these pin: `watchEvents` discovers every countdown shared with
+    // you through a collection-group query on the participant row's `userId`
+    // FIELD — `collectionGroup('participants').where('userId', isEqualTo: uid)`.
+    // A document id is not queryable that way. Rows were written with the uid
+    // only as the document id, so the field was absent, the query never matched
+    // and the countdown never reached the person it was shared with. That is
+    // why accepting an invitation "succeeded" (the snackbar fired) while the
+    // countdown stayed missing, and why a couple circle appeared not to share.
+    const participant = Participant(
+      userId: 'u1',
+      email: 'sam@example.com',
+      role: ParticipantRole.editor,
+      inviteStatus: InviteStatus.accepted,
+    );
+
+    test('toMap carries userId, which the visibility query filters on', () {
+      expect(participant.toMap()['userId'], 'u1');
+    });
+
+    test('fromMap reads the body userId when the document id is empty', () {
+      final parsed = Participant.fromMap('', {
+        'userId': 'u1',
+        'email': 'sam@example.com',
+        'role': 'editor',
+        'inviteStatus': 'accepted',
+      });
+      expect(parsed.userId, 'u1');
+    });
+
+    test('the document id wins when both are present', () {
+      // The id is the authority — a stale body field must not shadow it.
+      final parsed = Participant.fromMap('doc-id', {
+        'userId': 'stale',
+        'email': 'sam@example.com',
+        'role': 'editor',
+        'inviteStatus': 'accepted',
+      });
+      expect(parsed.userId, 'doc-id');
+    });
+
+    test('round-trips through toMap and fromMap', () {
+      final parsed = Participant.fromMap('u1', participant.toMap());
+      expect(parsed.userId, participant.userId);
+      expect(parsed.role, participant.role);
+      expect(parsed.inviteStatus, participant.inviteStatus);
+    });
+  });
+
   group('Participant.initials', () {
     test('uses two initials from a display name', () {
       const p = Participant(

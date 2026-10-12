@@ -282,6 +282,11 @@ service cloud.firestore {
         // The absent-row case is detected with `!exists(...)`. `resource.data`
         // is empty on a missing document, so keying off it alone was what made
         // the invitee branch false for every first-time join.
+        //
+        // `userId` is in the allow-list because the repository now writes the
+        // uid into the row body as well as using it as the document id: the
+        // collection-group query that discovers a shared countdown filters on
+        // that field, so a row without it never reaches the invitee's feed.
         allow update: if signedIn()
           && (
             isAdmin(eventId)
@@ -289,7 +294,7 @@ service cloud.firestore {
             || (
               userId == uid()
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-                   ['inviteStatus', 'joinedAt', 'role', 'invitationId', 'invitationEmail'])
+                   ['userId', 'inviteStatus', 'joinedAt', 'role', 'invitationId', 'invitationEmail'])
               && request.resource.data.inviteStatus in ['accepted', 'declined']
               && invitationAuthorisesRow(request.resource.data.invitationId)
               && (

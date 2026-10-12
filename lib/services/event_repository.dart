@@ -474,6 +474,15 @@ class EventRepository {
       if (validCircleIds.isNotEmpty) 'sharedWithCircleIds': validCircleIds,
     });
     batch.set(_events.doc(id).collection('participants').doc(userId), {
+      // `userId` is duplicated onto the document body on purpose.
+      //
+      // `watchEvents` discovers shared countdowns with a collection-group query
+      // on this field: `.where('userId', isEqualTo: userId)`. The document id is
+      // *not* queryable that way, so a row written without it is invisible to
+      // the only feed that could surface it — which is exactly why a
+      // first-time accept (and a couple auto-share) "succeeded" while the
+      // countdown never appeared for the person it was shared with.
+      'userId': userId,
       'email': email.toLowerCase(),
       'role': ParticipantRole.admin.name,
       'inviteStatus': InviteStatus.accepted.name,
@@ -482,11 +491,26 @@ class EventRepository {
       if (photoUrl != null) 'photoUrl': photoUrl,
     });
 
-    final autoParticipants = <Participant>[];
     // Uids the couple auto-share has already put on this countdown. Only used to
     // keep a member from being both an auto-participant and an invitee.
     final invitedUserIds = <String>{};
 
+    // Couple members are written *after* the commit, not in the batch below.
+    //
+    // This is the same trap § 9.1/§ 10 recorded for invitations. The batch is
+    // atomic: one refused write fails all of it. Adding someone else's
+    // participant row needs `isAdmin(eventId)` or `isOwner(...)`, and both are
+    // plain `get()` calls that resolve against the database **as it was when
+    // the request started** — so they cannot see the admin row this very batch
+    // is writing. The couple write was therefore refused and took the whole
+    // countdown down with it, which is exactly the "couple circle does not
+    // share" symptom.
+    //
+    // Writing them afterwards means the event and the creator's admin row are
+    // already committed, so `isAdmin()` is satisfied on its own. A failure here
+    // degrades to "created, but the partner was not added", which is
+    // recoverable, instead of losing the countdown entirely.
+    final autoShareMembers = <CircleMember>[];
     for (final circleId in validCircleIds) {
       final circle = circles.firstWhere((c) => c.id == circleId);
       // Invitations only apply to circles that are not the automatic kind.
@@ -525,44 +549,29 @@ class EventRepository {
       for (final member in members) {
         if (member.userId == userId) continue;
         invitedUserIds.add(member.userId);
-        batch.set(
-          _events.doc(id).collection('participants').doc(member.userId),
-          {
-            'email': member.email,
-            'role': ParticipantRole.editor.name,
-            'inviteStatus': InviteStatus.accepted.name,
-            'joinedAt': Timestamp.fromDate(now),
-            if (member.displayName != null) 'displayName': member.displayName,
-            if (member.photoUrl != null) 'photoUrl': member.photoUrl,
-          },
-          SetOptions(merge: true),
-        );
-        autoParticipants.add(
-          Participant(
-            userId: member.userId,
-            email: member.email,
-            role: ParticipantRole.editor,
-            inviteStatus: InviteStatus.accepted,
-            displayName: member.displayName,
-            photoUrl: member.photoUrl,
-            joinedAt: now,
-          ),
-        );
+        autoShareMembers.add(member);
       }
     }
 
     // Commit the countdown and its own participant rows first, and on their own.
     //
-    // Invitations are deliberately NOT in this batch. A create batch is atomic:
-    // one refused write fails all of it, so a rules problem with an invitation
-    // used to make the whole countdown vanish with a bare "Firestore refused the
-    // save". The countdown is the thing the person asked for and it is the one
-    // write that is always allowed; it must not be hostage to a follow-up.
+    // Invitations and the couple auto-share are deliberately NOT in this batch.
+    // A create batch is atomic: one refused write fails all of it, so a rules
+    // problem with a follow-up used to make the whole countdown vanish with a
+    // bare "Firestore refused the save". The countdown is the thing the person
+    // asked for and it is the one write that is always allowed; it must not be
+    // hostage to a follow-up.
     await batch.commit();
 
-    // Now invite, best-effort, one person at a time. By this point the event and
-    // the creator's admin row are committed, so `isAdmin()` sees them and the
-    // invitations rule is satisfied without needing `getAfter()`.
+    // Now add the couple members, then invite, best-effort, one person at a
+    // time. By this point the event and the creator's admin row are committed,
+    // so `isAdmin()` sees them and both follow-ups are authorised on their own.
+    final autoParticipants = await _addCoupleMembers(
+      eventId: id,
+      inviterId: userId,
+      members: autoShareMembers,
+      now: now,
+    );
     await _inviteAll(
       eventId: id,
       eventTitle: title.trim(),
@@ -720,6 +729,7 @@ class EventRepository {
       batch.set(
         _events.doc(event.id).collection('participants').doc(targetUserId),
         {
+          'userId': targetUserId,
           'email': target,
           'role': role.name,
           'inviteStatus': InviteStatus.pending.name,
@@ -828,6 +838,11 @@ class EventRepository {
     batch.set(
       _events.doc(invitation.eventId).collection('participants').doc(userId),
       {
+        // The field `watchEvents` queries to discover a shared countdown. A row
+        // written without it is unreachable by the invitee's feed, which is why
+        // a first-time accept reported success while the countdown never
+        // appeared in their list.
+        'userId': userId,
         'email': email.toLowerCase(),
         'role': invitation.role.name,
         'inviteStatus': InviteStatus.accepted.name,
@@ -895,6 +910,7 @@ class EventRepository {
       batch.set(
         participant,
         {
+          'userId': userId,
           'email': (responderEmail ?? '').toLowerCase(),
           // `merge` keeps the stored role on an existing row; this value is what
           // the rule sees for a brand-new one, and it is the role the invitation
@@ -944,6 +960,7 @@ class EventRepository {
     batch.set(
       _events.doc(eventId).collection('participants').doc(userId),
       {
+        'userId': userId,
         'inviteStatus': InviteStatus.reopened.name,
         'invitationId': invitationId,
         'invitationEmail': inviteeEmail.toLowerCase(),
@@ -1064,6 +1081,74 @@ class EventRepository {
     }
   }
 
+  /// Writes the accepted editor participant rows for a couple circle's members.
+  ///
+  /// Runs **after** the create batch has committed, deliberately. Adding someone
+  /// else's participant row needs `isAdmin(eventId)` or `isOwner(...)` in
+  /// `firestore.rules`, and both are plain `get()` calls that resolve against
+  /// the database as it was when the request started — so inside the create
+  /// batch they cannot see the admin row that same batch is writing, and the
+  /// write is refused. Because a batch is atomic, that refusal took the whole
+  /// countdown with it: the partner got nothing and the creator lost the event.
+  ///
+  /// Now that the event and the creator's admin row are committed, the rule is
+  /// satisfied on its own. This is best-effort for the same reason invitations
+  /// are: the countdown is already saved, so a failure here degrades to "created
+  /// but the partner was not added" rather than losing the countdown.
+  ///
+  /// Returns the rows it managed to write, so the caller's in-memory copy of the
+  /// new countdown matches what is in Firestore.
+  Future<List<Participant>> _addCoupleMembers({
+    required String eventId,
+    required String inviterId,
+    required List<CircleMember> members,
+    required DateTime now,
+  }) async {
+    if (members.isEmpty) return const [];
+    final written = <Participant>[];
+    final batch = _db.batch();
+    for (final member in members) {
+      if (member.userId.isEmpty || member.userId == inviterId) continue;
+      batch.set(
+        _events.doc(eventId).collection('participants').doc(member.userId),
+        {
+          // The field `watchEvents` queries to discover a shared countdown.
+          // Without it the partner's feed never matched this row, so the
+          // countdown existed but never appeared for them.
+          'userId': member.userId,
+          'email': member.email,
+          'role': ParticipantRole.editor.name,
+          'inviteStatus': InviteStatus.accepted.name,
+          'joinedAt': Timestamp.fromDate(now),
+          if (member.displayName != null) 'displayName': member.displayName,
+          if (member.photoUrl != null) 'photoUrl': member.photoUrl,
+        },
+        SetOptions(merge: true),
+      );
+      written.add(
+        Participant(
+          userId: member.userId,
+          email: member.email,
+          role: ParticipantRole.editor,
+          inviteStatus: InviteStatus.accepted,
+          displayName: member.displayName,
+          photoUrl: member.photoUrl,
+          joinedAt: now,
+        ),
+      );
+    }
+    if (written.isEmpty) return const [];
+    try {
+      await batch.commit();
+    } catch (error) {
+      // One write for the whole group: if it is refused, the countdown still
+      // exists and the creator can share it from the countdown screen.
+      debugPrint('[datedawn] Could not add couple members to $eventId: $error');
+      return const [];
+    }
+    return written;
+  }
+
   /// Writes the pending participant rows and `invitations` documents for a
   /// freshly created countdown.
   ///
@@ -1101,6 +1186,7 @@ class EventRepository {
         batch.set(
           _events.doc(eventId).collection('participants').doc(targetUserId),
           {
+            'userId': targetUserId,
             'email': targetEmail.toLowerCase(),
             'role': role.name,
             'inviteStatus': InviteStatus.pending.name,
