@@ -45,6 +45,17 @@ enum TimeFormat {
 
   /// A worked example, so the setting can be understood without applying it.
   String get example => this == TimeFormat.twentyFourHour ? '15:40' : '3:40 PM';
+
+  /// Whether a time-entry control should run in 24-hour mode.
+  ///
+  /// This is the value `showTimePicker` wants for
+  /// `MediaQuery.alwaysUse24HourFormat`. It exists here, next to the patterns,
+  /// because the dialog and the tile beneath it are two renderings of one
+  /// choice and must not derive it separately: the editor used to leave the
+  /// dialog on the platform default, so a user who chose 24-hour in Settings
+  /// still got an AM/PM dial on a 12-hour device — the tile read `18:00` while
+  /// the dialog above it asked for `6:00 PM`.
+  bool get uses24HourClock => this == TimeFormat.twentyFourHour;
 }
 
 /// The wire form stored in `users/{uid}.timeFormat`.

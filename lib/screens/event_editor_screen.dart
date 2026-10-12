@@ -7,7 +7,6 @@ import '../core/circles.dart';
 import '../core/countdown.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
-import '../core/time_format.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../services/event_repository.dart';
@@ -42,9 +41,13 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   /// current sharing is visible.
   final Set<String> _selectedCircleIds = {};
 
-  /// The user's clock preference, read once so the tiles below do not each
-  /// subscribe to the provider.
-  late final TimeFormat _timeFormat = ref.read(timeFormatProvider);
+  /// The user's clock preference.
+  ///
+  /// Watched in `build` rather than read once: the "Time" tile and the picker
+  /// dialog it opens must always agree, and the setting can change while this
+  /// screen is open — it syncs from the account, so another device signing in to
+  /// a different format would otherwise leave the tile on the old one and the
+  /// dialog on the new one.
 
   /// Whether the couple pre-selection has already run for this screen.
   ///
@@ -142,9 +145,26 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   }
 
   Future<void> _pickTime() async {
+    // The picker follows the clock format chosen in Settings, not the device
+    // locale.
+    //
+    // `showTimePicker` reads `MediaQuery.alwaysUse24HourFormat`, which defaults
+    // to the platform's own convention. On a device set to 12-hour — which is
+    // what the screenshot showed — a user who had picked 24-hour in Settings
+    // still got an AM/PM dial, so the composer disagreed with itself: the
+    // "Time" tile beneath it rendered `18:00` while the dialog above asked for
+    // `6:00 PM`. Pinning the MediaQuery to the app's own setting makes the two
+    // agree, and makes the choice the user already made in Settings the one
+    // that decides how they enter a time.
+    final use24Hour = ref.read(timeFormatProvider).uses24HourClock;
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_at),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(alwaysUse24HourFormat: use24Hour),
+        child: child!,
+      ),
     );
     if (picked == null) return;
     setState(() {
@@ -286,6 +306,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     final colors = context.colors;
     final editing = widget.event != null;
     final user = ref.watch(currentUserProvider);
+    final timeFormat = ref.watch(timeFormatProvider);
     final canEdit = widget.event?.canEdit(user?.id) ?? true;
 
     // Every write path needs an account: a countdown is owned by its creator in
@@ -372,7 +393,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                   child: _MomentTile(
                     icon: Icons.schedule_rounded,
                     label: 'Time',
-                    value: formatClock(_at, format: _timeFormat),
+                    value: formatClock(_at, format: timeFormat),
                     onTap: canEdit ? _pickTime : null,
                   ),
                 ),

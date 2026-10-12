@@ -1627,3 +1627,52 @@ The live behaviour on the deployed project. The repository is exercised against
 an in-memory fake; the rules compile but are not executed against a real session,
 and **the rules fix does nothing until they are deployed** (§ 10's warning
 applies here too).
+
+---
+
+# 15. The time picker ignored the clock format chosen in Settings
+
+## Symptom
+
+With the clock in Settings set to 24-hour, editing a countdown still opened an
+**AM/PM** dial — the screenshot showed `6 : 00` with an `AM / PM` toggle. Worse,
+the composer contradicted itself: the **Time** tile beneath the dialog rendered
+`18:00` (it read the setting) while the dialog above it asked for `6:00 PM` (it
+did not).
+
+## Cause
+
+`showTimePicker` decides between a 12- and 24-hour dial from
+`MediaQuery.alwaysUse24HourFormat`, which defaults to the **platform's** own
+convention. `_pickTime()` called it with no `builder`, so nothing ever passed the
+user's choice in: the dialog was always the device's clock, and Settings had no
+effect on it.
+
+The editor was already reading the preference — that is what made the tile
+correct — so the two halves of one control were deriving the same decision
+separately. The fix is to make them derive it once.
+
+## Fix
+
+- **`time_format.dart`** gained `TimeFormat.uses24HourClock`, the flag
+  `showTimePicker` wants. It lives next to the time patterns on purpose: the
+  dialog and the tile are two renderings of one choice and must not compute it
+  independently.
+- **`event_editor_screen.dart`** — `_pickTime()` now wraps the dialog in a
+  `MediaQuery` with `alwaysUse24HourFormat: format.uses24HourClock`.
+- The cached `late final TimeFormat _timeFormat = ref.read(...)` was replaced
+  with `ref.watch(timeFormatProvider)` in `build`. The setting syncs from the
+  account, so a change reaching this device while the editor is open would
+  otherwise leave the tile on the old format and the dialog on the new one. One
+  source, watched once.
+
+## Verifying § 15
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | **93/93 passing** (4 new time-picker tests) |
+
+The new tests pin `uses24HourClock` for both formats, that every value maps to a
+definite boolean, and that the 24-hour pattern carries no `a` (AM/PM) marker —
+the tile's half of the agreement.

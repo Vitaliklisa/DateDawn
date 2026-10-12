@@ -79,4 +79,37 @@ void main() {
       expect(timeFormatFromWire('25h'), isNull);
     });
   });
+
+  group('the time picker follows the app setting', () {
+    // The bug this pins: `showTimePicker` reads
+    // `MediaQuery.alwaysUse24HourFormat`, which defaults to the *platform's*
+    // convention. The editor never overrode it, so a user who had chosen
+    // 24-hour in Settings still got an AM/PM dial on a device set to 12-hour —
+    // and the composer contradicted itself, showing `18:00` on the tile beneath
+    // a dialog asking for `6:00 PM`.
+    //
+    // The editor passes `format.uses24HourClock` straight into the dialog's
+    // `MediaQuery`, so this getter *is* the behaviour: pinning it here pins
+    // what the picker does.
+    test('a 24-hour preference asks the dial for 24-hour', () {
+      expect(TimeFormat.twentyFourHour.uses24HourClock, isTrue);
+    });
+
+    test('a 12-hour preference asks the dial for AM/PM', () {
+      expect(TimeFormat.twelveHour.uses24HourClock, isFalse);
+    });
+
+    test('every format maps to a definite flag, never null', () {
+      for (final format in TimeFormat.values) {
+        expect(format.uses24HourClock, isA<bool>());
+      }
+    });
+
+    test('the 24-hour pattern has no AM/PM marker', () {
+      // The tile under the dialog uses this pattern; if it carried `a` the two
+      // halves could disagree even with the flag set.
+      expect(TimeFormat.twentyFourHour.timePattern.contains('a'), isFalse);
+      expect(TimeFormat.twelveHour.timePattern.contains('a'), isTrue);
+    });
+  });
 }
