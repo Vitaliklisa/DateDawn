@@ -252,6 +252,7 @@ class CountdownEvent {
     this.notes = const [],
     this.circleId,
     this.sharedWithCircleIds = const [],
+    this.sharedWithMemberIds = const [],
   });
 
   final String id;
@@ -276,8 +277,28 @@ class CountdownEvent {
   /// countdown with both, which is why this is a list.
   final List<String> sharedWithCircleIds;
 
+  /// The uids of every member of every circle in [sharedWithCircleIds],
+  /// denormalised onto the countdown.
+  ///
+  /// **Why this is duplicated.** The list of circle-shared countdowns is
+  /// discovered with a Firestore collection query. A security rule that has to
+  /// look the circle up (`get(circles/{id})` to read its `memberIds`) cannot be
+  /// evaluated for a query, because the rule engine cannot resolve a
+  /// cross-collection read for every candidate row — Firestore refuses the
+  /// whole query with `permission-denied`. That is exactly what happened: the
+  /// countdown was shared, the partner was a member, and the query that would
+  /// have shown it to them failed silently on every device.
+  ///
+  /// Carrying the uids on the event makes the rule a plain field comparison
+  /// (`uid() in data.sharedWithMemberIds`), which Firestore can prove for a
+  /// query. It is maintained alongside [sharedWithCircleIds] whenever a
+  /// countdown is shared or a circle gains a member.
+  final List<String> sharedWithMemberIds;
+
   bool get isShared =>
-      participants.isNotEmpty || sharedWithCircleIds.isNotEmpty;
+      participants.isNotEmpty ||
+      sharedWithCircleIds.isNotEmpty ||
+      sharedWithMemberIds.isNotEmpty;
 
   bool get isPast => !at.isAfter(DateTime.now());
 
@@ -308,6 +329,7 @@ class CountdownEvent {
     final rawParticipants = map['participants'];
     final rawNotes = map['notes'];
     final rawCircles = map['sharedWithCircleIds'];
+    final rawMembers = map['sharedWithMemberIds'];
     final circleId = map['circleId'] as String?;
 
     // A countdown written before circles existed, or shared with a single
@@ -328,6 +350,9 @@ class CountdownEvent {
       deletedAt: _parseDate(map['deletedAt']),
       circleId: circleId,
       sharedWithCircleIds: circles.toList(),
+      sharedWithMemberIds: rawMembers is List
+          ? rawMembers.whereType<String>().toList()
+          : const [],
       participants: rawParticipants is Map
           ? rawParticipants.entries
               .map((e) => Participant.fromMap(
@@ -358,6 +383,9 @@ class CountdownEvent {
         if (circleId != null) 'circleId': circleId,
         if (sharedWithCircleIds.isNotEmpty)
           'sharedWithCircleIds': sharedWithCircleIds,
+        // Denormalised for the circle-visibility query; see the field's doc.
+        if (sharedWithMemberIds.isNotEmpty)
+          'sharedWithMemberIds': sharedWithMemberIds,
       };
 
   CountdownEvent copyWith({
@@ -369,6 +397,7 @@ class CountdownEvent {
     List<EventNote>? notes,
     String? circleId,
     List<String>? sharedWithCircleIds,
+    List<String>? sharedWithMemberIds,
   }) =>
       CountdownEvent(
         id: id,
@@ -382,6 +411,7 @@ class CountdownEvent {
         notes: notes ?? this.notes,
         circleId: circleId ?? this.circleId,
         sharedWithCircleIds: sharedWithCircleIds ?? this.sharedWithCircleIds,
+        sharedWithMemberIds: sharedWithMemberIds ?? this.sharedWithMemberIds,
       );
 }
 

@@ -52,6 +52,14 @@
       ]
     },
     {
+      "collectionGroup": "events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sharedWithMemberIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "deletedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "circles",
       "queryScope": "COLLECTION",
       "fields": [

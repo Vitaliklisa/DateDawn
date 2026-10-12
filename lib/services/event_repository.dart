@@ -268,25 +268,29 @@ class EventRepository {
     }
 
     /// Queries every event shared with any circle the user belongs to.
+    ///
+    /// Queries `sharedWithMemberIds` — a plain array on the event — rather than
+    /// `sharedWithCircleIds`. Both identify the same events, but only this one
+    /// can be authorised: the rule for the former is `uid() in
+    /// data.sharedWithMemberIds`, a field check Firestore can prove for a
+    /// collection query, whereas the latter required looking the circle up with
+    /// a cross-collection `get()` that a query cannot evaluate. That query was
+    /// refused with `permission-denied` on every device and swallowed by the
+    /// catch below, which is why a circle-shared countdown never appeared for
+    /// the person it was shared with.
     Future<void> fetchCircleShared() async {
       if (latestCircleIds.isEmpty) return;
       try {
-        final snaps = await Future.wait(
-          latestCircleIds.map(
-            (circleId) => _events
-                .where('sharedWithCircleIds', arrayContains: circleId)
-                .get(),
-          ),
-        );
+        final snap = await _events
+            .where('sharedWithMemberIds', arrayContains: userId)
+            .get();
         if (disposed) return;
         final ids = <String>{...latestSharedIds};
-        for (final snap in snaps) {
-          for (final doc in snap.docs) {
-            if (doc.data()['deletedAt'] != null) continue;
-            // Owned events are already in `latestOwned`; skip re-fetching them.
-            if (latestOwned.any((e) => e.id == doc.id)) continue;
-            ids.add(doc.id);
-          }
+        for (final doc in snap.docs) {
+          if (doc.data()['deletedAt'] != null) continue;
+          // Owned events are already in `latestOwned`; skip re-fetching them.
+          if (latestOwned.any((e) => e.id == doc.id)) continue;
+          ids.add(doc.id);
         }
         latestSharedIds = ids;
         await fetchShared();
@@ -460,6 +464,15 @@ class EventRepository {
             circles.any((c) => c.id == circleId && c.contains(userId)))
         .toList();
 
+    // Every member of every circle being shared with, denormalised onto the
+    // event so the visibility rule is a plain array check on the event itself.
+    // A rule that had to look the circle up could not back the client's query,
+    // which is why circle-shared countdowns never reached the other person.
+    final sharedMemberIds = await _circleMemberIds(
+      circleIds: validCircleIds,
+      circles: circles,
+    );
+
     batch.set(_events.doc(id), {
       'title': title.trim(),
       'description': description.trim(),
@@ -472,6 +485,8 @@ class EventRepository {
       // that is absent from the document.
       'deletedAt': null,
       if (validCircleIds.isNotEmpty) 'sharedWithCircleIds': validCircleIds,
+      if (sharedMemberIds.isNotEmpty)
+        'sharedWithMemberIds': sharedMemberIds.toList(),
     });
     batch.set(_events.doc(id).collection('participants').doc(userId), {
       // `userId` is duplicated onto the document body on purpose.
@@ -590,6 +605,7 @@ class EventRepository {
       createdAt: now,
       updatedAt: now,
       sharedWithCircleIds: validCircleIds,
+      sharedWithMemberIds: sharedMemberIds.toList(),
       participants: [
         Participant(
           userId: userId,
@@ -1081,6 +1097,40 @@ class EventRepository {
     }
   }
 
+  /// Every member uid of every circle in [circleIds].
+  ///
+  /// `circlesProvider` streams circle documents without their `members`
+  /// subcollection, so `circle.members` is usually empty; each one is hydrated
+  /// from the subcollection on demand. The result is denormalised onto the event
+  /// as `sharedWithMemberIds`, which is what lets the visibility rule be a plain
+  /// array check the client can query against.
+  Future<Set<String>> _circleMemberIds({
+    required List<String> circleIds,
+    required List<Circle> circles,
+  }) async {
+    final memberIds = <String>{};
+    for (final circleId in circleIds) {
+      final circle = circles.where((c) => c.id == circleId).firstOrNull;
+      if (circle == null) continue;
+      // `memberIds` is the denormalised list on the circle document itself and
+      // is maintained on join/leave, so it is authoritative and needs no extra
+      // read. Fall back to the subcollection only if it is somehow empty.
+      if (circle.memberIds.isNotEmpty) {
+        memberIds.addAll(circle.memberIds);
+        continue;
+      }
+      try {
+        final snap = await _circles.doc(circleId).collection('members').get();
+        memberIds.addAll(snap.docs.map((d) => d.id));
+      } catch (error) {
+        // Best-effort: a circle whose members cannot be read still shares the
+        // event with the circles that could be read.
+        debugPrint('[datedawn] Could not read members of $circleId: $error');
+      }
+    }
+    return memberIds;
+  }
+
   /// Writes the accepted editor participant rows for a couple circle's members.
   ///
   /// Runs **after** the create batch has committed, deliberately. Adding someone
@@ -1248,6 +1298,61 @@ class EventRepository {
         targetPhotoUrl: profile?['photoUrl'],
         role: ParticipantRole.viewer,
       );
+    }
+  }
+
+  /// Re-denormalises [sharedWithMemberIds] onto every countdown shared with a
+  /// circle whose membership just changed.
+  ///
+  /// Called after joining, leaving or being removed from a circle. The array on
+  /// the event is what the visibility rule reads, so a countdown shared before a
+  /// member joined would otherwise never become visible to them — the share
+  /// happened, the membership changed, and nothing connected the two.
+  ///
+  /// Best-effort and chunked: a batch caps at 500 writes, and the caller's own
+  /// action has already committed by the time this runs.
+  Future<void> _resyncCircleShares(String circleId,
+      {required String actorId}) async {
+    try {
+      final circleDoc = await _circles.doc(circleId).get();
+      final raw = circleDoc.data()?['memberIds'];
+      if (raw is! List) return;
+      final memberIds = raw.whereType<String>().toList();
+
+      // Queried through the caller's own membership (`sharedWithMemberIds`
+      // contains them) rather than by circle id, for the same reason the feed
+      // is: the rule can prove a field comparison for a query, but not a
+      // cross-collection `get()`. An owner who just removed themselves is not a
+      // member any more, so the owner falls back to `sharedWithCircleIds`.
+      final shared = memberIds.contains(actorId)
+          ? await _events
+              .where('sharedWithMemberIds', arrayContains: actorId)
+              .get()
+          : await _events
+              .where('sharedWithCircleIds', arrayContains: circleId)
+              .get();
+      final targets = shared.docs
+          .where((doc) =>
+              (doc.data()['sharedWithCircleIds'] as List?)
+                  ?.contains(circleId) ==
+              true)
+          .toList();
+      if (targets.isEmpty) return;
+
+      for (var i = 0; i < targets.length; i += 400) {
+        final end = i + 400 > targets.length ? targets.length : i + 400;
+        final batch = _db.batch();
+        for (final doc in targets.sublist(i, end)) {
+          batch.update(doc.reference, {
+            'sharedWithMemberIds': memberIds,
+            'updatedAt': Timestamp.fromDate(DateTime.now()),
+          });
+        }
+        await batch.commit();
+      }
+    } catch (error) {
+      // The membership change is the user's action and has already committed.
+      debugPrint('[datedawn] Could not resync shares for $circleId: $error');
     }
   }
 
@@ -1545,6 +1650,11 @@ class EventRepository {
         {'status': InviteStatus.accepted.name});
     await batch.commit();
 
+    // Any countdown already shared with this circle must learn about the new
+    // member, or it stays invisible to them however many times they reopen the
+    // app: the share predates their membership and nothing else connects them.
+    await _resyncCircleShares(invitation.circleId, actorId: userId);
+
     // Tell the person who invited them. Best-effort: they have already joined.
     if (invitation.invitedBy.isNotEmpty && invitation.invitedBy != userId) {
       final who =
@@ -1609,6 +1719,10 @@ class EventRepository {
       'memberIds': FieldValue.arrayRemove([userId]),
     });
     await batch.commit();
+
+    // Drop the uid from every countdown's denormalised member list, or they
+    // keep being served to someone who has left the circle.
+    await _resyncCircleShares(circleId, actorId: userId);
   }
 
   /// Removes someone else from a circle. Owner only.
@@ -1647,6 +1761,10 @@ class EventRepository {
       'memberIds': FieldValue.arrayRemove([memberId]),
     });
     await batch.commit();
+
+    // Same reason as `leaveCircle`: the removed person must stop being served
+    // countdowns through the denormalised list.
+    await _resyncCircleShares(circleId, actorId: ownerId);
   }
 
   /// Deletes a circle outright. Owner only.
@@ -1723,8 +1841,29 @@ class EventRepository {
       throw const DataFailure(
           'Only admins and editors can share this countdown.');
     }
+    // The circles are not passed in here, so each one is read directly to
+    // collect its members. Kept in lockstep with the circle list because the
+    // visibility rule reads this array: a stale one would either hide the
+    // countdown from someone who should see it, or keep showing it to someone
+    // who has left.
+    final memberIds = <String>{};
+    for (final circleId in circleIds) {
+      try {
+        final doc = await _circles.doc(circleId).get();
+        final data = doc.data();
+        final raw = data?['memberIds'];
+        if (raw is List) memberIds.addAll(raw.whereType<String>());
+        if (memberIds.isEmpty || raw == null) {
+          final snap = await _circles.doc(circleId).collection('members').get();
+          memberIds.addAll(snap.docs.map((d) => d.id));
+        }
+      } catch (error) {
+        debugPrint('[datedawn] Could not read members of $circleId: $error');
+      }
+    }
     await _events.doc(event.id).update({
       'sharedWithCircleIds': circleIds,
+      'sharedWithMemberIds': memberIds.toList(),
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
   }

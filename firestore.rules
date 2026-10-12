@@ -89,26 +89,33 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/invitations/$(invitationId)).data.inviteeEmail == myEmail();
     }
 
-    // Membership of a circle, checked against the denormalised `memberIds`
-    // array so it costs one document read rather than a subcollection query.
-    function isCircleMember(circleId) {
+    // Membership of every circle an event was shared with, denormalised onto the
+    // event document itself as `sharedWithMemberIds`.
+    //
+    // **Why this exists.** The client discovers a circle-shared countdown with a
+    // query over the whole `events` collection. Firestore refuses any query whose
+    // rule has to read ANOTHER document, because it cannot evaluate a
+    // cross-collection `get()` for every candidate row. The previous rule looked
+    // the circle up (`get(circles/{id}).data.memberIds`) to decide membership,
+    // so that query came back `permission-denied` on every device, was swallowed
+    // by the client's catch, and the partner saw an empty list — the countdown
+    // existed and was shared, but was unreachable.
+    //
+    // Checking a plain array ON THE EVENT is a field comparison, which Firestore
+    // can prove for a query, so the same read becomes allowed.
+    function isSharedWithMe(data) {
       return signedIn()
-        && circleId != null
-        && circleId in get(/databases/$(database)/documents/circles/$(circleId)).data.memberIds;
+        && data.sharedWithMemberIds != null
+        && uid() in data.sharedWithMemberIds;
     }
 
-    // True when the event is shared with any circle this user belongs to.
-    // `eventCircles` is a list; rules have no loop, so the client sends the
-    // checked list back and we verify membership for each entry.
-    function isSharedWithMyCircle(circleIds) {
-      return signedIn()
-        && circleIds != null
-        && circleIds.size() > 0
-        && circleIds[0] is string
-        && isCircleMember(circleIds[0]);
-    }
-
-    // Creator, accepted participant, or a member of a circle it was shared with.
+    // Creator, accepted participant, or someone the event was shared with
+    // through a circle.
+    //
+    // The circle branch reads `sharedWithMemberIds` — a plain array on the event
+    // — rather than looking the circle up. That is deliberate: this rule backs a
+    // collection QUERY, and a rule that reads another document cannot be
+    // evaluated for one. See `isSharedWithMe`.
     function canRead(eventId, data) {
       return signedIn()
         && (
@@ -117,11 +124,7 @@ service cloud.firestore {
             isParticipant(eventId)
             && get(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.inviteStatus == 'accepted'
           )
-          || (
-            data.sharedWithCircleIds != null
-            && data.sharedWithCircleIds.size() > 0
-            && isCircleMember(data.sharedWithCircleIds[0])
-          )
+          || isSharedWithMe(data)
         );
     }
 
@@ -152,7 +155,7 @@ service cloud.firestore {
     // Only the fields the editor is allowed to touch may change.
     function onlyEventFieldsChanged() {
       return request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['title', 'description', 'at', 'updatedAt', 'deletedAt', 'sharedWithCircleIds', 'circleId']);
+        .hasOnly(['title', 'description', 'at', 'updatedAt', 'deletedAt', 'sharedWithCircleIds', 'sharedWithMemberIds', 'circleId']);
     }
 
     function validEventPayload() {

@@ -180,5 +180,63 @@ void main() {
       });
       expect(event.sharedWithCircleIds.toSet(), {'c1', 'c2'});
     });
+
+    test('reads the denormalised circle member uids', () {
+      // `sharedWithMemberIds` is what the security rule checks and what the
+      // client queries to discover a circle-shared countdown. If it is not
+      // parsed off the document the client would treat a shared countdown as
+      // unshared, which is the shape of the "couple does not share" bug.
+      final event = CountdownEvent.fromDoc('e1', {
+        'title': 'Us',
+        'sharedWithCircleIds': ['c1'],
+        'sharedWithMemberIds': ['alex', 'sam'],
+        'createdBy': 'alex',
+      });
+      expect(event.sharedWithMemberIds, ['alex', 'sam']);
+    });
+
+    test('defaults sharedWithMemberIds to empty on an older document', () {
+      // A countdown written before the field existed must still parse, and must
+      // not claim to be shared with anyone.
+      final event = CountdownEvent.fromDoc('e1', {
+        'title': 'Legacy',
+        'sharedWithCircleIds': ['c1'],
+        'createdBy': 'alex',
+      });
+      expect(event.sharedWithMemberIds, isEmpty);
+    });
+
+    test('ignores non-string entries in sharedWithMemberIds', () {
+      final event = CountdownEvent.fromDoc('e1', {
+        'sharedWithMemberIds': ['alex', 42, null],
+      });
+      expect(event.sharedWithMemberIds, ['alex']);
+    });
+
+    test('round-trips sharedWithMemberIds through toMap', () {
+      final event = CountdownEvent.fromDoc('e1', {
+        'title': 'Us',
+        'sharedWithCircleIds': ['c1'],
+        'sharedWithMemberIds': ['alex', 'sam'],
+        'createdBy': 'alex',
+      });
+      final reparsed = CountdownEvent.fromDoc('e1', event.toMap());
+      expect(reparsed.sharedWithMemberIds, ['alex', 'sam']);
+      expect(reparsed.sharedWithCircleIds, ['c1']);
+    });
+
+    test('counts a member-shared countdown as shared', () {
+      final base = CountdownEvent(
+        id: 'e1',
+        title: 'Us',
+        description: '',
+        at: DateTime(2030, 1, 1),
+        createdBy: 'alex',
+        createdAt: _epoch,
+        updatedAt: _epoch,
+      );
+      expect(base.isShared, isFalse);
+      expect(base.copyWith(sharedWithMemberIds: ['sam']).isShared, isTrue);
+    });
   });
 }

@@ -1676,3 +1676,105 @@ separately. The fix is to make them derive it once.
 The new tests pin `uses24HourClock` for both formats, that every value maps to a
 definite boolean, and that the 24-hour pattern carries no `a` (AM/PM) marker —
 the tile's half of the agreement.
+
+---
+
+# 16. The circle-shared query Firestore could never authorise
+
+## Symptom
+
+A couple circle still did not share. The invite arrived, the partner accepted,
+the notification was delivered — and the countdown created afterwards never
+appeared in their list. Nothing errored; it simply was not there.
+
+## Root cause
+
+The partner discovers circle-shared countdowns with a query over the whole
+`events` collection:
+
+```dart
+_events.where('sharedWithCircleIds', arrayContains: circleId).get()
+```
+
+The `events` **read** rule was:
+
+```
+allow read: if canRead(eventId, resource.data);
+```
+
+and `canRead`'s circle branch called `isCircleMember(...)`, which does
+`get(circles/{id}).data.memberIds`.
+
+**Firestore cannot evaluate a rule that reads another document for a query.**
+A rule backing a collection query must be provable from the document itself,
+because the engine has to decide before it knows which rows match. A
+cross-collection `get()` cannot be resolved that way, so Firestore refused the
+entire query with `permission-denied` — on every device, for every member.
+
+The client caught that refusal and discarded it:
+
+```dart
+} catch (_) {
+  // Offline or permission-denied: keep whatever is already on screen.
+}
+```
+
+So the failure was completely silent. The countdown was created, shared, and
+correctly attached to the circle; the one query that could have shown it to the
+other person was rejected before it ran. This is why the earlier fixes to the
+`userId` field and the couple batch (§ 14) did not help: the row was written
+correctly and still could not be read back.
+
+## Fix
+
+Denormalise the circle's members onto the event, so the rule is a plain field
+comparison the engine can prove for a query.
+
+- **`sharedWithMemberIds`** — every member uid of every circle in
+  `sharedWithCircleIds`, stored on the event document.
+- **`firestore.rules`** — the circle branch of `canRead` is now
+  `isSharedWithMe(data)`: `uid() in data.sharedWithMemberIds`. No cross-collection
+  `get()`. The dead `isCircleMember` / `isSharedWithMyCircle` helpers were
+  removed with it.
+- **`fetchCircleShared`** queries `where('sharedWithMemberIds', arrayContains:
+  userId)` — one query instead of one per circle, and the first version of this
+  feed that Firestore can actually authorise.
+- **`createEvent`** writes the array from the circles' own `memberIds`.
+- **`setEventCircles`** keeps it in lockstep when sharing changes.
+- **`_resyncCircleShares`** re-writes it when membership changes (join, leave,
+  remove). Without this, a countdown shared *before* a member joined would never
+  become visible to them: the share predates the membership and nothing
+  connected the two. It is best-effort and chunked at 400 writes.
+- **`firestore.indexes.json`** gains the composite index for the new query.
+
+## Still requires a deploy
+
+```bash
+firebase deploy --only firestore:rules,firestore:indexes
+```
+
+The rules change is the fix. Until it is deployed the query keeps being refused
+and the countdown stays invisible to the partner. The index must go with it, or
+Firestore rejects the new query for want of an index instead.
+
+## Verifying § 16
+
+| Check | Result |
+|---|---|
+| `dart format --set-exit-if-changed lib test` | exit 0 (0 changed) |
+| `flutter analyze` | No issues found |
+| `flutter test` | **98/98 passing** (5 new `sharedWithMemberIds` tests) |
+| `firebase deploy --dry-run` | rules + indexes compile |
+
+The tests pin that the field parses, defaults to empty on an older document,
+ignores non-string entries, round-trips through `toMap`, and counts toward
+`isShared`. They cannot pin the rules behaviour — that is the half only a
+deploy can prove.
+
+## Note on the earlier diagnosis
+
+§ 14 concluded the missing `userId` field was the whole story. It was real and
+worth fixing, but it was not sufficient: the row it made queryable was on a
+query Firestore refused for an unrelated reason. Two independent faults, one
+symptom, and the second one was silent by design — the catch that kept the UI
+alive is also what hid the cause.
