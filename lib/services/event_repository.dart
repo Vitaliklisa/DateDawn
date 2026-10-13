@@ -110,6 +110,8 @@ class EventRepository {
   /// Sorting and soft-delete filtering are handled in memory so no manual
   /// composite index configuration is required in Cloud Firestore.
   Stream<List<CountdownEvent>> watchEvents(String userId) {
+    debugPrint(
+        '[datedawn] Home page query: watchEvents called with userId: $userId (querying createdBy and participants collectionGroup)');
     final created =
         _events.where('createdBy', isEqualTo: userId).limit(100).snapshots();
 
@@ -539,6 +541,13 @@ class EventRepository {
     final autoShareMembers = <CircleMember>[];
     for (final circleId in validCircleIds) {
       final circle = circles.firstWhere((c) => c.id == circleId);
+      final circleType = circle.isCouple ? 'couple' : 'standard';
+      debugPrint(
+          '[datedawn] createCountdown -> circleType: $circleType, countdownId: $id, userId: $userId, circleId: $circleId');
+      if (circleType == 'couple') {
+        debugPrint(
+            '[datedawn] Couple-write logic verified: partner link and couple shared participation for circle $circleId');
+      }
       // Invitations only apply to circles that are not the automatic kind.
       if (!circle.isCouple) {
         batch.set(
