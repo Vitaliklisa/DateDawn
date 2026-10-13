@@ -120,9 +120,8 @@ class EventRepository {
         .where('userId', isEqualTo: userId)
         .snapshots();
 
-    final circleSharedEvents = _events
-        .where('sharedWithMemberIds', arrayContains: userId)
-        .snapshots();
+    final circleSharedEvents =
+        _events.where('sharedWithMemberIds', arrayContains: userId).snapshots();
 
     // The circle ids this user belongs to, live. Feeds query 3 and re-runs it
     // when the user joins or leaves a circle.
@@ -205,14 +204,15 @@ class EventRepository {
       }
     }
 
-    /// Runs the `whereIn` queries for whatever ids are missing from
+    /// Runs direct document reads for whatever ids are missing from
     /// `fetchedShared`. Both the participant feed and the circle feed write into
     /// `latestSharedIds`, so one collect-and-fetch pass covers both.
     ///
-    /// The chunks run in parallel: fetching them in sequence made a user with
-    /// more than 30 shared countdowns wait one round-trip per chunk, which is
-    /// exactly the "why is this so slow" case. A re-entrancy guard collapses
-    /// the overlapping calls that the two feeds trigger together.
+    /// Fetches each document individually (`_events.doc(id).get()`) so Firestore
+    /// security rules can evaluate per-document participant permissions
+    /// (`isParticipant`/`inviteStatus`). Collection queries like `whereIn` cannot
+    /// evaluate subcollection `get()` in rules and fail with `permission-denied`
+    /// for non-owner participants.
     bool fetching = false;
     bool fetchAgain = false;
     Future<void> fetchShared() async {
@@ -231,23 +231,17 @@ class EventRepository {
               .toList();
           if (wanted.isEmpty) break;
 
-          // `whereIn` accepts 30 values per query; chunk to stay inside that.
-          final chunks = <List<String>>[];
-          for (var i = 0; i < wanted.length; i += 30) {
-            final end = i + 30 > wanted.length ? wanted.length : i + 30;
-            chunks.add(wanted.sublist(i, end));
-          }
-
-          final snaps = await Future.wait(
-            chunks.map(
-              (chunk) async {
+          final docs = await Future.wait(
+            wanted.map(
+              (id) async {
                 try {
-                  return await _events
-                      .where(FieldPath.documentId, whereIn: chunk)
-                      .get();
-                } catch (_) {
-                  // A chunk that fails (offline, permission) is skipped rather
-                  // than killing the whole stream.
+                  final snap = await _events.doc(id).get();
+                  if (snap.exists && snap.data()?['deletedAt'] == null) {
+                    return snap;
+                  }
+                  return null;
+                } catch (e) {
+                  debugPrint('[datedawn] Could not fetch shared event $id: $e');
                   return null;
                 }
               },
@@ -256,12 +250,9 @@ class EventRepository {
           if (disposed) return;
 
           final fetched = <String, CountdownEvent>{};
-          for (final snap in snaps) {
-            if (snap == null) continue;
-            for (final doc in snap.docs) {
-              if (doc.data()['deletedAt'] == null) {
-                fetched[doc.id] = _fromDoc(doc);
-              }
+          for (final doc in docs) {
+            if (doc != null) {
+              fetched[doc.id] = _fromDoc(doc);
             }
           }
           fetchedShared = {...fetchedShared, ...fetched};
