@@ -120,6 +120,10 @@ class EventRepository {
         .where('userId', isEqualTo: userId)
         .snapshots();
 
+    final circleSharedEvents = _events
+        .where('sharedWithMemberIds', arrayContains: userId)
+        .snapshots();
+
     // The circle ids this user belongs to, live. Feeds query 3 and re-runs it
     // when the user joins or leaves a circle.
     final myCircles =
@@ -348,11 +352,24 @@ class EventRepository {
       unawaited(fetchCircleShared());
     }, onError: controller.addError);
 
+    final subCircleShared = circleSharedEvents.listen((snap) {
+      final fetched = <String, CountdownEvent>{};
+      for (final doc in snap.docs) {
+        if (doc.data()['deletedAt'] == null) {
+          fetched[doc.id] = _fromDoc(doc);
+        }
+      }
+      fetchedShared = {...fetchedShared, ...fetched};
+      unawaited(hydrateParticipants());
+      emit();
+    }, onError: controller.addError);
+
     controller.onCancel = () async {
       disposed = true;
       await subOwned.cancel();
       await subShared.cancel();
       await subCircles.cancel();
+      await subCircleShared.cancel();
     };
 
     return controller.stream;
