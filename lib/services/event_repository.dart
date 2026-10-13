@@ -611,8 +611,8 @@ class EventRepository {
         try {
           final memberSnap =
               await _circles.doc(circle.id).collection('members').get();
-          members.addAll(memberSnap.docs
-              .map((d) => CircleMember.fromMap(d.id, d.data())));
+          members.addAll(
+              memberSnap.docs.map((d) => CircleMember.fromMap(d.id, d.data())));
         } catch (error) {
           debugPrint(
             '[datedawn] Could not read members of couple circle ${circle.id}: '
@@ -2191,8 +2191,9 @@ class EventRepository {
           .whereType<String>()
           .where((id) => id != circleId)
           .toList();
-      final current =
-          (data['sharedWithMemberIds'] as List? ?? const []).whereType<String>().toSet();
+      final current = (data['sharedWithMemberIds'] as List? ?? const [])
+          .whereType<String>()
+          .toSet();
 
       // Anyone a remaining circle still covers. A circle we cannot read is
       // skipped, which leaves its members in `current` rather than dropping them.
@@ -2212,10 +2213,10 @@ class EventRepository {
       }
 
       final next = current
-          .where((id) => !deletedMembers.contains(id) || stillCovered.contains(id))
+          .where(
+              (id) => !deletedMembers.contains(id) || stillCovered.contains(id))
           .toList();
-      if (next.length == current.length &&
-          next.every(current.contains)) {
+      if (next.length == current.length && next.every(current.contains)) {
         // Nothing to do for this event.
         continue;
       }

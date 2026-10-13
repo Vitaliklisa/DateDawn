@@ -120,7 +120,8 @@ void main() {
       );
     });
 
-    test('the circle delete is not held hostage by a countdown it cannot '
+    test(
+        'the circle delete is not held hostage by a countdown it cannot '
         'unshare', () async {
       // A countdown that is NOT owned by the circle owner and carries no
       // participant row for them: in the real rules the unshare is refused.
@@ -184,8 +185,7 @@ void main() {
       expect(
         stored['sharedWithMemberIds'],
         contains('sam'),
-        reason:
-            'the partner must be in the visibility array, or the countdown '
+        reason: 'the partner must be in the visibility array, or the countdown '
             'never reaches their feed',
       );
       expect(
@@ -194,7 +194,10 @@ void main() {
         reason: 'the returned object must match what was written',
       );
       expect(
-        (await db.collection('events').doc(created.id).collection('participants')
+        (await db
+                .collection('events')
+                .doc(created.id)
+                .collection('participants')
                 .doc('sam')
                 .get())
             .exists,
@@ -203,7 +206,8 @@ void main() {
       );
     });
 
-    test('the partner is made visible even when their participant row cannot '
+    test(
+        'the partner is made visible even when their participant row cannot '
         'be written', () async {
       // Simulates the auto-share participant write failing: the circle lists
       // the partner, but the row write is skipped. The visibility array must
