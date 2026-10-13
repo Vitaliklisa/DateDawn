@@ -229,9 +229,15 @@ service cloud.firestore {
 
       // ---------- participants ----------
       match /participants/{userId} {
-        // Participants are visible to anyone who can see the event.
+        // A user can always read their own participant row (backs collectionGroup query
+        // for shared events), or any participant row if they can see the parent event.
         allow read: if signedIn()
-          && (isParticipant(eventId) || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data));
+          && (
+            userId == uid()
+            || (resource != null && resource.data.userId == uid())
+            || isParticipant(eventId)
+            || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data)
+          );
 
         // The creator seeds their own admin row as part of creating the event.
         // Everyone else is added by an admin, or by accepting an invitation.
