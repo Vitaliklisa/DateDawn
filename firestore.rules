@@ -221,8 +221,15 @@ service cloud.firestore {
       // themselves as the creator.
       allow create: if signedIn() && validEventPayload();
 
-      allow update: if (isOwner(eventId, resource.data) || isEditor(eventId))
-        && onlyEventFieldsChanged();
+      allow update: if (
+          isOwner(eventId, resource.data)
+          || isEditor(eventId)
+          || (
+            signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sharedWithMemberIds', 'updatedAt'])
+            && uid() in request.resource.data.sharedWithMemberIds
+          )
+        ) && onlyEventFieldsChanged();
 
       // Soft delete only: a hard delete would orphan participants and notes.
       allow delete: if false;

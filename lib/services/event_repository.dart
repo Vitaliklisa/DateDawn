@@ -788,6 +788,10 @@ class EventRepository {
         },
         SetOptions(merge: true),
       );
+      batch.update(_events.doc(event.id), {
+        'sharedWithMemberIds': FieldValue.arrayUnion([targetUserId]),
+        'updatedAt': Timestamp.fromDate(now),
+      });
       await batch.commit();
 
       // Tell the invitee there is something waiting for them. This is the line
@@ -904,6 +908,10 @@ class EventRepository {
     );
     batch.update(_invitations.doc(invitation.id),
         {'status': InviteStatus.accepted.name});
+    batch.update(_events.doc(invitation.eventId), {
+      'sharedWithMemberIds': FieldValue.arrayUnion([userId]),
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
     await batch.commit();
 
     // Best-effort: the user has already joined, so a notify failure is not
@@ -1303,6 +1311,10 @@ class EventRepository {
           'createdAt': nowStamp,
           'expiresAt': expiresStamp,
           'eventTitle': eventTitle,
+        });
+        batch.update(_events.doc(eventId), {
+          'sharedWithMemberIds': FieldValue.arrayUnion([targetUserId]),
+          'updatedAt': nowStamp,
         });
         await batch.commit();
 
