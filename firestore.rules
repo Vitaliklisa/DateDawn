@@ -158,6 +158,41 @@ service cloud.firestore {
         .hasOnly(['title', 'description', 'at', 'updatedAt', 'deletedAt', 'sharedWithCircleIds', 'sharedWithMemberIds', 'circleId']);
     }
 
+    // Is this write only rewriting `sharedWithMemberIds` (plus the timestamp)?
+    //
+    // This is the denormalised-visibility write: adding someone to a circle's
+    // share, or taking them back out. It is the ONLY field those flows touch, so
+    // pinning it here keeps the permission decision narrow — an unrelated field
+    // slipping into the same update is refused.
+    function onlyMemberIdsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['sharedWithMemberIds', 'updatedAt']);
+    }
+
+    // Removing exactly one uid from the array — and it is the caller's own.
+    //
+    // This authorises leaving (or being removed from) a circle, where the
+    // affected countdowns are resynced to drop the leaver. Without it that write
+    // is refused: the leaver is no longer a member, so the add branch below is
+    // false by construction (`uid() in request.resource.data.sharedWithMemberIds`
+    // cannot hold when the whole point is that they are being taken out), and
+    // they are not an owner or editor of a countdown someone else shared. The
+    // refusal was swallowed by the resync's catch, so it looked like the resync
+    // simply "did nothing" — while in fact every leave left the leaver in the
+    // array and kept serving them the circle's countdowns.
+    //
+    // The check is deliberately narrow: the caller's uid must have been in the
+    // OLD array and must be absent from the NEW one, and the new array must be
+    // exactly one shorter. That permits "remove me" and nothing else — a leaver
+    // cannot use this to add anyone, nor to drop a third party.
+    function isSelfRemoval() {
+      return signedIn()
+        && uid() in resource.data.sharedWithMemberIds
+        && !(uid() in request.resource.data.sharedWithMemberIds)
+        && request.resource.data.sharedWithMemberIds.size()
+             == resource.data.sharedWithMemberIds.size() - 1;
+    }
+
     function validEventPayload() {
       return request.resource.data.title is string
         && request.resource.data.title.size() > 0
@@ -224,11 +259,13 @@ service cloud.firestore {
       allow update: if (
           isOwner(eventId, resource.data)
           || isEditor(eventId)
-          || (
-            signedIn()
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sharedWithMemberIds', 'updatedAt'])
-            && uid() in request.resource.data.sharedWithMemberIds
-          )
+          // Adding the caller (or someone else) to the denormalised visibility
+          // array — the caller must be in the array being written, so this
+          // cannot be used to grant access to a countdown they cannot see.
+          || (onlyMemberIdsChanged()
+            && uid() in request.resource.data.sharedWithMemberIds)
+          // Removing exactly the caller's own uid — the leave/removed path.
+          || (onlyMemberIdsChanged() && isSelfRemoval())
         ) && onlyEventFieldsChanged();
 
       // Soft delete only: a hard delete would orphan participants and notes.

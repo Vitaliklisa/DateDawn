@@ -579,17 +579,46 @@ class EventRepository {
       // A couple circle: every member joins silently, as an editor, so either
       // partner can reshape the plan.
       //
-      // `circlesProvider` streams circle documents without their `members`
-      // subcollection, so the list here is usually empty. Hydrate it from the
-      // subcollection on demand — without this the couple auto-share silently
-      // did nothing, because the loop below had nobody to iterate.
-      var members = circle.members;
-      if (members.isEmpty) {
-        final memberSnap =
-            await _circles.doc(circle.id).collection('members').get();
-        members = memberSnap.docs
-            .map((d) => CircleMember.fromMap(d.id, d.data()))
-            .toList();
+      // **Where the member list comes from matters, and this used to get it
+      // wrong.** `circlesProvider` streams circle documents without their
+      // `members` subcollection, so `circle.members` is empty in the normal
+      // case. The old code fell back to reading the subcollection — which is a
+      // second read that can be empty (nobody ever wrote rows) or refused, and
+      // when it came back empty the loop below had nobody to iterate and the
+      // couple auto-share silently did nothing. That is precisely the "the
+      // countdown was created for me but my partner never saw it" symptom.
+      //
+      // `memberIds` is the denormalised list ON the circle document. It is what
+      // every other membership check in this file treats as authoritative, and
+      // it is already in hand — no extra read, and no way for it to be empty
+      // when the circle has members. So it is the primary source now; the
+      // subcollection is only a fallback for a legacy circle that has member
+      // rows but an empty `memberIds`.
+      final members = <CircleMember>[];
+      if (circle.members.isNotEmpty) {
+        members.addAll(circle.members);
+      } else if (circle.memberIds.isNotEmpty) {
+        for (final memberId in circle.memberIds) {
+          if (memberId.isEmpty) continue;
+          members.add(CircleMember(
+            userId: memberId,
+            email: '',
+            displayName: null,
+            photoUrl: null,
+          ));
+        }
+      } else {
+        try {
+          final memberSnap =
+              await _circles.doc(circle.id).collection('members').get();
+          members.addAll(memberSnap.docs
+              .map((d) => CircleMember.fromMap(d.id, d.data())));
+        } catch (error) {
+          debugPrint(
+            '[datedawn] Could not read members of couple circle ${circle.id}: '
+            '$error',
+          );
+        }
       }
       for (final member in members) {
         if (member.userId == userId) continue;
@@ -617,6 +646,27 @@ class EventRepository {
       members: autoShareMembers,
       now: now,
     );
+    // The partner's participant row alone is not enough. The feed and the read
+    // rule both go through `sharedWithMemberIds` on the event, so a partner who
+    // is not in that array has a row they can never query their way to — the
+    // countdown is created for the creator and silently absent for them.
+    //
+    // This is unioned from the **intended** members, not from the rows that
+    // happened to be written. Keying it off `autoParticipants` meant a refused
+    // participant write — the exact failure this is meant to paper over — also
+    // skipped the visibility write, so the two failures compounded instead of
+    // the second covering the first. The uids come straight from the couple
+    // circle's member list, which is authoritative, so the partner is made
+    // visible even when their participant row is not yet there: they still get
+    // the countdown in their feed, and the row can be added later.
+    final coupleMemberIds = <String>{
+      ...autoShareMembers.map((m) => m.userId),
+      ...autoParticipants.map((p) => p.userId),
+    };
+    await _addToSharedWithMemberIds(
+      eventId: id,
+      memberIds: coupleMemberIds.toList(),
+    );
     await _inviteAll(
       eventId: id,
       eventTitle: title.trim(),
@@ -635,7 +685,12 @@ class EventRepository {
       createdAt: now,
       updatedAt: now,
       sharedWithCircleIds: validCircleIds,
-      sharedWithMemberIds: sharedMemberIds.toList(),
+      // The in-memory copy must match what was actually written, couple members
+      // included — the screen that created it reads this object back, and a
+      // stale array here is what makes the new countdown look like it was not
+      // shared at all until the next full reload.
+      sharedWithMemberIds:
+          <String>{...sharedMemberIds, ...coupleMemberIds}.toList(),
       participants: [
         Participant(
           userId: userId,
@@ -1248,6 +1303,42 @@ class EventRepository {
       return const [];
     }
     return written;
+  }
+
+  /// Unions [memberIds] into `sharedWithMemberIds` on the countdown [eventId].
+  ///
+  /// The couple auto-share writes participant rows, but the feed query and the
+  /// read rule both key off this array, so the rows are invisible without it.
+  /// `arrayUnion` (not a whole-array rewrite) because this runs concurrently
+  /// with nothing else on a fresh event but must stay idempotent when it is
+  /// called again after a re-share.
+  ///
+  /// Best-effort, like the auto-share it follows: the countdown is already
+  /// committed, and a failure here degrades to the partner seeing it only after
+  /// they open it from a notification, not to a broken create.
+  Future<void> _addToSharedWithMemberIds({
+    required String eventId,
+    required List<String> memberIds,
+  }) async {
+    final ids = memberIds.where((id) => id.isNotEmpty).toSet().toList();
+    if (ids.isEmpty) return;
+    try {
+      await _events.doc(eventId).update({
+        'sharedWithMemberIds': FieldValue.arrayUnion(ids),
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+    } on FirebaseException catch (error) {
+      debugPrint(
+        '[datedawn] Could not add couple members to sharedWithMemberIds for '
+        '$eventId (${error.code}). The partner may not see the countdown until '
+        'it is re-shared. If this is permission-denied, deploy the rules: '
+        'firebase deploy --only firestore:rules',
+      );
+    } catch (error) {
+      debugPrint(
+        '[datedawn] Could not update sharedWithMemberIds for $eventId: $error',
+      );
+    }
   }
 
   /// Writes the pending participant rows and `invitations` documents for a
@@ -1934,6 +2025,16 @@ class EventRepository {
   ///
   /// Member rows go too — they belong to the circle and nothing else reads them.
   ///
+  /// **The countdown unshares are committed BEFORE the circle is deleted, in
+  /// their own batches.** This is the fix for "I own this circle but cannot
+  /// delete it": the unshare update is authorised per countdown (owner/editor
+  /// of that countdown), while deleting the circle is authorised by the circle
+  /// owner. In one batch, a single countdown the caller can see but not edit
+  /// fails its update, and because a batch is atomic Firestore rejects the whole
+  /// thing — taking the perfectly legal circle delete down with it, surfaced as a
+  /// bare `permission-denied`. Splitting them means a countdown that refuses the
+  /// unshare is simply skipped, and the circle is still deleted.
+  ///
   /// Everything is chunked: a batch caps at 500 writes and a circle can be
   /// shared with more countdowns than that.
   Future<void> deleteCircle({
@@ -1956,71 +2057,181 @@ class EventRepository {
         .get();
     final members = await _circles.doc(circleId).collection('members').get();
 
+    // 1. Unshare every countdown, on its own, before touching the circle.
+    //    Best-effort per countdown: one the caller cannot edit must not block
+    //    the delete. The reference is stripped even if the caller is a viewer
+    //    via the `sharedWithMemberIds`-only update branch of the rule.
+    await _unshareCircleFromEvents(circleId, shared.docs);
+
+    // 2. Re-derive `sharedWithMemberIds` for those countdowns while the circle
+    //    is still readable — the prune needs the circle's own member list, so it
+    //    must run before the circle document is gone.
+    await _pruneDeletedCircleShares(circleId, shared.docs);
+
+    // 3. Delete the circle document and its member rows. Nothing here touches
+    //    an event, so this batch is authorised by the circle owner alone and
+    //    cannot be poisoned by a countdown the owner does not own.
     final refs = <DocumentReference<Map<String, dynamic>>>[
       // The member rows.
       for (final member in members.docs) member.reference,
       // The circle document itself.
       _circles.doc(circleId),
-      // Every countdown's link back to the circle.
-      for (final event in shared.docs) event.reference,
     ];
 
     for (var i = 0; i < refs.length; i += 400) {
       final end = i + 400 > refs.length ? refs.length : i + 400;
       final batch = _db.batch();
       for (final ref in refs.sublist(i, end)) {
-        if (ref.parent.id == 'events') {
-          // Unshare rather than delete the countdown. `sharedWithMemberIds` is
-          // left to `_pruneDeletedCircleShares` below: it is derived from the
-          // circles that REMAIN on the event, which needs a read per event — not
-          // something to do inside a batch.
-          batch.update(ref, {
-            'sharedWithCircleIds': FieldValue.arrayRemove([circleId]),
-            'updatedAt': Timestamp.fromDate(DateTime.now()),
-          });
-        } else {
-          batch.delete(ref);
-        }
+        batch.delete(ref);
       }
       await batch.commit();
     }
-
-    // Re-derive `sharedWithMemberIds` for every countdown that was shared with
-    // the deleted circle. Without this the array keeps the deleted circle's
-    // members in it, and the visibility rule reads exactly that array — so the
-    // countdown would go on being served to people who are no longer in any
-    // circle it belongs to.
-    await _pruneDeletedCircleShares(circleId, shared.docs);
   }
 
-  /// Recomputes `sharedWithMemberIds` from the circles that remain on each event
-  /// after [circleId] was deleted.
+  /// Strips [circleId] from `sharedWithCircleIds` on every countdown in
+  /// [events], one batch at a time and best-effort per countdown.
+  ///
+  /// Split out of [deleteCircle] so the countdown updates and the circle delete
+  /// are never in the same atomic batch: a single countdown the caller cannot
+  /// edit used to fail the whole batch and take the circle delete with it.
+  Future<void> _unshareCircleFromEvents(
+    String circleId,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> events,
+  ) async {
+    for (var i = 0; i < events.length; i += 400) {
+      final end = i + 400 > events.length ? events.length : i + 400;
+      final chunk = events.sublist(i, end);
+      try {
+        final batch = _db.batch();
+        for (final event in chunk) {
+          // Unshare rather than delete the countdown.
+          batch.update(event.reference, {
+            'sharedWithCircleIds': FieldValue.arrayRemove([circleId]),
+            'updatedAt': Timestamp.fromDate(DateTime.now()),
+          });
+        }
+        await batch.commit();
+      } catch (error) {
+        // A countdown the caller cannot edit — typically someone else's, where
+        // they are only a viewer. Fall back to one-by-one so the rest of the
+        // chunk still gets unshared; the circle delete must not be blocked by
+        // it.
+        debugPrint(
+          '[datedawn] Could not unshare circle $circleId from a batch of '
+          'countdowns ($error). Retrying one at a time.',
+        );
+        for (final event in chunk) {
+          try {
+            await _events.doc(event.id).update({
+              'sharedWithCircleIds': FieldValue.arrayRemove([circleId]),
+              'updatedAt': Timestamp.fromDate(DateTime.now()),
+            });
+          } catch (singleError) {
+            debugPrint(
+              '[datedawn] Could not unshare circle $circleId from '
+              'countdown ${event.id}: $singleError',
+            );
+          }
+        }
+      }
+    }
+  }
+
+  /// Recomputes `sharedWithMemberIds` on each event after [circleId] was
+  /// deleted, **subtractively**.
+  ///
+  /// The naive version rebuilt the array from the circles that *remain* by
+  /// reading each of them. That cannot work in general: reading
+  /// `circles/{other}` needs `uid() in memberIds` on THAT circle, and the person
+  /// deleting this circle is frequently not in it. One denied read aborted the
+  /// whole loop (it was wrapped in a single `try`), so a countdown shared with
+  /// two circles kept the deleted circle's members in its visibility array —
+  /// the countdown went on being served to people whose only claim to it was
+  /// the circle that no longer exists.
+  ///
+  /// So instead: start from the members of the circle being deleted — which the
+  /// deleter is guaranteed to be able to read, they own it — and remove exactly
+  /// those, keeping any uid that some *other* remaining circle still covers.
+  /// A remaining circle whose members cannot be read is treated as "covers
+  /// everyone" (we simply do not remove anyone on its behalf): leaving a uid in
+  /// the array is a harmless over-share that the next resync fixes, whereas
+  /// removing someone who should still see the countdown silently hides it from
+  /// them.
+  ///
+  /// Runs **before** the circle document is removed, so the member list is still
+  /// there to read.
   Future<void> _pruneDeletedCircleShares(
     String circleId,
     List<QueryDocumentSnapshot<Map<String, dynamic>>> events,
   ) async {
     if (events.isEmpty) return;
+
+    // The members this circle was responsible for. Read once, from the circle
+    // the caller owns — never a read that can be denied.
+    final deletedMembers = <String>{};
     try {
-      for (final event in events) {
-        final remaining =
-            (event.data()['sharedWithCircleIds'] as List? ?? const [])
-                .whereType<String>()
-                .where((id) => id != circleId)
-                .toList();
-        final memberIds = <String>{};
-        for (final id in remaining) {
-          final doc = await _circles.doc(id).get();
-          final raw = doc.data()?['memberIds'];
-          if (raw is List) memberIds.addAll(raw.whereType<String>());
-        }
-        await _events.doc(event.id).update({
-          'sharedWithMemberIds': memberIds.toList(),
-          'updatedAt': Timestamp.fromDate(DateTime.now()),
-        });
+      final doc = await _circles.doc(circleId).get();
+      final raw = doc.data()?['memberIds'];
+      if (raw is List) deletedMembers.addAll(raw.whereType<String>());
+      if (deletedMembers.isEmpty) {
+        final snap = await _circles.doc(circleId).collection('members').get();
+        deletedMembers.addAll(snap.docs.map((d) => d.id));
       }
     } catch (error) {
-      // The circle is already deleted; this is cleanup.
-      debugPrint('[datedawn] Could not prune shares for $circleId: $error');
+      debugPrint(
+        '[datedawn] Could not read members of circle $circleId while pruning: '
+        '$error',
+      );
+    }
+    if (deletedMembers.isEmpty) return;
+
+    for (final event in events) {
+      final data = event.data();
+      final remaining = (data['sharedWithCircleIds'] as List? ?? const [])
+          .whereType<String>()
+          .where((id) => id != circleId)
+          .toList();
+      final current =
+          (data['sharedWithMemberIds'] as List? ?? const []).whereType<String>().toSet();
+
+      // Anyone a remaining circle still covers. A circle we cannot read is
+      // skipped, which leaves its members in `current` rather than dropping them.
+      final stillCovered = <String>{};
+      for (final id in remaining) {
+        try {
+          final doc = await _circles.doc(id).get();
+          final raw = doc.data()?['memberIds'];
+          if (raw is List) stillCovered.addAll(raw.whereType<String>());
+        } catch (error) {
+          debugPrint(
+            '[datedawn] Could not read circle $id while pruning $circleId; '
+            'leaving its members shared: $error',
+          );
+          stillCovered.addAll(current);
+        }
+      }
+
+      final next = current
+          .where((id) => !deletedMembers.contains(id) || stillCovered.contains(id))
+          .toList();
+      if (next.length == current.length &&
+          next.every(current.contains)) {
+        // Nothing to do for this event.
+        continue;
+      }
+      try {
+        await _events.doc(event.id).update({
+          'sharedWithMemberIds': next,
+          'updatedAt': Timestamp.fromDate(DateTime.now()),
+        });
+      } catch (error) {
+        // Per-event, so one countdown that refuses the write does not stop the
+        // others from being pruned — and never propagates to fail the delete.
+        debugPrint(
+          '[datedawn] Could not prune shares for $circleId on event '
+          '${event.id}: $error',
+        );
+      }
     }
   }
 
