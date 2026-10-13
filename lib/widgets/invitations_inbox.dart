@@ -263,7 +263,11 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
     );
     // A refusal is the one case where a second attempt should be possible:
     // the first never changed anything, so the invitation is still open.
-    if (failure != null) _release();
+    if (failure != null) {
+      _release();
+    } else {
+      ref.invalidate(eventsProvider);
+    }
     if (mounted) setState(() => _busy = false);
   }
 
@@ -350,7 +354,12 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
           ),
       successMessage: 'You joined “${widget.invite.circleName}”.',
     );
-    if (failure != null) _release();
+    if (failure != null) {
+      _release();
+    } else {
+      ref.invalidate(eventsProvider);
+      ref.invalidate(circlesProvider);
+    }
     if (mounted) setState(() => _busy = false);
   }
 

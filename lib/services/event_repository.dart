@@ -215,7 +215,7 @@ class EventRepository {
     /// for non-owner participants.
     bool fetching = false;
     bool fetchAgain = false;
-    Future<void> fetchShared() async {
+    Future<void> fetchShared({bool force = false}) async {
       if (fetching) {
         // A fetch is already in flight; run one more afterwards so ids that
         // arrived meanwhile are not missed.
@@ -226,9 +226,11 @@ class EventRepository {
       try {
         do {
           fetchAgain = false;
-          final wanted = latestSharedIds
-              .where((id) => !fetchedShared.containsKey(id))
-              .toList();
+          final wanted = force
+              ? latestSharedIds.toList()
+              : latestSharedIds
+                  .where((id) => !fetchedShared.containsKey(id))
+                  .toList();
           if (wanted.isEmpty) break;
 
           final docs = await Future.wait(
@@ -294,7 +296,7 @@ class EventRepository {
           ids.add(doc.id);
         }
         latestSharedIds = ids;
-        await fetchShared();
+        await fetchShared(force: true);
       } on FirebaseException catch (error) {
         debugPrint(
           '[datedawn] Circle-share query failed (${error.code}). If this is '
@@ -319,7 +321,7 @@ class EventRepository {
       // account. Give the shared and circle feeds a moment to answer, then
       // force a settle so "no countdowns" is shown rather than "still loading".
       if (!emittedAnything) {
-        unawaited(Future<void>.delayed(const Duration(milliseconds: 600), () {
+        unawaited(Future<void>.delayed(const Duration(milliseconds: 1500), () {
           if (!disposed) emit(force: true);
         }));
       }
@@ -335,7 +337,7 @@ class EventRepository {
       // set here used to drop circle-shared ids whenever the participant feed
       // re-emitted, which made a shared countdown flicker out of the list.
       latestSharedIds = {...latestSharedIds, ...ids};
-      unawaited(fetchShared());
+      unawaited(fetchShared(force: true));
     }, onError: controller.addError);
 
     final subCircles = myCircles.listen((snap) {
