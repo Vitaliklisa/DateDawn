@@ -22,4 +22,6 @@ class Routes {
 
   /// Help & support. Public — reachable with no session, on purpose.
   static const support = '/support';
+  static const privacy = '/privacy';
+  static const terms = '/terms';
 }

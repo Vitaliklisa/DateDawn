@@ -26,28 +26,72 @@ class NotificationsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
-          if (user != null && hasUnread)
-            TextButton(
-              onPressed: () => runAction(
-                context,
-                () async {
-                  final unreadResponses = (responses.value ?? const [])
-                      .where((response) => !response.read);
-                  await Future.wait([
-                    for (final response in unreadResponses)
+          if (user != null) ...[
+            if (hasUnread)
+              TextButton(
+                onPressed: () => runAction(
+                  context,
+                  () async {
+                    final unreadResponses = (responses.value ?? const [])
+                        .where((response) => !response.read);
+                    await Future.wait([
+                      for (final response in unreadResponses)
+                        ref
+                            .read(eventRepositoryProvider)
+                            .markResponseRead(response.id),
                       ref
-                          .read(eventRepositoryProvider)
-                          .markResponseRead(response.id),
-                    ref
-                        .read(notificationServiceProvider)
-                        .markAllNotificationsRead(user.id),
-                  ]);
-                },
-                successMessage: 'Marked all read.',
+                          .read(notificationServiceProvider)
+                          .markAllNotificationsRead(user.id),
+                    ]);
+                  },
+                  successMessage: 'Marked all read.',
+                ),
+                child:
+                    const Text('Mark all read', style: TextStyle(fontSize: 13)),
               ),
-              child:
-                  const Text('Mark all read', style: TextStyle(fontSize: 13)),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded, size: 20),
+              tooltip: 'More options',
+              onSelected: (value) async {
+                if (value == 'delete_read') {
+                  final readNotifications = (notifications.value ?? const [])
+                      .where((n) => n.isRead)
+                      .toList();
+                  final readResponses = (responses.value ?? const [])
+                      .where((r) => r.read)
+                      .toList();
+                  if (readNotifications.isEmpty && readResponses.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No read messages to delete.')),
+                    );
+                    return;
+                  }
+                  await runAction(
+                    context,
+                    () async {
+                      await Future.wait([
+                        for (final n in readNotifications)
+                          ref
+                              .read(notificationServiceProvider)
+                              .deleteNotification(user.id, n.id),
+                        for (final r in readResponses)
+                          ref
+                              .read(eventRepositoryProvider)
+                              .deleteResponse(r.id),
+                      ]);
+                    },
+                    successMessage: 'Deleted read messages.',
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'delete_read',
+                  child: Text('Delete read messages'),
+                ),
+              ],
             ),
+          ],
         ],
       ),
       body: user == null

@@ -12,6 +12,7 @@ import 'screens/home_screen.dart';
 import 'screens/invitations_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/policy_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/support_screen.dart';
 import 'widgets/app_navigation_shell.dart';
@@ -30,7 +31,9 @@ final _rootKey = GlobalKey<NavigatorState>();
 /// Login obviously, and support: an app whose help page demands you sign in
 /// first has no help page. Everything else is behind the redirect.
 bool _isPublic(String location) {
-  if (location == Routes.login) return true;
+  if (location == Routes.login ||
+      location == Routes.privacy ||
+      location == Routes.terms) return true;
   return location == Routes.support ||
       location.startsWith('${Routes.support}/');
 }
@@ -148,6 +151,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: Routes.support,
             name: 'support',
             builder: (context, state) => const SupportScreen(),
+          ),
+          GoRoute(
+            path: Routes.privacy,
+            name: 'privacy',
+            builder: (context, state) => const PolicyScreen(isPrivacy: true),
+          ),
+          GoRoute(
+            path: Routes.terms,
+            name: 'terms',
+            builder: (context, state) => const PolicyScreen(isPrivacy: false),
           ),
           GoRoute(
             path: Routes.newEvent,

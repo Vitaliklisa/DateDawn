@@ -125,11 +125,11 @@ class SupportScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _LinkRow(
             label: 'Privacy policy',
-            onTap: () => _open(context, 'https://datedawn.app/privacy'),
+            onTap: () => context.push(Routes.privacy),
           ),
           _LinkRow(
             label: 'Terms of service',
-            onTap: () => _open(context, 'https://datedawn.app/terms'),
+            onTap: () => context.push(Routes.terms),
           ),
           const SizedBox(height: 26),
           Container(
