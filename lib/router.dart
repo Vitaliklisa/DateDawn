@@ -33,7 +33,9 @@ final _rootKey = GlobalKey<NavigatorState>();
 bool _isPublic(String location) {
   if (location == Routes.login ||
       location == Routes.privacy ||
-      location == Routes.terms) return true;
+      location == Routes.terms) {
+    return true;
+  }
   return location == Routes.support ||
       location.startsWith('${Routes.support}/');
 }

@@ -62,7 +62,8 @@ class NotificationsScreen extends ConsumerWidget {
                       .toList();
                   if (readNotifications.isEmpty && readResponses.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('No read messages to delete.')),
+                      const SnackBar(
+                          content: Text('No read messages to delete.')),
                     );
                     return;
                   }
