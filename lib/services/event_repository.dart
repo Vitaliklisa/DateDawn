@@ -2142,8 +2142,7 @@ class EventRepository {
     // refusal here must not take the circle delete down with it.
     var memberRefs = <DocumentReference<Map<String, dynamic>>>[];
     try {
-      final members =
-          await _circles.doc(circleId).collection('members').get();
+      final members = await _circles.doc(circleId).collection('members').get();
       memberRefs = members.docs.map((d) => d.reference).toList();
     } catch (error) {
       debugPrint(
@@ -2534,13 +2533,11 @@ class EventRepository {
         final ref = _recentContacts(userId).doc(docId);
         final existing = await ref.get();
         final previous = existing.data();
-        final count =
-            ((previous?['inviteCount'] as num?)?.toInt() ?? 0) + 1;
+        final count = ((previous?['inviteCount'] as num?)?.toInt() ?? 0) + 1;
         await ref.set({
           'userId': contact.userId,
           'email': email,
-          if (contact.displayName != null)
-            'displayName': contact.displayName,
+          if (contact.displayName != null) 'displayName': contact.displayName,
           if (contact.photoUrl != null) 'photoUrl': contact.photoUrl,
           'lastInvitedAt': Timestamp.fromDate(now),
           'inviteCount': count,

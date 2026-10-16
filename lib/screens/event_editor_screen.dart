@@ -790,15 +790,15 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
         // Best-effort: a failure here must not turn a sent invite into an error.
         unawaited(
           ref.read(eventRepositoryProvider).rememberInvitedContacts(
-                userId: user.id,
-                contacts: [
-                  InvitationRecipient(
-                    userId: '',
-                    email: email,
-                    displayName: _invitedName(email),
-                  ),
-                ],
+            userId: user.id,
+            contacts: [
+              InvitationRecipient(
+                userId: '',
+                email: email,
+                displayName: _invitedName(email),
               ),
+            ],
+          ),
         );
       } else if (mounted) {
         setState(() => _inviteError = failure);
@@ -830,8 +830,8 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
 
     // People invited before, so the address typed last time is offered again.
     // Ordered most-recently-invited first by the repository.
-    final contacts = ref.watch(recentContactsProvider).value ??
-        const <RecentContact>[];
+    final contacts =
+        ref.watch(recentContactsProvider).value ?? const <RecentContact>[];
     final suggestions = _suggestions(contacts);
 
     return Column(
@@ -895,8 +895,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
               child: Column(
                 children: [
                   for (var i = 0; i < suggestions.length; i++) ...[
-                    if (i > 0)
-                      Divider(height: 1, color: colors.border),
+                    if (i > 0) Divider(height: 1, color: colors.border),
                     _SuggestionRow(
                       contact: suggestions[i],
                       onTap: () => _applySuggestion(suggestions[i]),
@@ -1144,7 +1143,8 @@ class _SuggestionRow extends StatelessWidget {
             children: [
               UserAvatar(
                 initials: contact.initials,
-                seed: contact.userId.isNotEmpty ? contact.userId : contact.email,
+                seed:
+                    contact.userId.isNotEmpty ? contact.userId : contact.email,
                 photoUrl: contact.photoUrl,
                 size: 30,
               ),

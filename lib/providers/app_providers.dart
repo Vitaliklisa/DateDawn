@@ -228,8 +228,7 @@ final notesProvider =
 /// This is what the invite field suggests as you type, so the address you typed
 /// on the last countdown is offered on the next one instead of being retyped.
 /// Empty while signed out, since there is nothing to remember against.
-final recentContactsProvider =
-    StreamProvider<List<RecentContact>>((ref) {
+final recentContactsProvider = StreamProvider<List<RecentContact>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(const []);
   return ref.watch(eventRepositoryProvider).watchRecentContacts(user.id);

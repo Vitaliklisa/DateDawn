@@ -69,7 +69,8 @@ class RecentContact {
         email: ((map['email'] as String?) ?? '').toLowerCase(),
         displayName: map['displayName'] as String?,
         photoUrl: map['photoUrl'] as String?,
-        lastInvitedAt: _date(map['lastInvitedAt']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+        lastInvitedAt: _date(map['lastInvitedAt']) ??
+            DateTime.fromMillisecondsSinceEpoch(0),
         inviteCount: (map['inviteCount'] as num?)?.toInt() ?? 1,
       );
 
