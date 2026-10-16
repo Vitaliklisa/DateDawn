@@ -145,6 +145,15 @@ class _EventActionsSheet extends ConsumerWidget {
                     messenger.showSnackBar(
                       const SnackBar(content: Text('Countdown deleted.')),
                     );
+                    // Drop the deleted countdown out of the feed and let go of
+                    // any pin on it, so the home screen is already up to date
+                    // when the sheet closes instead of waiting for the Firestore
+                    // listener to re-emit — or, worse, needing a manual reload.
+                    // The `selectedEventIdProvider` clear is what stops the hero
+                    // falling back to a countdown that no longer exists when the
+                    // app is sitting on `/home/:id`.
+                    ref.invalidate(eventsProvider);
+                    ref.read(selectedEventIdProvider.notifier).set(null);
                     onDeleted?.call();
                   } on DataFailure catch (e) {
                     messenger.showSnackBar(SnackBar(content: Text(e.message)));

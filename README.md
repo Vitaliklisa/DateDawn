@@ -126,7 +126,7 @@ opens.
 ### 1. Flutter
 
 ```bash
-flutter --version   # 3.22 or newer
+flutter --version   # Use the stable release pinned in .flutter-version
 ```
 
 ### 2. Confirm the Firebase project

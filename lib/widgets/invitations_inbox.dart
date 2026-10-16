@@ -6,12 +6,11 @@ import '../core/models.dart';
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
 
-/// One inbox for everything waiting on an answer: countdown invitations and
-/// circle invitations.
+/// One inbox for countdown and circle invitations.
 ///
 /// They are different objects with different consequences — a countdown invite
-/// adds you to one event, a circle invite adds you to a standing group — so
-/// each card says plainly which it is before you tap Accept.
+/// adds you to one event, a standard circle invite adds you to a standing
+/// group, and a couple invite joins automatically.
 class InvitationsInbox extends ConsumerWidget {
   const InvitationsInbox({super.key, this.showWhenEmpty = false});
 
@@ -80,8 +79,8 @@ class _EmptyInbox extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Invitations people send you will appear here. Until you answer one, '
-          'nothing is shared with you.',
+          'Invitations people send you will appear here. Countdown and standard '
+          'circle invitations need your response; couple circles join automatically.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
         ),
@@ -90,24 +89,28 @@ class _EmptyInbox extends StatelessWidget {
   }
 }
 
-/// Shared shell: a titled card with Accept / Decline.
+/// Shared shell for invitations that require an answer or join automatically.
 class _InviteShell extends StatelessWidget {
   const _InviteShell({
     required this.eyebrow,
     required this.title,
     required this.body,
-    required this.onAccept,
-    required this.onDecline,
     required this.acceptLabel,
+    this.onAccept,
+    this.onDecline,
+    this.automaticStatus,
+    this.onRetry,
     this.busy = false,
   });
 
   final String eyebrow;
   final String title;
   final String body;
-  final VoidCallback onAccept;
-  final VoidCallback onDecline;
+  final VoidCallback? onAccept;
+  final VoidCallback? onDecline;
   final String acceptLabel;
+  final String? automaticStatus;
+  final VoidCallback? onRetry;
   final bool busy;
 
   @override
@@ -149,51 +152,77 @@ class _InviteShell extends StatelessWidget {
               style:
                   TextStyle(fontSize: 13, height: 1.45, color: colors.muted)),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(42),
-                    // A guest cannot join anything: there is no uid to add.
-                    backgroundColor: busy ? colors.borderStrong : colors.accent,
-                  ),
-                  onPressed: busy ? null : onAccept,
-                  child: busy
-                      ? SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: colors.accentFg,
-                          ),
-                        )
-                      : Text(acceptLabel),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton(
-                  // Decline is the one destructive-looking action on this card,
-                  // so it carries the danger colour deliberately — a neutral
-                  // hover was inherited from the theme, which meant the only
-                  // signal that this button was different was its label.
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(42),
-                    foregroundColor: colors.danger,
-                    side: BorderSide(
-                      color: busy
-                          ? colors.borderStrong
-                          : colors.danger.withValues(alpha: 0.5),
+          if (automaticStatus != null)
+            if (busy)
+              Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colors.accent,
                     ),
-                    overlayColor: colors.danger.withValues(alpha: 0.10),
                   ),
-                  onPressed: busy ? null : onDecline,
-                  child: const Text('Decline'),
+                  const SizedBox(width: 10),
+                  Text(
+                    automaticStatus!,
+                    style: TextStyle(fontSize: 13, color: colors.muted),
+                  ),
+                ],
+              )
+            else if (onRetry != null)
+              FilledButton(
+                onPressed: onRetry,
+                child: const Text('Retry adding you'),
+              )
+            else
+              Text(
+                automaticStatus!,
+                style: TextStyle(fontSize: 13, color: colors.muted),
+              )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(42),
+                      backgroundColor:
+                          busy ? colors.borderStrong : colors.accent,
+                    ),
+                    onPressed: busy ? null : onAccept,
+                    child: busy
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colors.accentFg,
+                            ),
+                          )
+                        : Text(acceptLabel),
+                  ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(42),
+                      foregroundColor: colors.danger,
+                      side: BorderSide(
+                        color: busy
+                            ? colors.borderStrong
+                            : colors.danger.withValues(alpha: 0.5),
+                      ),
+                      overlayColor: colors.danger.withValues(alpha: 0.10),
+                    ),
+                    onPressed: busy ? null : onDecline,
+                    child: const Text('Decline'),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -322,6 +351,7 @@ class _CircleInviteCard extends ConsumerStatefulWidget {
 
 class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
   bool _busy = false;
+  bool _autoJoinFailed = false;
 
   /// See `_EventInviteCardState._claimKey` — the claim lives in a provider so it
   /// survives the rebuilds that reset per-card state.
@@ -332,6 +362,16 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
 
   void _release() {
     ref.read(invitationSubmissionProvider.notifier).release(_claimKey);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.invite.isCouple) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _accept();
+      });
+    }
   }
 
   Future<void> _accept() async {
@@ -352,10 +392,15 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
             displayName: user.displayName,
             photoUrl: user.photoUrl,
           ),
-      successMessage: 'You joined “${widget.invite.circleName}”.',
+      successMessage: widget.invite.isCouple
+          ? 'You were added to “${widget.invite.circleName}”.'
+          : 'You joined “${widget.invite.circleName}”.',
     );
     if (failure != null) {
       _release();
+      if (mounted && widget.invite.isCouple) {
+        setState(() => _autoJoinFailed = true);
+      }
     } else {
       ref.invalidate(eventsProvider);
       ref.invalidate(circlesProvider);
@@ -397,17 +442,19 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
     return _InviteShell(
       eyebrow: invite.isCouple ? 'Partner invitation' : 'Circle invitation',
       title: invite.isCouple
-          ? "Become $from's partner"
+          ? "You're being added to $from's circle"
           : "$from invited you to “${invite.circleName}”",
       body: invite.isCouple
-          ? 'Once you accept, anything either of you adds to “${invite.circleName}” '
-              'is shared with the other automatically — no invitations to accept each time.'
+          ? 'You will be added automatically. Countdown events shared with '
+              '“${invite.circleName}” in the future will appear in your list.'
           : 'Joining “${invite.circleName}” means the countdowns they share with this '
               'circle will show up in your list.',
       acceptLabel: invite.isCouple ? 'Become partners' : 'Join circle',
       busy: _busy,
-      onAccept: _accept,
-      onDecline: _decline,
+      automaticStatus: invite.isCouple ? 'Adding you automatically…' : null,
+      onRetry: _autoJoinFailed ? _accept : null,
+      onAccept: invite.isCouple ? null : _accept,
+      onDecline: invite.isCouple ? null : _decline,
     );
   }
 }

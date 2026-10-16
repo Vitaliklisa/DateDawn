@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/countdown.dart';
 import '../core/models.dart';
+import '../core/routes.dart';
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
 import '../widgets/arrival_celebration.dart';
@@ -137,7 +138,16 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           ),
           IconButton(
             tooltip: 'Options',
-            onPressed: () => showEventActionsSheet(context, ref, event: event),
+            onPressed: () => showEventActionsSheet(
+              context,
+              ref,
+              event: event,
+              // Deleting from this screen leaves nothing to show, so go back to
+              // home rather than sitting on a countdown that no longer exists.
+              onDeleted: () {
+                if (context.mounted) context.go(Routes.home);
+              },
+            ),
             icon: const Icon(Icons.more_horiz_rounded, size: 22),
           ),
         ],

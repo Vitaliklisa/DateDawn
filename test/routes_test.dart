@@ -31,6 +31,8 @@ void main() {
         Routes.circles,
         Routes.notifications,
         Routes.support,
+        Routes.privacy,
+        Routes.terms,
       ];
       expect(all.toSet().length, all.length);
     });
@@ -55,6 +57,8 @@ void main() {
         Routes.circles,
         Routes.notifications,
         Routes.support,
+        Routes.privacy,
+        Routes.terms,
       ]) {
         expect(path.startsWith('/'), isTrue, reason: '$path must be absolute');
         expect(path.endsWith('/'), isFalse, reason: '$path must not end in /');

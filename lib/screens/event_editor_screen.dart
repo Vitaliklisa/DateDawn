@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -295,7 +293,11 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Countdown deleted.')),
       );
-      context.pop();
+      // Forget the pin and refresh the feed, then land on a clean home rather
+      // than popping back onto the now-deleted countdown's own screen.
+      ref.invalidate(eventsProvider);
+      ref.read(selectedEventIdProvider.notifier).set(null);
+      context.go(Routes.home);
     } on DataFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -755,9 +757,11 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
           const <Participant>[]))
         if (!p.isCircle) p.email.trim().toLowerCase(),
     };
+    final seen = <String>{};
     return contacts
         .where((c) => c.matches(_query))
         .where((c) => !already.contains(c.email.toLowerCase()))
+        .where((c) => seen.add(c.email.toLowerCase()))
         .take(5)
         .toList();
   }
@@ -786,37 +790,12 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
       );
       if (failure == null) {
         _email.clear();
-        // Remember them, so the next invite to the same person is a suggestion.
-        // Best-effort: a failure here must not turn a sent invite into an error.
-        unawaited(
-          ref.read(eventRepositoryProvider).rememberInvitedContacts(
-            userId: user.id,
-            contacts: [
-              InvitationRecipient(
-                userId: '',
-                email: email,
-                displayName: _invitedName(email),
-              ),
-            ],
-          ),
-        );
       } else if (mounted) {
         setState(() => _inviteError = failure);
       }
     } finally {
       if (mounted) setState(() => _inviting = false);
     }
-  }
-
-  /// The name to file an invitation under, when the address being invited is a
-  /// contact we already know.
-  String? _invitedName(String email) {
-    final normalised = email.toLowerCase();
-    for (final contact
-        in ref.read(recentContactsProvider).value ?? const <RecentContact>[]) {
-      if (contact.email.toLowerCase() == normalised) return contact.displayName;
-    }
-    return null;
   }
 
   @override

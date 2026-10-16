@@ -885,6 +885,18 @@ class EventRepository {
     }
 
     await _invitations.doc(id).set(invitationBody);
+    await rememberInvitedContacts(
+      userId: inviterId,
+      contacts: [
+        InvitationRecipient(
+          userId: '',
+          email: target,
+          displayName: displayName,
+          photoUrl: photoUrl,
+          role: role,
+        ),
+      ],
+    );
   }
 
   Future<void> updateParticipantRole({
@@ -1710,10 +1722,9 @@ class EventRepository {
 
   /// Invites an email into a circle.
   ///
-  /// If the address already has an account the invitation is still issued as a
-  /// pending invitation rather than an instant join — joining a standing group
-  /// should always be the invitee's choice, in contrast to a countdown shared
-  /// with an existing collaborator.
+  /// Standard circles always require the invitee to accept. Existing accounts
+  /// invited to a couple circle are added immediately; an unknown email gets a
+  /// pending invite which is joined automatically when that account signs in.
   Future<void> inviteToCircle({
     required Circle circle,
     required String inviterId,
@@ -1753,6 +1764,63 @@ class EventRepository {
       throw DataFailure('$target is already in “${circle.name}”.');
     }
 
+    final match = await lookupUserByEmail(target);
+    final inviteeId = match?['userId'];
+    if (inviteeId == inviterId) {
+      throw const DataFailure(cannotInviteSelfMessage);
+    }
+    if (inviteeId != null && circle.memberIds.contains(inviteeId)) {
+      throw DataFailure('$target is already in “${circle.name}”.');
+    }
+
+    final recentContact = InvitationRecipient(
+      userId: inviteeId ?? '',
+      email: target,
+      displayName: match?['displayName'],
+      photoUrl: match?['photoUrl'],
+    );
+
+    // A couple relationship is the app's explicit auto-sharing choice. When
+    // the target already has an account, the owner adds them directly rather
+    // than creating an invitation they would have to accept.
+    if (circle.isCouple && inviteeId != null && inviteeId.isNotEmpty) {
+      final now = DateTime.now();
+      final batch = _db.batch();
+      batch.set(
+        _circles.doc(circle.id).collection('members').doc(inviteeId),
+        {
+          'email': target,
+          'isOwner': false,
+          'joinedAt': Timestamp.fromDate(now),
+          if (match?['displayName'] != null)
+            'displayName': match!['displayName'],
+          if (match?['photoUrl'] != null) 'photoUrl': match!['photoUrl'],
+        },
+      );
+      batch.update(_circles.doc(circle.id), {
+        'memberIds': FieldValue.arrayUnion([inviteeId]),
+      });
+      await batch.commit();
+
+      await rememberInvitedContacts(
+        userId: inviterId,
+        contacts: [recentContact],
+      );
+      await _seedInviteeIntoCircleShares(
+        circleId: circle.id,
+        inviteeId: inviteeId,
+        actorId: inviterId,
+      );
+      await _notify(
+        userId: inviteeId,
+        title: '${inviterName ?? 'Someone'} added you to “${circle.name}”',
+        body: 'Your countdowns shared with this couple circle are now visible '
+            'to each other.',
+        kind: NotificationKind.circle,
+      );
+      return;
+    }
+
     await _circleInvitations.doc(_uuid.v4()).set({
       'circleId': circle.id,
       'invitedBy': inviterId,
@@ -1768,34 +1836,16 @@ class EventRepository {
       'expiresAt':
           Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
     });
-
-    // Remember them so the invite field suggests this address next time. Run
-    // before the account lookup so the contact is recorded even for an address
-    // that has no account yet.
+    // Record after the invitation is committed. For an unregistered address
+    // the email remains the stable fallback key.
     await rememberInvitedContacts(
       userId: inviterId,
-      contacts: [InvitationRecipient(userId: '', email: target)],
+      contacts: [recentContact],
     );
 
-    // If the invitee already has an account, drop a line in their inbox so they
-    // notice without having to open the Invitations screen first, AND seed their
-    // uid into every countdown already shared with this circle.
-    final match = await lookupUserByEmail(target);
-    final inviteeId = match?['userId'];
+    // If the invitee already has an account, seed their uid into any countdowns
+    // already shared with a standard circle before they accept.
     if (inviteeId != null && inviteeId.isNotEmpty && inviteeId != inviterId) {
-      // Now that the uid is known, record the contact against it too, so the
-      // suggestion carries the name and avatar the profile has.
-      await rememberInvitedContacts(
-        userId: inviterId,
-        contacts: [
-          InvitationRecipient(
-            userId: inviteeId,
-            email: target,
-            displayName: match?['displayName'],
-            photoUrl: match?['photoUrl'],
-          ),
-        ],
-      );
       // **The join-time resync cannot do this, so it happens here.**
       //
       // `_resyncCircleShares` finds the affected countdowns by querying
@@ -1822,9 +1872,7 @@ class EventRepository {
 
       await _notify(
         userId: inviteeId,
-        title: circle.isCouple
-            ? '${inviterName ?? 'Someone'} invited you to be their partner'
-            : 'You were invited to “${circle.name}”',
+        title: 'You were invited to “${circle.name}”',
         body: 'Open Invitations to accept or decline.',
         kind: NotificationKind.circle,
       );

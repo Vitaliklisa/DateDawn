@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:datedawn/core/circles.dart';
 import 'package:datedawn/core/models.dart';
+import 'package:datedawn/core/recent_contacts.dart';
 
 /// A fixed instant, so no assertion depends on the date the suite runs.
 /// `DateTime` has no const constructor, so this is a plain `final`.
@@ -83,6 +84,20 @@ void main() {
 
       const blank = CircleMember(userId: 'u2', email: '');
       expect(blank.initials, 'U');
+    });
+  });
+
+  group('RecentContact', () {
+    final contact = RecentContact(
+      userId: 'friend',
+      email: 'vhomenko119@gmail.com',
+      lastInvitedAt: _epoch,
+    );
+
+    test('matches a partial email query case-insensitively', () {
+      expect(contact.matches('v'), isTrue);
+      expect(contact.matches('VHOMENKO'), isTrue);
+      expect(contact.matches('not-a-match'), isFalse);
     });
   });
 

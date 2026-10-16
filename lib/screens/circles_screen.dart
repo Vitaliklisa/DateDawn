@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/circles.dart';
+import '../core/recent_contacts.dart';
+import '../core/routes.dart';
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
-import '../router.dart';
 import '../widgets/brand_kit.dart';
 
 /// Circles: the people you count down with, grouped once and reused.
@@ -560,6 +561,7 @@ Future<void> _openInviteSheet(
 
   final emailController = TextEditingController();
   var busy = false;
+  var query = '';
   String? inviteError;
 
   await showModalBottomSheet<void>(
@@ -576,94 +578,174 @@ Future<void> _openInviteSheet(
             24,
             24 + MediaQuery.of(sheetContext).viewInsets.bottom,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                circle.isCouple
-                    ? 'Invite your partner'
-                    : 'Invite to “${circle.name}”',
-                style: Theme.of(sheetContext).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                circle.isCouple
-                    ? 'They will get an invitation to accept. Once they do, your '
-                        'countdowns share with each other automatically.'
-                    : 'They will get an invitation to accept or decline. After they '
-                        'join, you can share countdowns with this circle in one tap.',
-                style:
-                    TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
-              ),
-              const SizedBox(height: 18),
-              TextField(
-                controller: emailController,
-                autofocus: true,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(hintText: 'them@example.com'),
-                onChanged: (_) {
-                  if (inviteError != null) {
-                    setSheetState(() => inviteError = null);
-                  }
-                },
-              ),
-              if (inviteError != null) ...[
-                const SizedBox(height: 10),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.error_outline_rounded,
-                        size: 16, color: colors.danger),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        inviteError!,
-                        style: TextStyle(fontSize: 13, color: colors.danger),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  circle.isCouple
+                      ? 'Invite your partner'
+                      : 'Invite to “${circle.name}”',
+                  style: Theme.of(sheetContext).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  circle.isCouple
+                      ? 'If they already have an account, they will be added '
+                          'automatically. Otherwise, they will be added when they '
+                          'sign in. Future countdowns shared with this circle '
+                          'will appear automatically.'
+                      : 'They will get an invitation to accept or decline. After they '
+                          'join, you can share countdowns with this circle in one tap.',
+                  style:
+                      TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
+                ),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: emailController,
+                  autofocus: true,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration:
+                      const InputDecoration(hintText: 'them@example.com'),
+                  onChanged: (value) {
+                    setSheetState(() {
+                      query = value.trim();
+                      inviteError = null;
+                    });
+                  },
+                ),
+                Consumer(
+                  builder: (context, contactsRef, _) {
+                    final contacts =
+                        contactsRef.watch(recentContactsProvider).value ??
+                            const <RecentContact>[];
+                    final memberIds = circle.memberIds.toSet();
+                    final memberEmails = circle.members
+                        .map((member) => member.email.toLowerCase())
+                        .toSet();
+                    final seenEmails = <String>{};
+                    final suggestions = contacts
+                        .where((contact) => contact.matches(query))
+                        .where((contact) =>
+                            !memberIds.contains(contact.userId) &&
+                            !memberEmails.contains(contact.email.toLowerCase()))
+                        .where((contact) =>
+                            seenEmails.add(contact.email.toLowerCase()))
+                        .take(5)
+                        .toList();
+                    if (suggestions.isEmpty) return const SizedBox.shrink();
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: colors.surface2,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: colors.border),
+                        ),
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < suggestions.length; i++) ...[
+                              if (i > 0)
+                                Divider(height: 1, color: colors.border),
+                              ListTile(
+                                dense: true,
+                                leading: UserAvatar(
+                                  initials: suggestions[i].initials,
+                                  seed: suggestions[i].userId,
+                                  photoUrl: suggestions[i].photoUrl,
+                                  size: 32,
+                                ),
+                                title: Text(
+                                  suggestions[i].label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: Text(
+                                  suggestions[i].email,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () {
+                                  final contact = suggestions[i];
+                                  emailController.text = contact.email;
+                                  emailController.selection =
+                                      TextSelection.collapsed(
+                                          offset: contact.email.length);
+                                  setSheetState(() {
+                                    query = contact.email;
+                                    inviteError = null;
+                                  });
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    );
+                  },
+                ),
+                if (inviteError != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.error_outline_rounded,
+                          size: 16, color: colors.danger),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          inviteError!,
+                          style: TextStyle(fontSize: 13, color: colors.danger),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 18),
+                FilledButton(
+                  onPressed: busy
+                      ? null
+                      : () async {
+                          final email = emailController.text.trim();
+                          if (email.isEmpty) return;
+                          setSheetState(() {
+                            busy = true;
+                            inviteError = null;
+                          });
+                          final failure = await runAction(
+                            sheetContext,
+                            () => ref
+                                .read(eventRepositoryProvider)
+                                .inviteToCircle(
+                                  circle: circle,
+                                  inviterId: user.id,
+                                  inviterEmail: user.email,
+                                  email: email,
+                                  inviterName: user.displayName,
+                                ),
+                            successMessage: circle.isCouple
+                                ? 'Your partner will be added automatically.'
+                                : 'Invitation sent to $email.',
+                          );
+                          if (failure != null) {
+                            if (sheetContext.mounted) {
+                              setSheetState(() {
+                                busy = false;
+                                inviteError = failure;
+                              });
+                            }
+                            return;
+                          }
+                          if (sheetContext.mounted) {
+                            Navigator.of(sheetContext).pop();
+                          }
+                        },
+                  child: const Text('Send invitation'),
                 ),
               ],
-              const SizedBox(height: 18),
-              FilledButton(
-                onPressed: busy
-                    ? null
-                    : () async {
-                        final email = emailController.text.trim();
-                        if (email.isEmpty) return;
-                        setSheetState(() {
-                          busy = true;
-                          inviteError = null;
-                        });
-                        final failure = await runAction(
-                          sheetContext,
-                          () =>
-                              ref.read(eventRepositoryProvider).inviteToCircle(
-                                    circle: circle,
-                                    inviterId: user.id,
-                                    inviterEmail: user.email,
-                                    email: email,
-                                    inviterName: user.displayName,
-                                  ),
-                          successMessage: 'Invitation sent to $email.',
-                        );
-                        if (failure != null) {
-                          if (sheetContext.mounted) {
-                            setSheetState(() {
-                              busy = false;
-                              inviteError = failure;
-                            });
-                          }
-                          return;
-                        }
-                        if (sheetContext.mounted) {
-                          Navigator.of(sheetContext).pop();
-                        }
-                      },
-                child: const Text('Send invitation'),
-              ),
-            ],
+            ),
           ),
         );
       },

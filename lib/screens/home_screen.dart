@@ -37,6 +37,12 @@ class HomeScreen extends ConsumerWidget {
       for (final event in events) {
         if (event.id == focusedEventId) return event;
       }
+      // The pinned countdown is gone — most often because it was just deleted.
+      // Drop the stale pin so the automatic pick takes over and the hero fills
+      // in immediately, without the user having to reload or navigate away.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(selectedEventIdProvider.notifier).set(null);
+      });
     }
     return ref.watch(featuredEventProvider);
   }

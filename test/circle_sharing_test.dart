@@ -151,6 +151,47 @@ void main() {
   });
 
   group('couple circle auto-share', () {
+    test('inviting an existing account adds them without an invitation',
+        () async {
+      await db.collection('users').doc('sam').set({
+        'email': 'sam@example.com',
+        'displayName': 'Sam',
+      });
+      final circle = await repo.createCircle(
+        ownerId: 'alex',
+        ownerEmail: 'alex@example.com',
+        name: 'Us',
+        isCouple: true,
+      );
+
+      await repo.inviteToCircle(
+        circle: circle,
+        inviterId: 'alex',
+        inviterEmail: 'alex@example.com',
+        inviterName: 'Alex',
+        email: 'SAM@example.com',
+      );
+
+      final stored =
+          (await db.collection('circles').doc(circle.id).get()).data()!;
+      expect(stored['memberIds'], contains('sam'));
+      expect(
+        (await db
+                .collection('circles')
+                .doc(circle.id)
+                .collection('members')
+                .doc('sam')
+                .get())
+            .data(),
+        containsPair('email', 'sam@example.com'),
+      );
+      expect(
+        (await db.collection('circle_invitations').get()).docs,
+        isEmpty,
+        reason: 'an existing partner should not need to accept an invitation',
+      );
+    });
+
     test('creating a countdown puts the partner into sharedWithMemberIds',
         () async {
       await db.collection('circles').doc('c1').set(
