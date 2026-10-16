@@ -8,6 +8,7 @@ import '../core/circles.dart';
 import '../core/countdown.dart';
 import '../core/models.dart';
 import '../core/notifications.dart';
+import '../core/recent_contacts.dart';
 import 'auth_service.dart';
 
 /// Why a write was refused, in words a user can act on.
@@ -91,6 +92,15 @@ class EventRepository {
       _db.collection('responses');
   CollectionReference<Map<String, dynamic>> get _invitations =>
       _db.collection('invitations');
+
+  /// The people this user has invited before, one row per person, under their
+  /// own `users/{uid}` document.
+  ///
+  /// Living under the owner's document means the path carries the owner, so the
+  /// rules never have to trust a `userId` field on the row — the same shape as
+  /// the notification inbox above it.
+  CollectionReference<Map<String, dynamic>> _recentContacts(String userId) =>
+      _db.collection('users').doc(userId).collection('recent_contacts');
 
   /// Live stream of every event the user created, was invited to, or can see
   /// through a circle they belong to.
@@ -857,6 +867,20 @@ class EventRepository {
         body: 'Open Invitations to accept or decline.',
         kind: NotificationKind.invitation,
       );
+      // Remember them so the invite field suggests this address next time —
+      // whoever was invited most recently is offered first.
+      await rememberInvitedContacts(
+        userId: inviterId,
+        contacts: [
+          InvitationRecipient(
+            userId: targetUserId,
+            email: target,
+            displayName: displayName,
+            photoUrl: photoUrl,
+            role: role,
+          ),
+        ],
+      );
       return;
     }
 
@@ -1445,6 +1469,13 @@ class EventRepository {
         role: ParticipantRole.viewer,
       );
     }
+
+    // Remember everyone this countdown invited, so the invite field suggests
+    // them next time without the address being typed out again.
+    await rememberInvitedContacts(
+      userId: inviterId,
+      contacts: recipients,
+    );
   }
 
   /// Re-denormalises [sharedWithMemberIds] onto every countdown shared with a
@@ -1738,12 +1769,33 @@ class EventRepository {
           Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
     });
 
+    // Remember them so the invite field suggests this address next time. Run
+    // before the account lookup so the contact is recorded even for an address
+    // that has no account yet.
+    await rememberInvitedContacts(
+      userId: inviterId,
+      contacts: [InvitationRecipient(userId: '', email: target)],
+    );
+
     // If the invitee already has an account, drop a line in their inbox so they
     // notice without having to open the Invitations screen first, AND seed their
     // uid into every countdown already shared with this circle.
     final match = await lookupUserByEmail(target);
     final inviteeId = match?['userId'];
     if (inviteeId != null && inviteeId.isNotEmpty && inviteeId != inviterId) {
+      // Now that the uid is known, record the contact against it too, so the
+      // suggestion carries the name and avatar the profile has.
+      await rememberInvitedContacts(
+        userId: inviterId,
+        contacts: [
+          InvitationRecipient(
+            userId: inviteeId,
+            email: target,
+            displayName: match?['displayName'],
+            photoUrl: match?['photoUrl'],
+          ),
+        ],
+      );
       // **The join-time resync cannot do this, so it happens here.**
       //
       // `_resyncCircleShares` finds the affected countdowns by querying
@@ -2052,28 +2104,71 @@ class EventRepository {
     }
 
     // Every countdown shared with this circle, so the reference can be pulled.
-    final shared = await _events
-        .where('sharedWithCircleIds', arrayContains: circleId)
-        .get();
-    final members = await _circles.doc(circleId).collection('members').get();
+    //
+    // **Wrapped, and that is the whole fix for "I own this circle but cannot
+    // delete it".** The read rule for a countdown the caller can see only as a
+    // *participant* (`isParticipant(eventId)`) resolves a subcollection `get()`,
+    // which Firestore cannot evaluate for a collection query — so ONE countdown
+    // in this result set that the circle owner can read but not prove (typically
+    // one their partner created and shared with the circle) made the entire
+    // query fail with `permission-denied`. That exception used to escape this
+    // method and surface as "You do not have permission to do that." on a circle
+    // the caller unambiguously owns. The circle delete itself needs none of
+    // these documents, so a refused query degrades to "no countdowns to unshare"
+    // rather than blocking the delete — exactly the same best-effort posture the
+    // per-countdown unshare below already takes.
+    var sharedDocs = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+    try {
+      final shared = await _events
+          .where('sharedWithCircleIds', arrayContains: circleId)
+          .get();
+      sharedDocs = shared.docs;
+    } on FirebaseException catch (error) {
+      debugPrint(
+        '[datedawn] Could not list countdowns shared with circle $circleId '
+        '(${error.code}). Deleting the circle anyway; any countdown still '
+        'pointing at it is cleaned up on its next open. If this is '
+        'permission-denied, deploy the rules: '
+        'firebase deploy --only firestore:rules',
+      );
+    } catch (error) {
+      debugPrint(
+        '[datedawn] Could not list countdowns shared with circle $circleId: '
+        '$error',
+      );
+    }
+
+    // Member rows to remove alongside the circle document. Best-effort too: a
+    // refusal here must not take the circle delete down with it.
+    var memberRefs = <DocumentReference<Map<String, dynamic>>>[];
+    try {
+      final members =
+          await _circles.doc(circleId).collection('members').get();
+      memberRefs = members.docs.map((d) => d.reference).toList();
+    } catch (error) {
+      debugPrint(
+        '[datedawn] Could not list members of circle $circleId before '
+        'deleting it: $error',
+      );
+    }
 
     // 1. Unshare every countdown, on its own, before touching the circle.
     //    Best-effort per countdown: one the caller cannot edit must not block
     //    the delete. The reference is stripped even if the caller is a viewer
     //    via the `sharedWithMemberIds`-only update branch of the rule.
-    await _unshareCircleFromEvents(circleId, shared.docs);
+    await _unshareCircleFromEvents(circleId, sharedDocs);
 
     // 2. Re-derive `sharedWithMemberIds` for those countdowns while the circle
     //    is still readable — the prune needs the circle's own member list, so it
     //    must run before the circle document is gone.
-    await _pruneDeletedCircleShares(circleId, shared.docs);
+    await _pruneDeletedCircleShares(circleId, sharedDocs);
 
     // 3. Delete the circle document and its member rows. Nothing here touches
     //    an event, so this batch is authorised by the circle owner alone and
     //    cannot be poisoned by a countdown the owner does not own.
     final refs = <DocumentReference<Map<String, dynamic>>>[
       // The member rows.
-      for (final member in members.docs) member.reference,
+      ...memberRefs,
       // The circle document itself.
       _circles.doc(circleId),
     ];
@@ -2084,7 +2179,28 @@ class EventRepository {
       for (final ref in refs.sublist(i, end)) {
         batch.delete(ref);
       }
-      await batch.commit();
+      try {
+        await batch.commit();
+      } catch (error) {
+        // The circle document itself is the thing the user asked to remove and
+        // the only write here the owner is guaranteed to be authorised for; it
+        // is deleted in its own request below rather than being held hostage by
+        // a member row that refuses.
+        debugPrint(
+          '[datedawn] Could not delete a batch of circle $circleId refs '
+          '($error). Retrying one at a time.',
+        );
+        for (final ref in refs.sublist(i, end)) {
+          try {
+            await ref.delete();
+          } catch (singleError) {
+            debugPrint(
+              '[datedawn] Could not delete ${ref.path} while deleting circle '
+              '$circleId: $singleError',
+            );
+          }
+        }
+      }
     }
   }
 
@@ -2358,6 +2474,102 @@ class EventRepository {
       'createdAt': Timestamp.fromDate(now),
       'updatedAt': Timestamp.fromDate(now),
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Recent contacts
+  // ---------------------------------------------------------------------------
+
+  /// Live stream of the people this user has invited before, most recently
+  /// invited first.
+  ///
+  /// The invite field renders these as suggestions, so the address you typed
+  /// last time is offered before you type it again. Ordered in memory rather
+  /// than by the query, so no composite index is required.
+  Stream<List<RecentContact>> watchRecentContacts(String userId) {
+    if (userId.isEmpty) return Stream.value(const []);
+    return _recentContacts(userId).snapshots().map((snap) {
+      final items = snap.docs
+          .map((d) => RecentContact.fromMap(d.id, d.data()))
+          .where((c) => c.email.contains('@'))
+          .toList()
+        ..sort((a, b) {
+          final byRecency = b.lastInvitedAt.compareTo(a.lastInvitedAt);
+          if (byRecency != 0) return byRecency;
+          return b.inviteCount.compareTo(a.inviteCount);
+        });
+      return items;
+    });
+  }
+
+  /// Records [contacts] as recently invited, so they are suggested next time.
+  ///
+  /// Best-effort by design: it runs after an invitation has already been sent,
+  /// so a failure here must never turn a successful invite into an error — it
+  /// degrades to "they are not remembered", which only costs a retyped address.
+  ///
+  /// Each person is stamped with `lastInvitedAt: now`, which is what moves them
+  /// to the top of the suggestion list on the next invite. `inviteCount` is
+  /// incremented so someone invited repeatedly outranks a one-off on a tie.
+  Future<void> rememberInvitedContacts({
+    required String userId,
+    required Iterable<InvitationRecipient> contacts,
+  }) async {
+    if (userId.isEmpty) return;
+    final now = DateTime.now();
+    final seen = <String>{};
+    for (final contact in contacts) {
+      final email = contact.email.trim().toLowerCase();
+      if (email.isEmpty || !email.contains('@')) continue;
+      // Dedupe within one call so inviting the same person twice in a batch
+      // does not double-count them.
+      if (!seen.add(email)) continue;
+      try {
+        // Keyed by uid when there is one, so a person invited under a changed
+        // display name updates the same row; falling back to the email keeps a
+        // contact recorded even when the account lookup had nothing to match.
+        final docId = contact.userId.isNotEmpty
+            ? contact.userId
+            : email.replaceAll(RegExp(r'[^a-z0-9]'), '_');
+        final ref = _recentContacts(userId).doc(docId);
+        final existing = await ref.get();
+        final previous = existing.data();
+        final count =
+            ((previous?['inviteCount'] as num?)?.toInt() ?? 0) + 1;
+        await ref.set({
+          'userId': contact.userId,
+          'email': email,
+          if (contact.displayName != null)
+            'displayName': contact.displayName,
+          if (contact.photoUrl != null) 'photoUrl': contact.photoUrl,
+          'lastInvitedAt': Timestamp.fromDate(now),
+          'inviteCount': count,
+        }, SetOptions(merge: true));
+      } catch (error) {
+        debugPrint('[datedawn] Could not remember contact $email: $error');
+      }
+    }
+  }
+
+  /// Removes one person from the suggestion list.
+  ///
+  /// People change addresses and jobs; a suggestion that cannot be dismissed is
+  /// worse than no suggestion at all.
+  Future<void> forgetRecentContact({
+    required String userId,
+    required RecentContact contact,
+  }) async {
+    if (userId.isEmpty) return;
+    final docId = contact.userId.isNotEmpty
+        ? contact.userId
+        : contact.email.replaceAll(RegExp(r'[^a-z0-9]'), '_');
+    try {
+      await _recentContacts(userId).doc(docId).delete();
+    } catch (error) {
+      debugPrint(
+        '[datedawn] Could not forget contact ${contact.email}: $error',
+      );
+    }
   }
 
   /// Duplicates a countdown a year on, keeping the title so the copy can be

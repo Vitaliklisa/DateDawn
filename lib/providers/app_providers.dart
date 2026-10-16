@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/circles.dart';
 import '../core/models.dart';
 import '../core/notifications.dart';
+import '../core/recent_contacts.dart';
 import '../core/time_format.dart';
 import '../services/auth_service.dart';
 import '../services/event_repository.dart';
@@ -220,6 +221,18 @@ final participantsProvider =
 final notesProvider =
     StreamProvider.family<List<EventNote>, String>((ref, eventId) {
   return ref.watch(eventRepositoryProvider).watchNotes(eventId);
+});
+
+/// People the signed-in user has invited before, most recently invited first.
+///
+/// This is what the invite field suggests as you type, so the address you typed
+/// on the last countdown is offered on the next one instead of being retyped.
+/// Empty while signed out, since there is nothing to remember against.
+final recentContactsProvider =
+    StreamProvider<List<RecentContact>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return Stream.value(const []);
+  return ref.watch(eventRepositoryProvider).watchRecentContacts(user.id);
 });
 
 /// Which countdown is pinned as the hero. `null` means "pick automatically":

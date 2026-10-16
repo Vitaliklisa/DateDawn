@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../core/circles.dart';
 import '../core/countdown.dart';
 import '../core/models.dart';
+import '../core/recent_contacts.dart';
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
@@ -684,17 +687,79 @@ class _Collaborators extends ConsumerStatefulWidget {
 
 class _CollaboratorsState extends ConsumerState<_Collaborators> {
   final _email = TextEditingController();
+  final _emailFocus = FocusNode();
   ParticipantRole _role = ParticipantRole.viewer;
   bool _inviting = false;
+
+  /// What has been typed into the invite field.
+  ///
+  /// Kept in state so the suggestions under the field are recomputed on every
+  /// keystroke, which is what makes it behave like a search box rather than
+  /// something that only reacts on submit.
+  String _query = '';
 
   /// Set when an invitation is refused — most visibly when someone tries to
   /// invite their own address. Rendered as red text under the field.
   String? _inviteError;
 
   @override
+  void initState() {
+    super.initState();
+    _email.addListener(_onQueryChanged);
+    _emailFocus.addListener(_onQueryChanged);
+  }
+
+  void _onQueryChanged() {
+    final next = _email.text.trim();
+    if (next == _query) {
+      if (mounted) setState(() {});
+      return;
+    }
+    setState(() => _query = next);
+  }
+
+  @override
   void dispose() {
+    _email.removeListener(_onQueryChanged);
+    _emailFocus.removeListener(_onQueryChanged);
+    _emailFocus.dispose();
     _email.dispose();
     super.dispose();
+  }
+
+  /// Fills the field from a suggestion.
+  ///
+  /// Deliberately does not send the invitation: picking a person should still
+  /// let the role be chosen first. It drops the address in and leaves send a tap
+  /// away — the same two steps as before, just without the typing.
+  void _applySuggestion(RecentContact contact) {
+    _email.text = contact.email;
+    _email.selection = TextSelection.collapsed(offset: contact.email.length);
+    setState(() {
+      _query = contact.email;
+      _inviteError = null;
+    });
+  }
+
+  /// The people to offer under the field: everyone this user has invited before,
+  /// narrowed to what has been typed and never including someone already on the
+  /// countdown.
+  ///
+  /// Ordering is the repository's — most recently invited first — so the person
+  /// added to the last countdown is the first row offered on this one.
+  List<RecentContact> _suggestions(List<RecentContact> contacts) {
+    final already = <String>{
+      for (final p in widget.event.participants)
+        if (!p.isCircle) p.email.trim().toLowerCase(),
+      for (final p in (ref.read(participantsProvider(widget.event.id)).value ??
+          const <Participant>[]))
+        if (!p.isCircle) p.email.trim().toLowerCase(),
+    };
+    return contacts
+        .where((c) => c.matches(_query))
+        .where((c) => !already.contains(c.email.toLowerCase()))
+        .take(5)
+        .toList();
   }
 
   Future<void> _invite() async {
@@ -721,12 +786,37 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
       );
       if (failure == null) {
         _email.clear();
+        // Remember them, so the next invite to the same person is a suggestion.
+        // Best-effort: a failure here must not turn a sent invite into an error.
+        unawaited(
+          ref.read(eventRepositoryProvider).rememberInvitedContacts(
+                userId: user.id,
+                contacts: [
+                  InvitationRecipient(
+                    userId: '',
+                    email: email,
+                    displayName: _invitedName(email),
+                  ),
+                ],
+              ),
+        );
       } else if (mounted) {
         setState(() => _inviteError = failure);
       }
     } finally {
       if (mounted) setState(() => _inviting = false);
     }
+  }
+
+  /// The name to file an invitation under, when the address being invited is a
+  /// contact we already know.
+  String? _invitedName(String email) {
+    final normalised = email.toLowerCase();
+    for (final contact
+        in ref.read(recentContactsProvider).value ?? const <RecentContact>[]) {
+      if (contact.email.toLowerCase() == normalised) return contact.displayName;
+    }
+    return null;
   }
 
   @override
@@ -737,6 +827,12 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
             widget.event.participants;
     final canManage =
         widget.event.canManage(ref.watch(currentUserProvider)?.id);
+
+    // People invited before, so the address typed last time is offered again.
+    // Ordered most-recently-invited first by the repository.
+    final contacts = ref.watch(recentContactsProvider).value ??
+        const <RecentContact>[];
+    final suggestions = _suggestions(contacts);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -765,7 +861,10 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
               Expanded(
                 child: TextField(
                   controller: _email,
+                  focusNode: _emailFocus,
                   keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _invite(),
                   decoration:
                       const InputDecoration(hintText: 'name@example.com'),
                 ),
@@ -782,6 +881,31 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
               ),
             ],
           ),
+          // The suggestions drop out of the way the moment there is nothing to
+          // offer, so the field reads as a plain input until it has something to
+          // say — the way a search box should behave.
+          if (suggestions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: colors.surface2,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colors.border),
+              ),
+              child: Column(
+                children: [
+                  for (var i = 0; i < suggestions.length; i++) ...[
+                    if (i > 0)
+                      Divider(height: 1, color: colors.border),
+                    _SuggestionRow(
+                      contact: suggestions[i],
+                      onTap: () => _applySuggestion(suggestions[i]),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
           if (_inviteError != null) ...[
             const SizedBox(height: 8),
             Row(
@@ -992,6 +1116,75 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
         ParticipantRole.editor => 'Editor',
         ParticipantRole.viewer => 'Viewer',
       };
+}
+
+/// One row in the invite field's suggestion list.
+///
+/// Shows the avatar and the name or address of someone already invited before,
+/// so the second invitation to the same person is a single tap instead of typing
+/// their address out again.
+class _SuggestionRow extends StatelessWidget {
+  const _SuggestionRow({required this.contact, required this.onTap});
+
+  final RecentContact contact;
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = Theme.of(context).textTheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              UserAvatar(
+                initials: contact.initials,
+                seed: contact.userId.isNotEmpty ? contact.userId : contact.email,
+                photoUrl: contact.photoUrl,
+                size: 30,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      contact.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: text.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: colors.fg,
+                      ),
+                    ),
+                    if (contact.label != contact.email)
+                      Text(
+                        contact.email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: text.bodySmall?.copyWith(
+                          color: colors.muted,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.north_east_rounded,
+                size: 16,
+                color: colors.muted,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _RoleDropdown extends StatelessWidget {
