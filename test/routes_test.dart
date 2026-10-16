@@ -18,6 +18,11 @@ void main() {
       expect(Routes.support.split('/').where((s) => s.isNotEmpty), ['support']);
     });
 
+    test('legal pages have stable public URLs', () {
+      expect(Routes.privacy, '/privacy');
+      expect(Routes.terms, '/terms');
+    });
+
     test('paths stay unique', () {
       // Two constants sharing a value is how one route silently replaces
       // another in the router's match table.

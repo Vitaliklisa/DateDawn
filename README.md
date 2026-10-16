@@ -143,6 +143,10 @@ confirm that:
 3. **Authentication → Settings → Authorized domains** contains `localhost` and
    your production domain — Google sign-in on web is refused otherwise.
 
+Email/password sign-in and account creation are implemented in the app. Enabling
+**Email/Password** is an Authentication setting; it does not require a Firestore
+schema change.
+
 Every route except `/login` requires a non-anonymous Firebase account. There is
 no guest path. **Everything runs on Firebase**: Auth for identity and Firestore
 for countdowns, circles, invitations, notes and the notification inbox. There is
@@ -256,6 +260,10 @@ only works from an authorized domain.
 
 The rules in `firestore.rules` are the real authority — the client mirrors them
 only so it can show a readable error.
+They also grant each account access to its own `recent_contacts` subcollection;
+deploy the rules after updating them or recent-contact suggestions may be denied
+in the live app. Couple-circle auto-join also relies on the invitation and
+membership rules being current.
 
 ```bash
 firebase deploy --only firestore:rules,firestore:indexes

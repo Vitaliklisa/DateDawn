@@ -23,18 +23,22 @@ class InvitationsInbox extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     if (user == null) return const SizedBox.shrink();
 
-    final eventInvites =
-        ref.watch(invitationsProvider).value ?? const <Invitation>[];
-    final circleInvites = ref.watch(circleInvitationsProvider).value ??
-        const <CircleInvitation>[];
+    final eventInvitesAsync = ref.watch(invitationsProvider);
+    final circleInvitesAsync = ref.watch(circleInvitationsProvider);
+    final eventInvites = eventInvitesAsync.value ?? const <Invitation>[];
+    final circleInvites =
+        circleInvitesAsync.value ?? const <CircleInvitation>[];
+    final hasLoadError =
+        eventInvitesAsync.hasError || circleInvitesAsync.hasError;
 
-    if (eventInvites.isEmpty && circleInvites.isEmpty) {
+    if (eventInvites.isEmpty && circleInvites.isEmpty && !hasLoadError) {
       return showWhenEmpty ? const _EmptyInbox() : const SizedBox.shrink();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (hasLoadError) const _InviteLoadError(),
         // The keys are load-bearing, not decoration.
         //
         // These cards are emitted from two separate loops into one `Column`, so
@@ -57,6 +61,22 @@ class InvitationsInbox extends ConsumerWidget {
           const SizedBox(height: 10),
         ],
       ],
+    );
+  }
+}
+
+class _InviteLoadError extends StatelessWidget {
+  const _InviteLoadError();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        'Invitations could not load. Check your connection or Firestore rules.',
+        style: TextStyle(fontSize: 12.5, color: colors.danger),
+      ),
     );
   }
 }
@@ -172,9 +192,19 @@ class _InviteShell extends StatelessWidget {
                 ],
               )
             else if (onRetry != null)
-              FilledButton(
-                onPressed: onRetry,
-                child: const Text('Retry adding you'),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    automaticStatus!,
+                    style: TextStyle(fontSize: 13, color: colors.danger),
+                  ),
+                  const SizedBox(height: 10),
+                  FilledButton(
+                    onPressed: onRetry,
+                    child: const Text('Retry adding you'),
+                  ),
+                ],
               )
             else
               Text(
@@ -351,7 +381,6 @@ class _CircleInviteCard extends ConsumerStatefulWidget {
 
 class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
   bool _busy = false;
-  bool _autoJoinFailed = false;
 
   /// See `_EventInviteCardState._claimKey` — the claim lives in a provider so it
   /// survives the rebuilds that reset per-card state.
@@ -362,16 +391,6 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
 
   void _release() {
     ref.read(invitationSubmissionProvider.notifier).release(_claimKey);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.invite.isCouple) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _accept();
-      });
-    }
   }
 
   Future<void> _accept() async {
@@ -398,9 +417,6 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
     );
     if (failure != null) {
       _release();
-      if (mounted && widget.invite.isCouple) {
-        setState(() => _autoJoinFailed = true);
-      }
     } else {
       ref.invalidate(eventsProvider);
       ref.invalidate(circlesProvider);
@@ -451,8 +467,9 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
               'circle will show up in your list.',
       acceptLabel: invite.isCouple ? 'Become partners' : 'Join circle',
       busy: _busy,
-      automaticStatus: invite.isCouple ? 'Adding you automatically…' : null,
-      onRetry: _autoJoinFailed ? _accept : null,
+      automaticStatus:
+          invite.isCouple ? 'Automatic join could not be completed.' : null,
+      onRetry: invite.isCouple ? _accept : null,
       onAccept: invite.isCouple ? null : _accept,
       onDecline: invite.isCouple ? null : _decline,
     );

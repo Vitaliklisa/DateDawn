@@ -219,6 +219,12 @@ service cloud.firestore {
       allow create, update: if signedIn() && userId == uid();
       allow delete: if false;
 
+      // Recent invite suggestions are private to the account that created
+      // them. Rules on the parent document do not extend to subcollections.
+      match /recent_contacts/{contactId} {
+        allow read, create, update, delete: if signedIn() && userId == uid();
+      }
+
       // ---------- notifications ----------
       //
       // The in-app inbox, one subcollection per user. Living under the owner's

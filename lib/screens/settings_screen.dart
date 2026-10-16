@@ -147,6 +147,20 @@ class SettingsScreen extends ConsumerWidget {
             label: 'Sync',
             value: 'Firebase',
           ),
+          const SizedBox(height: 28),
+          Text('LEGAL', style: Theme.of(context).textTheme.labelSmall),
+          const SizedBox(height: 12),
+          _SettingsLink(
+            icon: Icons.privacy_tip_outlined,
+            label: 'Privacy policy',
+            onTap: () => context.push(Routes.privacy),
+          ),
+          const SizedBox(height: 8),
+          _SettingsLink(
+            icon: Icons.description_outlined,
+            label: 'Terms of service',
+            onTap: () => context.push(Routes.terms),
+          ),
           const SizedBox(height: 20),
           // Support is linked from Settings, which is the first place someone
           // looks, and it is also reachable signed out so a locked-out account
@@ -172,6 +186,37 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _SettingsLink extends StatelessWidget {
+  const _SettingsLink({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Material(
+      color: colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: colors.border),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: colors.muted),
+        title: Text(label),
+        trailing: Icon(Icons.arrow_forward_ios_rounded,
+            size: 15, color: colors.subtle),
+        onTap: onTap,
       ),
     );
   }

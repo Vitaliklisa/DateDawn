@@ -122,10 +122,42 @@ final invitationsProvider = StreamProvider<List<Invitation>>((ref) {
 });
 
 /// Pending circle invitations addressed to the signed-in user's email.
+///
+/// Couple invitations are accepted as soon as this live stream receives them,
+/// so auto-join does not depend on an invitation card being built or visible.
+/// A failed join remains in the stream for the inbox's retry action.
 final circleInvitationsProvider = StreamProvider<List<CircleInvitation>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null || user.email.isEmpty) return Stream.value(const []);
-  return ref.watch(eventRepositoryProvider).watchCircleInvitations(user.email);
+  final repository = ref.watch(eventRepositoryProvider);
+  return repository
+      .watchCircleInvitations(user.email)
+      .asyncMap((invitations) async {
+    final visible = <CircleInvitation>[];
+    for (final invitation in invitations) {
+      if (!invitation.isCouple) {
+        visible.add(invitation);
+        continue;
+      }
+
+      try {
+        await repository.acceptCircleInvitation(
+          invitation: invitation,
+          userId: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          photoUrl: user.photoUrl,
+        );
+      } catch (error) {
+        debugPrint(
+          '[datedawn] Could not auto-join couple circle '
+          '${invitation.circleId} (${invitation.id}): $error',
+        );
+        visible.add(invitation);
+      }
+    }
+    return visible;
+  });
 });
 
 /// Circles the signed-in user belongs to.

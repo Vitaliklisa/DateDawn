@@ -809,8 +809,8 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
 
     // People invited before, so the address typed last time is offered again.
     // Ordered most-recently-invited first by the repository.
-    final contacts =
-        ref.watch(recentContactsProvider).value ?? const <RecentContact>[];
+    final contactsAsync = ref.watch(recentContactsProvider);
+    final contacts = contactsAsync.value ?? const <RecentContact>[];
     final suggestions = _suggestions(contacts);
 
     return Column(
@@ -860,6 +860,14 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
               ),
             ],
           ),
+          if (contactsAsync.hasError) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Recent contacts could not load. Check your connection or '
+              'Firestore rules.',
+              style: TextStyle(fontSize: 12.5, color: colors.danger),
+            ),
+          ],
           // The suggestions drop out of the way the moment there is nothing to
           // offer, so the field reads as a plain input until it has something to
           // say — the way a search box should behave.

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:datedawn/core/circles.dart';
+import 'package:datedawn/core/models.dart';
 import 'package:datedawn/services/event_repository.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -190,6 +191,68 @@ void main() {
         isEmpty,
         reason: 'an existing partner should not need to accept an invitation',
       );
+    });
+
+    test('an unregistered partner can auto-join after creating an account',
+        () async {
+      final circle = await repo.createCircle(
+        ownerId: 'alex',
+        ownerEmail: 'alex@example.com',
+        name: 'Us',
+        isCouple: true,
+      );
+
+      await repo.inviteToCircle(
+        circle: circle,
+        inviterId: 'alex',
+        inviterEmail: 'alex@example.com',
+        inviterName: 'Alex',
+        email: 'Sam@example.com',
+      );
+
+      final inviteSnapshot = await db.collection('circle_invitations').get();
+      expect(inviteSnapshot.docs, hasLength(1));
+      final invitation = CircleInvitation.fromDoc(
+        inviteSnapshot.docs.single.id,
+        inviteSnapshot.docs.single.data(),
+      );
+      expect(invitation.isCouple, isTrue);
+      expect(invitation.inviteeEmail, 'sam@example.com');
+      expect(invitation.status, InviteStatus.pending);
+
+      await repo.acceptCircleInvitation(
+        invitation: invitation,
+        userId: 'sam',
+        email: 'sam@example.com',
+        displayName: 'Sam',
+      );
+
+      final stored =
+          (await db.collection('circles').doc(circle.id).get()).data()!;
+      expect(stored['memberIds'], contains('sam'));
+      final accepted =
+          (await db.collection('circle_invitations').doc(invitation.id).get())
+              .data()!;
+      expect(accepted['status'], InviteStatus.accepted.name);
+    });
+
+    test('remembered invitations are available from the recent contacts feed',
+        () async {
+      await repo.rememberInvitedContacts(
+        userId: 'alex',
+        contacts: const [
+          InvitationRecipient(
+            userId: 'sam',
+            email: 'Sam@example.com',
+            displayName: 'Sam',
+          ),
+        ],
+      );
+
+      final contacts = await repo.watchRecentContacts('alex').first;
+      expect(contacts, hasLength(1));
+      expect(contacts.single.email, 'sam@example.com');
+      expect(contacts.single.userId, 'sam');
     });
 
     test('creating a countdown puts the partner into sharedWithMemberIds',

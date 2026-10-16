@@ -87,9 +87,11 @@ class SupportScreen extends StatelessWidget {
           const SizedBox(height: 12),
           const _Faq(
             question: 'I signed in with Google and my countdowns are missing.',
-            answer: 'A Google sign-in and a password sign-in are two separate '
-                'accounts, even on the same email address. Sign out and use '
-                'whichever method you first created the account with.',
+            answer:
+                'Use the same method you used when you created your account. '
+                'Google and email/password are not automatically linked. If you '
+                'need to switch methods or think you have data in two accounts, '
+                'contact us before creating another account.',
           ),
           const _Faq(
             question: 'Someone I shared with cannot see the countdown.',

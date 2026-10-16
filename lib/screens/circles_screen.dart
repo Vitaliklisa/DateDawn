@@ -617,9 +617,10 @@ Future<void> _openInviteSheet(
                 ),
                 Consumer(
                   builder: (context, contactsRef, _) {
+                    final contactsAsync =
+                        contactsRef.watch(recentContactsProvider);
                     final contacts =
-                        contactsRef.watch(recentContactsProvider).value ??
-                            const <RecentContact>[];
+                        contactsAsync.value ?? const <RecentContact>[];
                     final memberIds = circle.memberIds.toSet();
                     final memberEmails = circle.members
                         .map((member) => member.email.toLowerCase())
@@ -634,6 +635,17 @@ Future<void> _openInviteSheet(
                             seenEmails.add(contact.email.toLowerCase()))
                         .take(5)
                         .toList();
+                    if (contactsAsync.hasError && query.isNotEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Recent contacts could not load. Check your '
+                          'connection or Firestore rules.',
+                          style:
+                              TextStyle(fontSize: 12.5, color: colors.danger),
+                        ),
+                      );
+                    }
                     if (suggestions.isEmpty) return const SizedBox.shrink();
 
                     return Padding(
