@@ -1034,6 +1034,35 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                             icon: const Icon(Icons.refresh_rounded),
                           ),
                       ],
+                      // Blocking is available on every person row, whether or
+                      // not the viewer manages this countdown: Google Play's
+                      // UGC policy is about anyone being able to stop contact
+                      // with anyone. It used to live only on the long-press,
+                      // which nobody discovers, so it looked unimplemented.
+                      if (!participant.isCircle &&
+                          participant.userId !=
+                              ref.read(currentUserProvider)?.id)
+                        PopupMenuButton<String>(
+                          tooltip: 'More actions',
+                          iconSize: 18,
+                          icon: Icon(Icons.more_vert_rounded,
+                              size: 18, color: colors.subtle),
+                          onSelected: (value) {
+                            if (value == 'block') _blockUser(participant);
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(
+                              value: 'block',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.block_rounded, size: 18),
+                                  SizedBox(width: 10),
+                                  Text('Block'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),

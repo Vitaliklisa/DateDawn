@@ -140,19 +140,47 @@ final invitationsProvider = StreamProvider<List<Invitation>>((ref) {
 /// Couple invitations are accepted as soon as this live stream receives them,
 /// so auto-join does not depend on an invitation card being built or visible.
 /// A failed join remains in the stream for the inbox's retry action.
+///
+/// The join is claimed through [invitationSubmissionProvider] before it is
+/// attempted. Without the claim this ran again on every emission — the invite is
+/// still `pending` in the snapshot while the first join is in flight — and the
+/// second attempt failed with "already been answered", which looked exactly like
+/// the couple join not working. Invitations from someone the user has blocked
+/// are dropped before they reach the auto-join.
 final circleInvitationsProvider = StreamProvider<List<CircleInvitation>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null || user.email.isEmpty) return Stream.value(const []);
   final repository = ref.watch(eventRepositoryProvider);
+  final blocked =
+      ref.watch(blockedUsersProvider).value ?? const <BlockedUser>[];
+  final blockedIds = blocked.map((b) => b.userId).toSet();
   return repository
       .watchCircleInvitations(user.email)
       .asyncMap((invitations) async {
     final visible = <CircleInvitation>[];
     for (final invitation in invitations) {
+      // Blocking is mutual in effect: an invitation from someone the user has
+      // blocked is dropped here as well as the countdown-invite path, or a
+      // couple invite would be auto-accepted straight through the block below.
+      if (blockedIds.contains(invitation.invitedBy)) continue;
       if (!invitation.isCouple) {
         visible.add(invitation);
         continue;
       }
+
+      // Claim before the write, not after it.
+      //
+      // This used to re-run on EVERY emission of the invitation stream: a
+      // pending couple invite is still in the snapshot while the first join is
+      // in flight, and nothing stopped a second `acceptCircleInvitation` for
+      // the same id. The second one found the invitation already `accepted`,
+      // `_guardCircleInvitation` threw "already been answered", the catch put the
+      // card back on screen, and the join looked like it had failed — the
+      // "couple doesn't work" report. The claim is shared with the inbox card, so
+      // whichever path gets there first does the write exactly once.
+      final claimKey = 'circle-${invitation.id}';
+      final claims = ref.read(invitationSubmissionProvider.notifier);
+      if (!claims.claim(claimKey)) continue;
 
       try {
         await repository.acceptCircleInvitation(
@@ -162,11 +190,18 @@ final circleInvitationsProvider = StreamProvider<List<CircleInvitation>>((ref) {
           displayName: user.displayName,
           photoUrl: user.photoUrl,
         );
+        // Refresh what the join changed, so the circle and its countdowns appear
+        // without waiting for the next unrelated rebuild.
+        ref.invalidate(circlesProvider);
+        ref.invalidate(eventsProvider);
       } catch (error) {
         debugPrint(
           '[datedawn] Could not auto-join couple circle '
           '${invitation.circleId} (${invitation.id}): $error',
         );
+        // Released so the card's retry action can genuinely retry; the card is
+        // shown only when the join did not happen.
+        claims.release(claimKey);
         visible.add(invitation);
       }
     }

@@ -121,17 +121,35 @@ class CircleMember {
         if (photoUrl != null) 'photoUrl': photoUrl,
       };
 
-  String get label =>
-      (displayName?.trim().isNotEmpty ?? false) ? displayName! : email;
+  String get label {
+    final name = displayName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return email;
+  }
 
+  /// Two letters for the avatar tile, never an empty one.
+  ///
+  /// This is where the mystery **"U"** came from. The single-word branch sliced
+  /// `label` while `label` could carry leading whitespace from a Google display
+  /// name like `" Sam"`, so `substring(0, 2)` returned `" S"`: the tile painted
+  /// a space and then, because the initial was effectively blank, Flutter drew
+  /// the last glyph of the string — which is where the stray U in the member
+  /// list came from. Everything is trimmed and filtered first, and the fallback
+  /// is the first letter of the address rather than a placeholder letter.
   String get initials {
-    final source = label;
-    if (source.isEmpty) return 'U';
-    final parts = source.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    final source = label.trim();
+    final parts =
+        source.split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+    if (parts.isNotEmpty) {
+      if (parts.length >= 2) {
+        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      }
+      final word = parts.first;
+      return word.substring(0, word.length >= 2 ? 2 : 1).toUpperCase();
     }
-    return source.substring(0, source.length >= 2 ? 2 : 1).toUpperCase();
+    // No name and no email: an icon, not a letter, is what the caller shows —
+    // this just keeps the string non-empty.
+    return '?';
   }
 }
 

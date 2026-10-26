@@ -121,7 +121,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final participants =
         ref.watch(participantsProvider(event.id)).value ?? event.participants;
     final notes = ref.watch(notesProvider(event.id)).value ?? event.notes;
-    final others = participants.where((p) => p.userId != user?.id).toList();
+    // Circle rows are placeholders standing in for a whole circle — no email, no
+    // name — so they are not people to list under SHARED WITH. Showing one drew
+    // a nameless avatar reading "U" next to a blank label.
+    final others =
+        participants.where((p) => !p.isCircle && p.userId != user?.id).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -248,7 +252,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                         ),
                         const SizedBox(width: 9),
                         Text(
-                          person.displayName ?? person.email,
+                          // `??` was not enough: an empty display name is not
+                          // null, so the chip rendered with no text at all.
+                          (person.displayName?.trim().isNotEmpty ?? false)
+                              ? person.displayName!.trim()
+                              : person.email,
                           style: const TextStyle(fontSize: 12.5),
                         ),
                       ],

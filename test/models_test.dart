@@ -214,13 +214,16 @@ void main() {
     });
 
     test('never returns an empty string', () {
+      // "?" is the explicit "nobody to name" marker: `UserAvatar` turns it into
+      // a person icon. A literal "U" read as a real initial.
       const p = Participant(
         userId: 'u',
         email: '',
         role: ParticipantRole.viewer,
         inviteStatus: InviteStatus.accepted,
       );
-      expect(p.initials, 'U');
+      expect(p.initials, '?');
+      expect(p.initials, isNot(''));
     });
   });
 

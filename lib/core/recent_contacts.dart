@@ -38,17 +38,26 @@ class RecentContact {
 
   /// What the suggestion row reads: the name when there is one, the address
   /// otherwise.
-  String get label =>
-      (displayName?.trim().isNotEmpty ?? false) ? displayName! : email;
+  String get label {
+    final name = displayName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return email;
+  }
 
+  /// See `CircleMember.initials`: slicing the untrimmed label produced a tile
+  /// showing a stray letter for a display name with a leading space.
   String get initials {
-    final source = label;
-    if (source.isEmpty) return 'U';
-    final parts = source.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    final source = label.trim();
+    final parts =
+        source.split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+    if (parts.isNotEmpty) {
+      if (parts.length >= 2) {
+        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      }
+      final word = parts.first;
+      return word.substring(0, word.length >= 2 ? 2 : 1).toUpperCase();
     }
-    return source.substring(0, source.length >= 2 ? 2 : 1).toUpperCase();
+    return '?';
   }
 
   /// Whether this contact matches what has been typed so far.

@@ -82,8 +82,11 @@ void main() {
       expect(member.label, 'sam@example.com');
       expect(member.initials, 'SA');
 
+      // No name and no address: "?" tells `UserAvatar` to draw a person icon
+      // instead of a letter. It used to be a literal "U", which looked like a
+      // name that started with U rather than a missing one.
       const blank = CircleMember(userId: 'u2', email: '');
-      expect(blank.initials, 'U');
+      expect(blank.initials, '?');
     });
   });
 

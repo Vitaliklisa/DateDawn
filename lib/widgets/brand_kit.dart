@@ -219,22 +219,30 @@ class UserAvatar extends StatelessWidget {
   }
 
   /// The launch avatar: a flat tint with the initials on top.
+  ///
+  /// A blank or whitespace-only `initials` falls back to a person glyph rather
+  /// than a `Text('')`. An empty string here is what produced the stray letter
+  /// tiles in the member lists: a one-character label of `" "` renders as
+  /// nothing at all, which reads as a busted avatar.
   Widget _initialsTile(AppPalette colors) {
-    final tint = tintFor(seed ?? initials);
+    final label = initials.trim();
+    final tint = tintFor(seed ?? (label.isEmpty ? '?' : label));
     return Container(
       width: size,
       height: size,
       color: Color.alphaBlend(tint.withValues(alpha: 0.22), colors.surface2),
       alignment: Alignment.center,
-      child: Text(
-        initials,
-        style: TextStyle(
-          fontSize: size * 0.36,
-          fontWeight: FontWeight.w600,
-          height: 1,
-          color: tint,
-        ),
-      ),
+      child: label.isEmpty
+          ? Icon(Icons.person_rounded, size: size * 0.6, color: tint)
+          : Text(
+              label,
+              style: TextStyle(
+                fontSize: size * 0.36,
+                fontWeight: FontWeight.w600,
+                height: 1,
+                color: tint,
+              ),
+            ),
     );
   }
 }
