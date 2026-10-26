@@ -53,6 +53,31 @@ This checklist covers the required setup before publishing **Data Dawn** to Goog
 - App content declaration
 - **Account deletion** URL or in-app path (Google requires this too)
 
+#### User-generated content (answer: **Yes**, blocking is included)
+
+The Play form asks: *"Does the app include the ability to block users or
+user-generated content?"* Answer **Yes**.
+
+Date Dawn has 1:1 interaction — people invite each other to countdowns and both
+sides can leave notes — so Google's UGC policy applies and requires **in-app
+blocking**. It is implemented, not just declared:
+
+| Requirement | Where it is |
+|---|---|
+| Block another user, in-app | Long-press / secondary-click a name in the people list on a shared countdown (`lib/widgets/block_user.dart`) |
+| Blocking actually ends contact | `EventRepository.blockUser` removes them from every shared countdown, cancels invitations both ways, leaves shared circles |
+| Unblock | Settings → Blocked people (`lib/screens/blocked_people_screen.dart`) |
+| Private and one-directional | `users/{uid}/blocked` is readable only by the blocker (`firestore.rules`) — the blocked person is never notified |
+| Terms / policy describe it | In-app policy §4 and `docs/privacy.html` §5 |
+
+**Before submitting:** deploy the rules, or blocking fails with a permission
+error — `firebase deploy --only firestore:rules`.
+
+Also answer **Yes** to the related UGC questions about terms of use and a
+moderation/reporting contact: both exist. The terms are in-app
+(Settings → Terms of service) and the contact is
+datedawnsupport@gmail.com, reachable without signing in at `/support`.
+
 ## 3. Privacy policy and support — the website you need
 
 Both stores require a **live public web page**, not a file in the repo. The site
@@ -66,7 +91,7 @@ build step, no separate host, no cost.
 | Marketing / home | `https://vitaliklisa.github.io/DateDawn/` |
 | Privacy policy | `https://vitaliklisa.github.io/DateDawn/privacy.html` |
 | Support / help | `https://vitaliklisa.github.io/DateDawn/support.html` |
-| Contact email | `vhomenko119@gmail.com` |
+| Contact email | `datedawnsupport@gmail.com` |
 
 ### Turning Pages on (one-time, ~1 minute)
 
@@ -215,6 +240,6 @@ consoles, the policy page and the store listings — they must match exactly.
 - Support / Help: `https://vitaliklisa.github.io/DateDawn/support.html`
 - Account deletion: `https://vitaliklisa.github.io/DateDawn/support.html`
 - Marketing / home: `https://vitaliklisa.github.io/DateDawn/`
-- Contact Email: `vhomenko119@gmail.com`
+- Contact Email: `datedawnsupport@gmail.com`
 
 Every one of these must be live and load without a sign-in before you submit.

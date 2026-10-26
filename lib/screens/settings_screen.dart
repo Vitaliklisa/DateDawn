@@ -148,18 +148,28 @@ class SettingsScreen extends ConsumerWidget {
             value: 'Firebase',
           ),
           const SizedBox(height: 28),
+          // Blocking is required by Google Play's UGC policy, and a block is
+          // only honest if the person can see it and undo it.
+          Text('SAFETY', style: Theme.of(context).textTheme.labelSmall),
+          const SizedBox(height: 12),
+          _SettingsLink(
+            icon: Icons.block_outlined,
+            label: 'Blocked people',
+            onTap: () => context.go(Routes.blocked),
+          ),
+          const SizedBox(height: 28),
           Text('LEGAL', style: Theme.of(context).textTheme.labelSmall),
           const SizedBox(height: 12),
           _SettingsLink(
             icon: Icons.privacy_tip_outlined,
             label: 'Privacy policy',
-            onTap: () => context.push(Routes.privacy),
+            onTap: () => openLegalPage(context, LegalDocument.privacy),
           ),
           const SizedBox(height: 8),
           _SettingsLink(
             icon: Icons.description_outlined,
             label: 'Terms of service',
-            onTap: () => context.push(Routes.terms),
+            onTap: () => openLegalPage(context, LegalDocument.terms),
           ),
           const SizedBox(height: 20),
           // Support is linked from Settings, which is the first place someone

@@ -22,7 +22,7 @@ class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
 
   /// The support address shown in the store listings.
-  static const supportEmail = 'vhomenko119@gmail.com';
+  static const supportEmail = supportEmailAddress;
 
   /// How long a support request usually takes to answer. Stated on the screen so
   /// nobody is left guessing, and kept honest — it is a promise, not marketing.
@@ -115,6 +115,14 @@ class SupportScreen extends StatelessWidget {
                 'the account is removed, and we confirm when it is done.',
           ),
           const _Faq(
+            question: 'How do I block someone?',
+            answer:
+                'Open a countdown you share with them and long-press their name '
+                'in the people list (secondary-click on a computer). They are '
+                'removed from your shared countdowns and cannot invite you '
+                'again. To undo it, go to Settings → Blocked people.',
+          ),
+          const _Faq(
             question: 'Do you sell my data or show ads?',
             answer:
                 'No. There are no ads, no analytics profiles and no third-party '
@@ -127,11 +135,11 @@ class SupportScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _LinkRow(
             label: 'Privacy policy',
-            onTap: () => context.push(Routes.privacy),
+            onTap: () => openLegalPage(context, LegalDocument.privacy),
           ),
           _LinkRow(
             label: 'Terms of service',
-            onTap: () => context.push(Routes.terms),
+            onTap: () => openLegalPage(context, LegalDocument.terms),
           ),
           const SizedBox(height: 26),
           Container(
@@ -302,14 +310,23 @@ class _Faq extends StatelessWidget {
       // The default expansion-tile chrome paints a divider and a coloured
       // leading icon that fight the card style used everywhere else here.
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: colors.border),
-        ),
+      // The card colour and border belong on the tile's own `shape`, not on a
+      // wrapper. A decorated box above a tile hides the ink splash, so these
+      // FAQ rows gave no press feedback at all — and Flutter flags exactly that
+      // in debug builds.
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
         child: ExpansionTile(
+          backgroundColor: colors.surface,
+          collapsedBackgroundColor: colors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: colors.border),
+          ),
+          collapsedShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: colors.border),
+          ),
           tilePadding: const EdgeInsets.symmetric(horizontal: 16),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           iconColor: colors.muted,

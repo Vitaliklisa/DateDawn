@@ -1,0 +1,33 @@
+{
+
+
+
+
+
+
+  "recommendations": [
+
+    "danielsanmedium.dscodegpt",
+
+    "github.vscode-pull-request-github",
+
+    "continue.continue",
+
+    "dart-code.dart-code",
+    "dart-code.flutter",
+
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+
+    "ms-python.python",
+    "ms-python.debugpy",
+    "ms-python.vscode-python-envs",
+    "ms-vscode.cpptools",
+    "ms-vscode.powershell",
+
+    "firebase.firebase-vscode"
+  ],
+  "unwantedRecommendations": []
+}
+

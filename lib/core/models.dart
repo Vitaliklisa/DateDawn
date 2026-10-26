@@ -204,6 +204,57 @@ class InvitationRecipient {
   final ParticipantRole role;
 }
 
+/// Someone this user has blocked.
+///
+/// Required by Google Play's user-generated-content policy: an app where people
+/// can send each other invitations and notes (1:1 interaction) must let a person
+/// block another person **in-app**, and blocking has to actually cut the
+/// connection — not hide a name in a list.
+///
+/// Blocking is one-directional and private: only the blocker can read the row,
+/// the blocked person is never told, and nothing about it is visible to anyone
+/// else. Unblocking deletes the row.
+class BlockedUser {
+  const BlockedUser({
+    required this.userId,
+    required this.email,
+    this.displayName,
+    this.photoUrl,
+    this.blockedAt,
+  });
+
+  /// The blocked account's uid — also the document id under
+  /// `users/{me}/blocked/{uid}`, so one person can only ever be blocked once.
+  final String userId;
+
+  /// The account's email, as it was when the block was made. Also what incoming
+  /// invitations are matched against, so an invite sent to this address is
+  /// dropped even if the uid changed.
+  final String email;
+
+  final String? displayName;
+  final String? photoUrl;
+  final DateTime? blockedAt;
+
+  /// What to call this person on screen. Never an empty label, and never an
+  /// email shown as if it were a name.
+  String get label {
+    final name = displayName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return email.isNotEmpty ? email : 'Blocked user';
+  }
+
+  factory BlockedUser.fromMap(String id, Map<String, dynamic> map) {
+    return BlockedUser(
+      userId: id,
+      email: ((map['email'] as String?) ?? '').toLowerCase(),
+      displayName: map['displayName'] as String?,
+      photoUrl: map['photoUrl'] as String?,
+      blockedAt: _parseDate(map['blockedAt']),
+    );
+  }
+}
+
 /// A short comment left on an event by a participant.
 class EventNote {
   const EventNote({

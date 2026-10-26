@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/routes.dart';
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
+import '../screens/policy_screen.dart';
+import '../services/auth_service.dart';
 import 'brand_kit.dart';
 
 class AppNavigationShell extends ConsumerWidget {
@@ -53,94 +56,135 @@ class AppNavigationShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
+    // A legal page opened from Settings/Support is drawn as a layer over the
+    // shell rather than pushed as a Flutter route. Inside this `ShellRoute` a
+    // sibling-route `push` is ignored outright — the tap changed nothing — and
+    // `go` alone replaced the whole stack, so Back had nowhere to return to.
+    // As a layer it covers the sidebar and the bottom bar (as a policy page
+    // should) and its own Back goes through `closeLegalPage`.
+    final legal = ref.watch(legalDocumentProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final desktop = constraints.maxWidth >= 900;
-        if (!desktop) {
-          return Scaffold(
-            body: child,
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) => _goTo(context, index),
-              destinations: [
-                for (final destination in _destinations.take(_bottomBarCount))
-                  NavigationDestination(
-                    icon: Icon(destination.$3),
-                    label: destination.$1,
-                  ),
-              ],
-            ),
-          );
-        }
-
-        final colors = context.colors;
-        return Scaffold(
-          body: Row(
-            children: [
-              Container(
-                width: 248,
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  border: Border(right: BorderSide(color: colors.border)),
+        final destination =
+            _buildShell(context, user, desktop: constraints.maxWidth >= 900);
+        if (legal == null) return destination;
+        // The policy sits in an `Offstage` sibling rather than a `Stack`: it is
+        // the only visible thing, and nothing underneath it stays laid out,
+        // focusable, or tappable. A SharedAxis transition slides it in and out
+        // (`pop` when closing), so opening a legal page still feels like moving
+        // forward to a page, not like something appearing over one.
+        return Stack(
+          children: [
+            Offstage(offstage: true, child: destination),
+            Positioned.fill(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchOutCurve: Curves.easeIn,
+                switchInCurve: Curves.easeOut,
+                transitionBuilder: (child, animation) => SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.06, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
                 ),
-                child: SafeArea(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(24, 20, 20, 28),
-                        child: BrandMark(),
-                      ),
-                      for (var i = 0; i < _destinations.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 3),
-                          child: _SidebarDestination(
-                            label: _destinations[i].$1,
-                            icon: _destinations[i].$3,
-                            selected: _selectedIndex == i,
-                            onTap: () => _goTo(context, i),
-                          ),
-                        ),
-                      const Spacer(),
-                      if (user != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
-                          child: Row(
-                            children: [
-                              UserAvatar(
-                                initials: user.initials,
-                                seed: user.id,
-                                photoUrl: user.photoUrl,
-                                size: 34,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  user.displayName?.trim().isNotEmpty == true
-                                      ? user.displayName!
-                                      : user.email,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    color: colors.muted,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
+                child: PolicyScreen(
+                  key: ValueKey(legal),
+                  isPrivacy: legal == LegalDocument.privacy,
                 ),
               ),
-              Expanded(child: child),
-            ],
-          ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildShell(BuildContext context, AppUser? user,
+      {required bool desktop}) {
+    if (!desktop) {
+      return Scaffold(
+        body: child,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (index) => _goTo(context, index),
+          destinations: [
+            for (final destination in _destinations.take(_bottomBarCount))
+              NavigationDestination(
+                icon: Icon(destination.$3),
+                label: destination.$1,
+              ),
+          ],
+        ),
+      );
+    }
+
+    final colors = context.colors;
+    return Scaffold(
+      body: Row(
+        children: [
+          Container(
+            width: 248,
+            decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border(right: BorderSide(color: colors.border)),
+            ),
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(24, 20, 20, 28),
+                    child: BrandMark(),
+                  ),
+                  for (var i = 0; i < _destinations.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 3),
+                      child: _SidebarDestination(
+                        label: _destinations[i].$1,
+                        icon: _destinations[i].$3,
+                        selected: _selectedIndex == i,
+                        onTap: () => _goTo(context, i),
+                      ),
+                    ),
+                  const Spacer(),
+                  if (user != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
+                      child: Row(
+                        children: [
+                          UserAvatar(
+                            initials: user.initials,
+                            seed: user.id,
+                            photoUrl: user.photoUrl,
+                            size: 34,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              user.displayName?.trim().isNotEmpty == true
+                                  ? user.displayName!
+                                  : user.email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: colors.muted,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(child: child),
+        ],
+      ),
     );
   }
 }

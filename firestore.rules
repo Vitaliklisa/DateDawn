@@ -225,6 +225,21 @@ service cloud.firestore {
         allow read, create, update, delete: if signedIn() && userId == uid();
       }
 
+      // ---------- blocked users ----------
+      //
+      // Required by Google Play's UGC policy: an app where people can send each
+      // other invitations and notes must let a person block another person
+      // in-app. The list is strictly private in both directions — the blocker is
+      // the only one who can read or write it, and the blocked person cannot see
+      // that a row exists at all. `blockedId` must be a plausible account id and
+      // the row cannot carry arbitrary fields beyond what the UI shows.
+      match /blocked/{blockedId} {
+        allow read, create, update, delete: if signedIn()
+          && userId == uid()
+          && blockedId.size() > 0
+          && blockedId != uid();
+      }
+
       // ---------- notifications ----------
       //
       // The in-app inbox, one subcollection per user. Living under the owner's

@@ -115,10 +115,24 @@ Stream<T> _neverEmits<T>() {
 }
 
 /// Pending invitations addressed to the signed-in user's email.
+///
+/// Invitations from someone this user has blocked are dropped here rather than
+/// shown. `blockUser` clears the pending ones when the block is made, but a
+/// block is also a standing refusal: an invite that arrives afterwards (an
+/// older app version, a retry) must not reappear in the inbox of the person who
+/// asked not to hear from them.
 final invitationsProvider = StreamProvider<List<Invitation>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null || user.email.isEmpty) return Stream.value(const []);
-  return ref.watch(eventRepositoryProvider).watchInvitations(user.email);
+  final repo = ref.watch(eventRepositoryProvider);
+  final blocked =
+      ref.watch(blockedUsersProvider).value ?? const <BlockedUser>[];
+  final blockedIds = blocked.map((b) => b.userId).toSet();
+  return repo.watchInvitations(user.email).map(
+        (invites) => invites
+            .where((invite) => !blockedIds.contains(invite.invitedBy))
+            .toList(),
+      );
 });
 
 /// Pending circle invitations addressed to the signed-in user's email.
@@ -250,9 +264,20 @@ final participantsProvider =
 });
 
 /// Notes on one event, live, oldest first.
+///
+/// Notes written by someone this user has blocked are filtered out. Blocking
+/// removes the person from the countdown, but a note they wrote before that is
+/// still a document — and "stop seeing them" has to mean their content too.
 final notesProvider =
     StreamProvider.family<List<EventNote>, String>((ref, eventId) {
-  return ref.watch(eventRepositoryProvider).watchNotes(eventId);
+  final blocked =
+      ref.watch(blockedUsersProvider).value ?? const <BlockedUser>[];
+  if (blocked.isEmpty) {
+    return ref.watch(eventRepositoryProvider).watchNotes(eventId);
+  }
+  final blockedIds = blocked.map((b) => b.userId).toSet();
+  return ref.watch(eventRepositoryProvider).watchNotes(eventId).map(
+      (notes) => notes.where((n) => !blockedIds.contains(n.userId)).toList());
 });
 
 /// People the signed-in user has invited before, most recently invited first.
@@ -264,6 +289,17 @@ final recentContactsProvider = StreamProvider<List<RecentContact>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(const []);
   return ref.watch(eventRepositoryProvider).watchRecentContacts(user.id);
+});
+
+/// People the signed-in user has blocked, newest first.
+///
+/// Blocking is required by Google Play's UGC policy, and a block is only honest
+/// if the person can see it happened and can undo it — this is the list behind
+/// Settings → Blocked people.
+final blockedUsersProvider = StreamProvider<List<BlockedUser>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return Stream.value(const []);
+  return ref.watch(eventRepositoryProvider).watchBlockedUsers(user.id);
 });
 
 /// Which countdown is pinned as the hero. `null` means "pick automatically":

@@ -11,6 +11,7 @@ import '../core/theme.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../services/event_repository.dart';
+import '../widgets/block_user.dart';
 import '../widgets/brand_kit.dart';
 
 /// Create or edit one countdown.
@@ -918,117 +919,140 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
           )
         else
           for (final participant in participants)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: colors.border),
-                ),
-                child: Row(
-                  children: [
-                    // A circle row is not a person: it has no email and no name,
-                    // so it gets a group icon rather than a nameless "U" avatar
-                    // that identified nobody.
-                    if (participant.isCircle)
-                      Container(
-                        width: 30,
-                        height: 30,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: colors.accentSoft,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.groups_outlined,
-                            size: 16, color: colors.accent),
-                      )
-                    else
-                      UserAvatar(
-                        initials: participant.initials,
-                        seed: participant.userId,
-                        photoUrl: participant.photoUrl,
-                        size: 30,
-                      ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            participant.isCircle
-                                ? 'Shared with ${participant.circleName ?? 'a circle'}'
-                                : (participant.displayName?.isNotEmpty == true
-                                    ? participant.displayName!
-                                    : participant.email),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w500),
+            // Long-press on touch, secondary-click on desktop opens the
+            // block sheet. A person you share a countdown with is the first
+            // place you would want to block someone, so block lives on the row
+            // rather than in a menu hidden away in Settings.
+            GestureDetector(
+              onLongPress:
+                  participant.isCircle ? null : () => _blockUser(participant),
+              onSecondaryTap:
+                  participant.isCircle ? null : () => _blockUser(participant),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: colors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      // A circle row is not a person: it has no email and no name,
+                      // so it gets a group icon rather than a nameless "U" avatar
+                      // that identified nobody.
+                      if (participant.isCircle)
+                        Container(
+                          width: 30,
+                          height: 30,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: colors.accentSoft,
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(height: 2),
-                          if (!participant.isCircle &&
-                              participant.displayName?.isNotEmpty == true)
+                          child: Icon(Icons.groups_outlined,
+                              size: 16, color: colors.accent),
+                        )
+                      else
+                        UserAvatar(
+                          initials: participant.initials,
+                          seed: participant.userId,
+                          photoUrl: participant.photoUrl,
+                          size: 30,
+                        ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              participant.email,
+                              participant.isCircle
+                                  ? 'Shared with ${participant.circleName ?? 'a circle'}'
+                                  : (participant.displayName?.isNotEmpty == true
+                                      ? participant.displayName!
+                                      : participant.email),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 11.5, color: colors.subtle),
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w500),
                             ),
-                          if (!participant.isCircle) const SizedBox(height: 5),
-                          if (!participant.isCircle)
-                            Row(
-                              children: [
-                                Text(
-                                  _roleLabel(participant.role),
-                                  style: TextStyle(
-                                      fontSize: 11.5, color: colors.subtle),
-                                ),
-                                const SizedBox(width: 8),
-                                InviteStatusChip(
-                                    status: participant.inviteStatus,
-                                    compact: true),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                    // A circle row has no answer to give and nothing to
-                    // remove — the share is managed in the composer.
-                    if (canManage &&
-                        !participant.isCircle &&
-                        participant.userId != widget.event.createdBy) ...[
-                      // Someone who has not answered can be removed outright.
-                      // Someone who declined said no but is still on the list on
-                      // purpose, and the useful action for them is to ask again
-                      // rather than to erase them.
-                      if (participant.inviteStatus.isAwaitingAnswer)
-                        IconButton(
-                          tooltip: 'Remove',
-                          iconSize: 18,
-                          color: colors.subtle,
-                          onPressed: () => _remove(participant),
-                          icon: const Icon(Icons.close_rounded),
-                        )
-                      else if (participant.inviteStatus ==
-                          InviteStatus.declined)
-                        IconButton(
-                          tooltip: 'Invite again',
-                          iconSize: 18,
-                          color: colors.warning,
-                          onPressed: () => _inviteAgain(participant),
-                          icon: const Icon(Icons.refresh_rounded),
+                            const SizedBox(height: 2),
+                            if (!participant.isCircle &&
+                                participant.displayName?.isNotEmpty == true)
+                              Text(
+                                participant.email,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 11.5, color: colors.subtle),
+                              ),
+                            if (!participant.isCircle)
+                              const SizedBox(height: 5),
+                            if (!participant.isCircle)
+                              Row(
+                                children: [
+                                  Text(
+                                    _roleLabel(participant.role),
+                                    style: TextStyle(
+                                        fontSize: 11.5, color: colors.subtle),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  InviteStatusChip(
+                                      status: participant.inviteStatus,
+                                      compact: true),
+                                ],
+                              ),
+                          ],
                         ),
+                      ),
+                      // A circle row has no answer to give and nothing to
+                      // remove — the share is managed in the composer.
+                      if (canManage &&
+                          !participant.isCircle &&
+                          participant.userId != widget.event.createdBy) ...[
+                        // Someone who has not answered can be removed outright.
+                        // Someone who declined said no but is still on the list on
+                        // purpose, and the useful action for them is to ask again
+                        // rather than to erase them.
+                        if (participant.inviteStatus.isAwaitingAnswer)
+                          IconButton(
+                            tooltip: 'Remove',
+                            iconSize: 18,
+                            color: colors.subtle,
+                            onPressed: () => _remove(participant),
+                            icon: const Icon(Icons.close_rounded),
+                          )
+                        else if (participant.inviteStatus ==
+                            InviteStatus.declined)
+                          IconButton(
+                            tooltip: 'Invite again',
+                            iconSize: 18,
+                            color: colors.warning,
+                            onPressed: () => _inviteAgain(participant),
+                            icon: const Icon(Icons.refresh_rounded),
+                          ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
       ],
     );
+  }
+
+  Future<void> _blockUser(Participant participant) async {
+    final me = ref.read(currentUserProvider);
+    if (me == null || participant.userId == me.id) return;
+    final blocked = await showBlockUserSheet(
+      context,
+      participant: participant,
+    );
+    if (!blocked || !mounted) return;
+    // The block removed them from this countdown, so the list refreshes on its
+    // own; this only confirms it happened.
   }
 
   Future<void> _remove(Participant participant) async {

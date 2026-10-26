@@ -548,7 +548,7 @@ deletes the row, behind a confirmation dialog.
 ## 11.6 Support page
 
 `lib/screens/support_screen.dart`, at `/support`, with
-**vhomenko119@gmail.com** as the contact. Both stores require a reachable
+**datedawnsupport@gmail.com** as the contact. Both stores require a reachable
 support contact for a published app, and the screen is written so a reviewer
 following the trail lands somewhere real:
 

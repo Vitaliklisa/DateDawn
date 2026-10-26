@@ -102,6 +102,11 @@ class EventRepository {
   CollectionReference<Map<String, dynamic>> _recentContacts(String userId) =>
       _db.collection('users').doc(userId).collection('recent_contacts');
 
+  /// The people [userId] has blocked. Private: `firestore.rules` lets only the
+  /// owner read or write this subcollection.
+  CollectionReference<Map<String, dynamic>> _blocked(String userId) =>
+      _db.collection('users').doc(userId).collection('blocked');
+
   /// Live stream of every event the user created, was invited to, or can see
   /// through a circle they belong to.
   ///
@@ -812,6 +817,19 @@ class EventRepository {
       }
     }
 
+    // A block is not advisory: an invite to someone this user has blocked is
+    // refused here, by email as well as by uid, so a re-typed address cannot
+    // route around the block.
+    if (await isBlocked(
+      userId: inviterId,
+      targetUid: targetUserId ?? '',
+      targetEmail: target,
+    )) {
+      throw const DataFailure(
+          'You cannot invite someone you have blocked. Unblock them in '
+          'Settings → Blocked people first.');
+    }
+
     // The `invitations` document is written in BOTH branches, and the pending
     // participant row carries its id.
     //
@@ -961,6 +979,16 @@ class EventRepository {
     String? photoUrl,
   }) async {
     await _guardInvitation(invitation);
+
+    // Blocking is a standing refusal, so an invite from someone this user has
+    // blocked cannot be accepted even if it was already on screen when the
+    // block was made.
+    if (invitation.invitedBy.isNotEmpty &&
+        await isBlocked(userId: userId, targetUid: invitation.invitedBy)) {
+      throw const DataFailure(
+          'You have blocked this person. Unblock them in Settings → Blocked '
+          'people to accept their invitation.');
+    }
 
     final batch = _db.batch();
     // One write shape for a row that may or may not exist.
@@ -2112,6 +2140,192 @@ class EventRepository {
     // Same reason as `leaveCircle`: the removed person must stop being served
     // countdowns through the denormalised list.
     await _resyncCircleShares(circleId, actorId: ownerId);
+  }
+
+  // ---------------------------------------------------------------------
+  // Blocking another person
+  // ---------------------------------------------------------------------
+  //
+  // Google Play's user-generated-content policy requires apps with 1:1
+  // interaction (this one has invitations and notes) to offer in-app blocking.
+  // "Block" here means what a person expects: the connection is cut, not just
+  // hidden.
+
+  /// Live stream of the people this user has blocked, newest first.
+  Stream<List<BlockedUser>> watchBlockedUsers(String userId) {
+    if (userId.isEmpty) return Stream.value(const []);
+    return _blocked(userId).snapshots().map((snap) {
+      final list =
+          snap.docs.map((d) => BlockedUser.fromMap(d.id, d.data())).toList();
+      list.sort((a, b) {
+        final left = a.blockedAt;
+        final right = b.blockedAt;
+        if (left == null && right == null) return a.label.compareTo(b.label);
+        if (left == null) return 1;
+        if (right == null) return -1;
+        return right.compareTo(left);
+      });
+      return list;
+    });
+  }
+
+  /// Blocks [targetUid] and severs every tie between the two accounts.
+  ///
+  /// A row in `users/{me}/blocked` alone would be a setting, not a block: the
+  /// blocked person could still see and edit a shared countdown, still be a
+  /// member of a shared circle, and still have a pending invitation sitting in
+  /// the inbox. So this does four things, each best-effort and each logged
+  /// rather than thrown, because a refusal on one (a countdown this user can
+  /// read but not edit) must not leave the block half-applied:
+  ///
+  /// 1. Writes the block row first. It is what the UI reads, and everything
+  ///    below is clean-up of a block that already exists.
+  /// 2. Removes them from every shared countdown and deletes any pending
+  ///    invitation between the two of you, in either direction.
+  /// 3. If the two of you share a circle, leaves it — a circle is the only other
+  ///    standing channel between two accounts, and its rules only let a member
+  ///    remove themselves (the owner can remove others, but the owner may not be
+  ///    the one blocking).
+  /// 4. Forgets them from recents, so they are not suggested as an invitee.
+  ///
+  /// The blocked person is never notified and cannot tell they were blocked.
+  Future<void> blockUser({
+    required String userId,
+    required String targetUid,
+    String targetEmail = '',
+    String? targetDisplayName,
+    String? targetPhotoUrl,
+  }) async {
+    if (targetUid.isEmpty) {
+      throw const DataFailure('That account could not be identified.');
+    }
+    if (targetUid == userId) {
+      throw const DataFailure('You cannot block yourself.');
+    }
+
+    final email = targetEmail.trim().toLowerCase();
+
+    // 1. The block itself. Written with `set`, so blocking twice is harmless.
+    await _blocked(userId).doc(targetUid).set({
+      'email': email,
+      if (targetDisplayName != null && targetDisplayName.trim().isNotEmpty)
+        'displayName': targetDisplayName.trim(),
+      if (targetPhotoUrl != null && targetPhotoUrl.isNotEmpty)
+        'photoUrl': targetPhotoUrl,
+      'blockedAt': Timestamp.fromDate(DateTime.now()),
+    });
+
+    // 2a. Shared countdowns: drop their participant row, so access ends and
+    //     they stop appearing in the people list.
+    try {
+      final shared = await _db
+          .collectionGroup('participants')
+          .where('userId', isEqualTo: targetUid)
+          .get();
+      for (final row in shared.docs) {
+        final eventRef = row.reference.parent.parent;
+        if (eventRef == null) continue;
+        try {
+          await eventRef.collection('participants').doc(targetUid).delete();
+        } catch (error) {
+          debugPrint('[datedawn] Block: could not remove $targetUid from '
+              '${eventRef.id}: $error');
+        }
+      }
+    } catch (error) {
+      debugPrint('[datedawn] Block: could not list shared countdowns: $error');
+    }
+
+    // 2b. Pending invitations between the two of you, both directions. Sent
+    //     ones would otherwise keep arriving in their inbox; received ones would
+    //     keep asking this user to let the person back in.
+    try {
+      final mine =
+          await _invitations.where('invitedBy', isEqualTo: userId).get();
+      final theirs =
+          await _invitations.where('invitedBy', isEqualTo: targetUid).get();
+      String inviteeOf(Map<String, dynamic> data) =>
+          ((data['inviteeEmail'] as String?) ?? '').toLowerCase();
+      // Invites this user sent to the blocked address, and invites the blocked
+      // account sent back. Anything else (this user's own inbox) is left alone.
+      final doomed = [
+        ...mine.docs
+            .where((d) => email.isNotEmpty && inviteeOf(d.data()) == email),
+        ...theirs.docs
+            .where((d) => email.isEmpty || inviteeOf(d.data()) != email),
+      ];
+      for (final doc in doomed) {
+        try {
+          await doc.reference.delete();
+        } catch (error) {
+          debugPrint(
+              '[datedawn] Block: could not delete invitation ${doc.id}: $error');
+        }
+      }
+    } catch (error) {
+      debugPrint('[datedawn] Block: could not clear invitations: $error');
+    }
+
+    // 3. Shared circles: leave them. Rules let a member remove only themselves.
+    try {
+      final mine =
+          await _circles.where('memberIds', arrayContains: userId).get();
+      final theirs =
+          await _circles.where('memberIds', arrayContains: targetUid).get();
+      final theirsIds = theirs.docs.map((d) => d.id).toSet();
+      for (final circle in mine.docs) {
+        if (!theirsIds.contains(circle.id)) continue;
+        try {
+          await leaveCircle(circleId: circle.id, userId: userId);
+        } catch (error) {
+          debugPrint('[datedawn] Block: could not leave circle ${circle.id}: '
+              '$error');
+        }
+      }
+    } catch (error) {
+      debugPrint('[datedawn] Block: could not list shared circles: $error');
+    }
+
+    // 4. Recents, so the person is not offered as an invitee straight after.
+    if (email.isNotEmpty) {
+      try {
+        final recents = await _recentContacts(userId).get();
+        for (final doc in recents.docs) {
+          final rowEmail =
+              ((doc.data()['email'] as String?) ?? '').toLowerCase();
+          if (rowEmail == email || doc.id == targetUid) {
+            await doc.reference.delete();
+          }
+        }
+      } catch (error) {
+        debugPrint('[datedawn] Block: could not prune recents: $error');
+      }
+    }
+  }
+
+  /// Unblocks someone. Only the local block row is removed — the countdowns and
+  /// circle memberships it cut are not restored, because the other person
+  /// should not be silently re-granted access they lost.
+  Future<void> unblockUser({
+    required String userId,
+    required String targetUid,
+  }) async {
+    await _blocked(userId).doc(targetUid).delete();
+  }
+
+  /// Whether this user has blocked [targetUid] or their email.
+  Future<bool> isBlocked({
+    required String userId,
+    required String targetUid,
+    String targetEmail = '',
+  }) async {
+    final snap = await _blocked(userId).get();
+    final email = targetEmail.trim().toLowerCase();
+    return snap.docs.any((d) {
+      if (d.id == targetUid) return true;
+      final rowEmail = ((d.data()['email'] as String?) ?? '').toLowerCase();
+      return email.isNotEmpty && rowEmail == email;
+    });
   }
 
   /// Deletes a circle outright. Owner only.

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'core/models.dart';
 import 'core/routes.dart';
 import 'providers/app_providers.dart';
+import 'screens/blocked_people_screen.dart';
 import 'screens/circles_screen.dart';
 import 'screens/event_detail_screen.dart';
 import 'screens/event_editor_screen.dart';
@@ -142,6 +143,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: 'notifications',
             builder: (context, state) => const NotificationsScreen(),
           ),
+          GoRoute(
+            path: Routes.blocked,
+            name: 'blocked',
+            builder: (context, state) => const BlockedPeopleScreen(),
+          ),
           // Support sits inside the shell like every other page, so it gets the
           // same navigation: the sidebar on desktop, and a route the bottom bar
           // and Settings can both reach. Earlier it was a standalone top-level
@@ -154,6 +160,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: 'support',
             builder: (context, state) => const SupportScreen(),
           ),
+          // The legal pages keep real, shareable URLs, and a cold load of one
+          // lands straight on the document. The tap path from Settings/Support
+          // does **not** `push` these routes: inside this shell a push of a
+          // sibling route is silently swallowed (the URL and the screen both
+          // stay put). `openLegalPage` records the document and moves the URL
+          // with `go` instead — see `lib/core/routes.dart`.
           GoRoute(
             path: Routes.privacy,
             name: 'privacy',
@@ -198,6 +210,18 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 
   ref.listen(activeAuthStateProvider, (_, __) => router.refresh());
+
+  // Keep the open legal document in step with the URL both ways: a back
+  // gesture, a deep link, or a fresh load of `/privacy` all arrive as a
+  // location change, not a tap on a link.
+  void syncLegalPage() {
+    final open = ref.read(legalDocumentProvider);
+    final at = legalDocumentAt(router.state.uri.path);
+    if (open != at) ref.read(legalDocumentProvider.notifier).state = at;
+  }
+
+  router.routerDelegate.addListener(syncLegalPage);
+  ref.onDispose(() => router.routerDelegate.removeListener(syncLegalPage));
   ref.onDispose(router.dispose);
   return router;
 });

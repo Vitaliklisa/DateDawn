@@ -8,7 +8,7 @@
 
 This privacy policy explains how Data Dawn collects, uses, stores, and protects information when you use the app.
 
-Data Dawn is operated by the Data Dawn developer (`vhomenko119@gmail.com`). This policy applies to the Data Dawn mobile applications on Google Play and the Apple App Store, and to the Data Dawn web app.
+Data Dawn is operated by the Data Dawn developer (`datedawnsupport@gmail.com`). This policy applies to the Data Dawn mobile applications on Google Play and the Apple App Store, and to the Data Dawn web app.
 
 ## 1. Information we collect
 
@@ -79,7 +79,7 @@ We may update this Privacy Policy from time to time. Updates will be reflected i
 If you have questions about this policy or your data, contact:
 
 Developer: Data Dawn Support
-Email: vhomenko119@gmail.com
+Email: datedawnsupport@gmail.com
 Website: https://vitaliklisa.github.io/DateDawn/
 
 App Store Connect and Google Play Console both require the policy page to be
