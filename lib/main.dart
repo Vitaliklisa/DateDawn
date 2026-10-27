@@ -55,16 +55,6 @@ Future<void> main() async {
     if (Firebase.apps.isEmpty) {
       _trace('initializing Firebase');
       await Firebase.initializeApp(options: firebaseOptions);
-      // Opt-in, build-time only: `--dart-define=USE_EMULATORS=true` points the
-      // web build at the local Auth + Firestore emulators so multi-account flows
-      // can be exercised against real rules without touching the live project.
-      // `bool.fromEnvironment` is const-folded, so a normal build never contains
-      // this branch.
-      if (kIsWeb && const bool.fromEnvironment('USE_EMULATORS')) {
-        _trace('using local emulators');
-        unawaited(FirebaseAuth.instance.useAuthEmulator('127.0.0.1', 9099));
-        FirebaseFirestore.instance.useFirestoreEmulator('127.0.0.1', 8080);
-      }
       _trace('Firebase ready');
     } else {
       _trace('Firebase already initialised (native config)');
