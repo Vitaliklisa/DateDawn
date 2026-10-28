@@ -917,19 +917,87 @@ class EventRepository {
     );
   }
 
+  /// Changes an existing collaborator's role.
+  ///
+  /// This is the action behind "Change role" on a collaborator row. It is not
+  /// the same thing as the role selector on the invite form, which only sets the
+  /// role a *new* invitation carries.
+  ///
+  /// The policy is [CountdownEvent.checkRoleChange] — the same one the menu and
+  /// the security rules apply — and it is enforced here too, so a caller that
+  /// reaches this method directly (a future screen, a test, a stale sheet) is
+  /// refused rather than silently writing an escalation. It throws [DataFailure]
+  /// with the sentence to show, instead of a bare `permission-denied`.
+  ///
+  /// [event] is optional: when the caller has one, the check runs locally with
+  /// no read at all; when it does not, the event and the participant row are
+  /// read here. Either way the row that decides is the one in Firestore, not
+  /// whatever the screen last rendered.
   Future<void> updateParticipantRole({
     required String eventId,
     required String actorId,
     required Participant participant,
     required ParticipantRole role,
+    CountdownEvent? event,
   }) async {
+    if (actorId.isEmpty) {
+      throw const DataFailure('Sign in to change this person\'s role.');
+    }
+
+    var current = event;
+    if (current == null) {
+      final doc = await _events.doc(eventId).get();
+      if (!doc.exists) {
+        throw const DataFailure('That countdown no longer exists.');
+      }
+      final rows = await _events.doc(eventId).collection('participants').get();
+      current = CountdownEvent.fromDoc(doc.id, doc.data() ?? {}).copyWith(
+        participants:
+            rows.docs.map((d) => Participant.fromMap(d.id, d.data())).toList(),
+      );
+    }
+
+    // Read the target row as it actually is. The role on the model the caller
+    // passed in may be older than the database, and it is the database role a
+    // change is measured against.
+    var target = participant;
+    try {
+      final row = await _events
+          .doc(eventId)
+          .collection('participants')
+          .doc(participant.userId)
+          .get();
+      if (!row.exists) {
+        throw const DataFailure('That person is no longer on this countdown.');
+      }
+      target = Participant.fromMap(row.id, row.data() ?? {});
+    } on DataFailure {
+      rethrow;
+    } catch (error) {
+      // Offline or unreadable: fall back to what the caller has, which the
+      // policy still checks. The write itself will be refused by the rules if
+      // the real state disagrees.
+      debugPrint('[datedawn] Could not re-read ${participant.userId}\'s role: '
+          '$error');
+    }
+
+    final check = current.checkRoleChange(
+      actorId: actorId,
+      target: target,
+      role: role,
+    );
+    if (!check.allowed) {
+      throw DataFailure(check.message ?? 'That role change is not allowed.');
+    }
+
+    // `update`, not `set`: a role change must never recreate a row and wipe the
+    // name, email or invitation state carried on it. The security rule permits
+    // exactly this one field.
     await _events
         .doc(eventId)
         .collection('participants')
         .doc(participant.userId)
-        .update({
-      'role': role.name,
-    });
+        .update({'role': role.name});
   }
 
   /// Drops someone from a countdown entirely.
@@ -2152,9 +2220,37 @@ class EventRepository {
   // hidden.
 
   /// Live stream of the people this user has blocked, newest first.
+  ///
+  /// **The query is filtered on `active == true` on purpose.** That is what
+  /// lets `firestore.rules` authorise it as a query.
+  ///
+  /// A rule that has to `exists()` the owner's parent `users/{uid}` document
+  /// cannot be evaluated for a collection query — Firestore cannot prove the
+  /// cross-document read for every candidate row — so it refuses the whole
+  /// query with `permission-denied`. That refusal is what Settings → Blocked
+  /// people used to show as a spinner that never finished: the block write
+  /// succeeded (the write rule *can* do that `exists()`), but the read that
+  /// draws the list was rejected every time, and an account whose
+  /// `users/{uid}` profile had not been written yet (anyone who signed up
+  /// without ever setting a theme or receiving a notification) had no way to
+  /// get a list at all.
+  ///
+  /// `active == true` is a plain field comparison the rules engine can prove,
+  /// so the read no longer depends on the profile document existing. The catch
+  /// is honest: a block row written by an older build carries no `active` field
+  /// and would not match. [blockUser] now heals exactly that by rewriting a
+  /// legacy row it finds, and the write path always sets the field.
+  ///
+  /// Errors are **not** swallowed here. `snapshots()` forwards a refused or
+  /// offline listener through to the caller as a stream error, and the provider
+  /// above this turns that into the screen's error state with a Retry — never
+  /// into an empty list.
   Stream<List<BlockedUser>> watchBlockedUsers(String userId) {
     if (userId.isEmpty) return Stream.value(const []);
-    return _blocked(userId).snapshots().map((snap) {
+    return _blocked(userId)
+        .where(BlockedUser.activeField, isEqualTo: true)
+        .snapshots()
+        .map((snap) {
       final list =
           snap.docs.map((d) => BlockedUser.fromMap(d.id, d.data())).toList();
       list.sort((a, b) {
@@ -2178,8 +2274,10 @@ class EventRepository {
   /// rather than thrown, because a refusal on one (a countdown this user can
   /// read but not edit) must not leave the block half-applied:
   ///
-  /// 1. Writes the block row first. It is what the UI reads, and everything
-  ///    below is clean-up of a block that already exists.
+  /// 0. Makes sure the caller's own `users/{uid}` profile exists; the rules
+  ///    authorise a `blocked` read against it.
+  /// 1. Writes the block row. It is what the UI reads, and everything below is
+  ///    clean-up of a block that already exists.
   /// 2. Removes them from every shared countdown and deletes any pending
   ///    invitation between the two of you, in either direction.
   /// 3. If the two of you share a circle, leaves it — a circle is the only other
@@ -2205,26 +2303,71 @@ class EventRepository {
 
     final email = targetEmail.trim().toLowerCase();
 
+    // 0. The profile document first.
+    //
+    // `users/{uid}` is what the rules authorise a `blocked` read against, and
+    // it does not exist for an account that has never saved a theme, received
+    // an inbox line or been found by an invite lookup. Writing it here means
+    // the block that follows is readable immediately — and that the list screen
+    // works for an account that has never done anything else.
+    await _ensureUserProfile(userId: userId);
+
     // 1. The block itself. Written with `set`, so blocking twice is harmless.
+    //
+    // The name and picture are resolved here, before the row is written: the
+    // participants row this block is about to delete (step 2a) is where the
+    // display name usually comes from, and reading it afterwards would only ever
+    // find nothing. Without this the blocked list showed a bare email for
+    // everyone blocked by uid rather than by invitation.
+    var name = targetDisplayName?.trim();
+    var photo = targetPhotoUrl;
+    try {
+      final profile = await _db.collection('users').doc(targetUid).get();
+      final data = profile.data();
+      if (data != null) {
+        final storedName = (data['displayName'] as String?)?.trim();
+        if (storedName != null && storedName.isNotEmpty) name = storedName;
+        final storedPhoto = data['photoUrl'] as String?;
+        if (storedPhoto != null && storedPhoto.isNotEmpty) photo = storedPhoto;
+      }
+    } catch (error) {
+      debugPrint('[datedawn] Block: could not read the blocked profile: $error');
+    }
+
+    // `merge: true` and `active: true` together are what heal a row written by
+    // an older build, which carries no `active` field and so does not match the
+    // list query: blocking that person again brings the row back into view
+    // instead of leaving an invisible block behind.
     await _blocked(userId).doc(targetUid).set({
       'email': email,
-      if (targetDisplayName != null && targetDisplayName.trim().isNotEmpty)
-        'displayName': targetDisplayName.trim(),
-      if (targetPhotoUrl != null && targetPhotoUrl.isNotEmpty)
-        'photoUrl': targetPhotoUrl,
-      'blockedAt': Timestamp.fromDate(DateTime.now()),
-    });
+      if (name != null && name.isNotEmpty) 'displayName': name,
+      if (photo != null && photo.isNotEmpty) 'photoUrl': photo,
+      'blockedAt': FieldValue.serverTimestamp(),
+      // The field the blocked-list query filters on. See watchBlockedUsers.
+      BlockedUser.activeField: true,
+    }, SetOptions(merge: true));
 
     // 2a. Shared countdowns: drop their participant row, so access ends and
     //     they stop appearing in the people list.
+    //
+    // Read per event, not with a collection-group query. A collection-group
+    // read has to be provable for a whole collection, and the participants read
+    // rule (`isParticipant(eventId)` / an owner `get()` of the parent event)
+    // cannot be evaluated that way — Firestore refuses the query outright with
+    // `permission-denied`, so this step used to do nothing at all on every
+    // device. Listing the caller's own countdowns first, then reading the one
+    // participant document per event, is a read the rules *can* answer: it is
+    // exactly the same shape the event screen already uses.
     try {
-      final shared = await _db
-          .collectionGroup('participants')
-          .where('userId', isEqualTo: targetUid)
+      final mine = await _events.where('createdBy', isEqualTo: userId).get();
+      final sharedWithMe = await _events
+          .where('sharedWithMemberIds', arrayContains: userId)
           .get();
-      for (final row in shared.docs) {
-        final eventRef = row.reference.parent.parent;
-        if (eventRef == null) continue;
+      final eventRefs = <String, DocumentReference<Map<String, dynamic>>>{
+        for (final doc in mine.docs) doc.id: doc.reference,
+        for (final doc in sharedWithMe.docs) doc.id: doc.reference,
+      };
+      for (final eventRef in eventRefs.values) {
         try {
           await eventRef.collection('participants').doc(targetUid).delete();
         } catch (error) {
@@ -2233,7 +2376,8 @@ class EventRepository {
         }
       }
     } catch (error) {
-      debugPrint('[datedawn] Block: could not list shared countdowns: $error');
+      debugPrint('[datedawn] Block: could not list the caller\'s countdowns: '
+          '$error');
     }
 
     // 2b. Pending invitations between the two of you, both directions. Sent
@@ -2300,6 +2444,26 @@ class EventRepository {
       } catch (error) {
         debugPrint('[datedawn] Block: could not prune recents: $error');
       }
+    }
+  }
+
+  /// Writes the caller's own `users/{uid}` profile document if it is missing.
+  ///
+  /// The security rules for the `blocked` subcollection authorise a read only
+  /// when the parent profile exists, so a brand-new account (which has no
+  /// profile until it saves a theme or receives a notification) could write a
+  /// block and then never read it back. A merge write is safe to repeat and is
+  /// the same shape [NotificationService.saveThemeMode] uses.
+  Future<void> _ensureUserProfile({required String userId}) async {
+    if (userId.isEmpty) return;
+    try {
+      await _db.collection('users').doc(userId).set({
+        'lastSeenAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (error) {
+      // Not fatal: the signed-in account may already have a profile, in which
+      // case the block write below is authorised anyway.
+      debugPrint('[datedawn] Could not ensure the user profile: $error');
     }
   }
 

@@ -326,16 +326,133 @@ final recentContactsProvider = StreamProvider<List<RecentContact>>((ref) {
   return ref.watch(eventRepositoryProvider).watchRecentContacts(user.id);
 });
 
+/// How long the blocked list waits for its first snapshot before it becomes a
+/// retryable error.
+///
+/// Not a production length: it only has to be longer than a normal Firestore
+/// round-trip, and the watchdog it feeds is the reason the screen cannot sit on
+/// a spinner forever. Overridden in tests, so they do not wait for it.
+final blockedUsersLoadTimeoutProvider =
+    Provider<Duration>((ref) => const Duration(seconds: 10));
+
 /// People the signed-in user has blocked, newest first.
 ///
 /// Blocking is required by Google Play's UGC policy, and a block is only honest
 /// if the person can see it happened and can undo it — this is the list behind
 /// Settings → Blocked people.
-final blockedUsersProvider = StreamProvider<List<BlockedUser>>((ref) {
-  final user = ref.watch(currentUserProvider);
-  if (user == null) return Stream.value(const []);
-  return ref.watch(eventRepositoryProvider).watchBlockedUsers(user.id);
-});
+///
+/// **Every state has to end.** A plain `StreamProvider` over `snapshots()` has
+/// three ways to sit in `loading` for ever, and the blocked screen hit all
+/// three:
+///
+///  * a refused listener (the rules could not authorise the query) — the error
+///    arrived, but nothing on screen offered a way forward;
+///  * a listener that never emits and never errors — an offline client with no
+///    cached data, or a session that has signed out underneath the screen;
+///  * a stream whose first event is delivered after the user has navigated
+///    away and back.
+///
+/// So this resolves explicitly: data when the stream answers, a visible error
+/// with the real reason when it fails (never an empty list — "you blocked
+/// nobody" and "we could not read your blocks" are different facts), and a
+/// timeout so silence becomes an error you can retry rather than a spinner.
+class BlockedUsers extends AsyncNotifier<List<BlockedUser>> {
+  Timer? _watchdog;
+  int _generation = 0;
+
+  @override
+  Future<List<BlockedUser>> build() async {
+    final user = ref.watch(currentUserProvider);
+    final authResolved = ref.watch(authResolvedProvider);
+    if (user == null) {
+      // Signed out, or the session is still being restored. Nothing to read;
+      // the router's redirect covers both.
+      return const [];
+    }
+
+    final generation = ++_generation;
+    final completer = Completer<List<BlockedUser>>();
+
+    void finish(FutureOr<List<BlockedUser>> result, {Object? error}) {
+      if (completer.isCompleted) return;
+      if (error != null) {
+        completer.completeError(error);
+      } else {
+        completer.complete(result);
+      }
+    }
+
+    // The first snapshot resolves the provider. The subscription stays live
+    // afterwards, so blocking or unblocking elsewhere still re-emits — but a
+    // refusal that arrives *after* data must not turn a working list into an
+    // error screen, because everything already on it is still true.
+    //
+    // It is deliberately not stored or cancelled here. Cancelling a
+    // single-subscription stream throws while it is delivering an event, and a
+    // dropped listener simply goes away with the notifier when the provider is
+    // disposed or rebuilt. `finish` is idempotent, so a late event from a dead
+    // read cannot resurrect a state that has already settled.
+    ref
+        .read(eventRepositoryProvider)
+        .watchBlockedUsers(user.id)
+        .listen(
+          (people) => finish(people),
+          onError: (Object error) => finish(const [], error: error),
+        );
+    ref.onDispose(() {
+      _generation++;
+      _watchdog?.cancel();
+      _watchdog = null;
+    });
+
+    // Social logins carry an email in the token; a session restored before the
+    // profile sync lands may not. Blocking from a countdown needs it, so hold
+    // out for the session rather than reading with a half-filled account.
+    final waitForEmail = user.email.isEmpty && !authResolved;
+
+    // A plain `Future.timeout` would be wrong here: its internal race can leave
+    // the underlying future with no listener if the provider is torn down at
+    // the same moment, and Riverpod then surfaces a harmless "future completed
+    // with an error" while the screen is already gone. An explicit timer that
+    // only ever fails the completer once, and is cancelled with the provider,
+    // has neither problem.
+    _watchdog?.cancel();
+    _watchdog = Timer(ref.read(blockedUsersLoadTimeoutProvider), () {
+      if (completer.isCompleted) return;
+      if (generation != _generation) {
+        // A newer read took over; this one is no longer the answer, and must
+        // not report an error for a request nobody is waiting on any more.
+        completer.complete(const []);
+        return;
+      }
+      completer.completeError(
+        waitForEmail
+            ? const DataFailure(
+                'Your account is still being restored. Retry in a moment.')
+            : const DataFailure(
+                'Your blocked list took too long to load. Check your '
+                'connection and try again.'),
+      );
+    });
+
+    ref.onDispose(() {
+      _watchdog?.cancel();
+      _watchdog = null;
+    });
+
+    return completer.future;
+  }
+
+  /// Re-reads the list, leaving the error state for `loading`.
+  ///
+  /// `invalidateSelf`, not `ref.refresh` — a provider may not depend on itself,
+  /// and refreshing its own future from inside the notifier is exactly that. The
+  /// screen rebuilds from the new `loading` state and the read runs again.
+  void retry() => ref.invalidateSelf();
+}
+
+final blockedUsersProvider =
+    AsyncNotifierProvider<BlockedUsers, List<BlockedUser>>(BlockedUsers.new);
 
 /// Which countdown is pinned as the hero. `null` means "pick automatically":
 /// the soonest upcoming one.

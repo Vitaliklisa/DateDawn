@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
+
 /// Which powers a collaborator has on a shared event.
 ///
 /// Mirrors the `participantRoleSchema` enum in the web app (`admin`, `editor`,
@@ -23,6 +25,43 @@ enum ParticipantRole {
   bool get canEdit =>
       this == ParticipantRole.admin || this == ParticipantRole.editor;
   bool get canManage => this == ParticipantRole.admin;
+
+  /// How much authority a role carries. Admin > editor > viewer.
+  ///
+  /// This is the one ordering the whole app reasons about — who may change a
+  /// role, and up to which role — so it lives on the enum rather than being
+  /// re-derived at each call site. A second ordering elsewhere (or a second
+  /// "manager" concept for role changes specifically) would drift from this one.
+  int get authorityRank => switch (this) {
+        ParticipantRole.admin => 2,
+        ParticipantRole.editor => 1,
+        ParticipantRole.viewer => 0,
+      };
+
+  /// Whether the management powers of this role are at least [other]'s.
+  ///
+  /// `admin.grantsAtLeast(editor)` is true; `editor.grantsAtLeast(admin)` is
+  /// false. Used to stop anyone granting more authority than they hold, and to
+  /// stop anyone altering a role as or more powerful than their own.
+  bool grantsAtLeast(ParticipantRole other) =>
+      authorityRank >= other.authorityRank;
+
+  /// What this role may do, in the words the UI shows.
+  String get description => switch (this) {
+        ParticipantRole.admin =>
+          'Can invite people, change roles, edit the countdown and remove '
+              'collaborators.',
+        ParticipantRole.editor =>
+          'Can edit the title, description and date. Cannot manage people.',
+        ParticipantRole.viewer => 'Can only follow the countdown.',
+      };
+
+  /// Human label — "Viewer", "Editor", "Admin".
+  String get label => switch (this) {
+        ParticipantRole.admin => 'Admin',
+        ParticipantRole.editor => 'Editor',
+        ParticipantRole.viewer => 'Viewer',
+      };
 }
 
 /// Where a collaborator stands on an invitation they received.
@@ -169,6 +208,11 @@ class Participant {
         displayName: displayName,
         photoUrl: photoUrl,
         joinedAt: joinedAt,
+        // Carried over, not dropped: without these, `copyWith` turned a circle
+        // placeholder into a nameless "person" row — which the role policy then
+        // treated as someone whose role could be changed.
+        kind: kind,
+        circleName: circleName,
       );
 
   /// See `CircleMember.initials`: slicing the untrimmed label produced a tile
@@ -242,6 +286,13 @@ class BlockedUser {
   final String? photoUrl;
   final DateTime? blockedAt;
 
+  /// The field every block row carries, and the one the list query filters on.
+  ///
+  /// A rule that has to `exists()` the owner's profile document cannot be
+  /// evaluated for a collection query, so the read is authorised by this plain
+  /// field comparison instead. See `EventRepository.watchBlockedUsers`.
+  static const String activeField = 'active';
+
   /// What to call this person on screen. Never an empty label, and never an
   /// email shown as if it were a name.
   String get label {
@@ -259,6 +310,19 @@ class BlockedUser {
       blockedAt: _parseDate(map['blockedAt']),
     );
   }
+}
+
+/// The answer to "may this role be changed?", with the sentence to show when
+/// it may not.
+class RoleChangeCheck {
+  const RoleChangeCheck.allowed()
+      : allowed = true,
+        message = null;
+
+  const RoleChangeCheck.denied(this.message) : allowed = false;
+
+  final bool allowed;
+  final String? message;
 }
 
 /// A short comment left on an event by a participant.
@@ -377,6 +441,81 @@ class CountdownEvent {
 
   bool canEdit(String? userId) => roleFor(userId).canEdit;
   bool canManage(String? userId) => roleFor(userId).canManage;
+
+  /// Whether [userId] may change [target]'s role to [role].
+  ///
+  /// The policy, in one place so the screen, the repository and the rules all
+  /// describe the same thing:
+  ///
+  /// * only someone who can manage the countdown (an admin, which includes
+  ///   its creator) may change anyone's role;
+  /// * nobody may change their own role — that is how someone hands themselves
+  ///   more power, or quietly gives it away;
+  /// * the creator keeps ownership whatever their row says, so their role is
+  ///   not a lever anyone gets to pull;
+  /// * the role must actually be a change;
+  /// * the caller must be an admin, and may only grant authority up to their
+  ///   own. "Admin" *is* the managing role here, so an admin may act on any row
+  ///   — including another admin's — while everyone else is stopped from
+  ///   managing at all. That is also what stops a person who has just been
+  ///   demoted from handing the admin role straight back: their own role is
+  ///   re-read from the database before the write, so they are no longer an
+  ///   admin when the check runs. The creator is exempt from the rank question
+  ///   because they are the owner, not a rank.
+  ///
+  /// This mirrors `roleChangeAllowed` in `firestore.rules`.
+  RoleChangeCheck checkRoleChange({
+    required String? actorId,
+    required Participant target,
+    required ParticipantRole role,
+  }) {
+    final actorRole = roleFor(actorId);
+    if (!actorRole.canManage) {
+      return const RoleChangeCheck.denied(
+          'Only an admin of this countdown can change roles.');
+    }
+    if (actorId == null || actorId == target.userId) {
+      return const RoleChangeCheck.denied(
+          'You cannot change your own role.');
+    }
+    if (target.userId == createdBy) {
+      return const RoleChangeCheck.denied(
+          'The person who created this countdown keeps ownership.');
+    }
+    if (target.isCircle) {
+      return const RoleChangeCheck.denied(
+          'A circle share is managed from the circle, not here.');
+    }
+    if (target.role == role) {
+      return const RoleChangeCheck.denied('That is already their role.');
+    }
+    if (!actorRole.grantsAtLeast(role)) {
+      return const RoleChangeCheck.denied(
+          'You cannot give someone more access than you have.');
+    }
+    return const RoleChangeCheck.allowed();
+  }
+
+  /// The roles [actorId] may hand to [target], in escalation order.
+  ///
+  /// What the "Change role" sheet offers, so an option that would be refused
+  /// is never shown as a choice. Empty when the caller may not change this
+  /// person's role at all.
+  List<ParticipantRole> assignableRolesFor({
+    required String? actorId,
+    required Participant target,
+  }) {
+    if (target.userId == createdBy) return const [];
+    return const [
+      ParticipantRole.viewer,
+      ParticipantRole.editor,
+      ParticipantRole.admin,
+    ]
+        .where((role) =>
+            checkRoleChange(actorId: actorId, target: target, role: role)
+                .allowed)
+        .toList(growable: false);
+  }
 
   /// Everyone except the signed-in user, for the "shared with" line.
   List<Participant> others(String? userId) =>
@@ -533,12 +672,29 @@ DateTime? _parseDate(Object? value) {
   if (value == null) return null;
   if (value is DateTime) return value.toLocal();
   if (value is String) return DateTime.tryParse(value)?.toLocal();
-  // Firestore Timestamp, without importing cloud_firestore into the model layer.
+  try {
+    final dynamic ts = value;
+    // Cloud Firestore's own `Timestamp`. Checked first, because its
+    // `millisecondsSinceEpoch` is a *method*, not the int `DateTime` exposes —
+    // the fallback below read it as a property and silently produced `null` for
+    // every timestamp the app itself wrote (`blockedAt`, for one).
+    if (ts is Timestamp) return ts.toDate().toLocal();
+  } catch (_) {
+    // No Firestore type available here — fall through.
+  }
+  // Any other Timestamp-shaped object, without importing cloud_firestore into
+  // the model layer.
   try {
     final dynamic ts = value;
     final dynamic millis = ts.millisecondsSinceEpoch;
     if (millis is int) {
       return DateTime.fromMillisecondsSinceEpoch(millis).toLocal();
+    }
+    if (millis is Function) {
+      final dynamic result = millis();
+      if (result is int) {
+        return DateTime.fromMillisecondsSinceEpoch(result).toLocal();
+      }
     }
   } catch (_) {
     // Not a Timestamp — fall through.

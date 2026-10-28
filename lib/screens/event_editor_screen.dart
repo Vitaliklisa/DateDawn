@@ -805,8 +805,11 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
     final participants =
         ref.watch(participantsProvider(widget.event.id)).value ??
             widget.event.participants;
-    final canManage =
-        widget.event.canManage(ref.watch(currentUserProvider)?.id);
+    // Live rows, so the menu and the role policy read the roles as they are
+    // now — not as they were when this screen was opened. That is what makes a
+    // role change by another admin take effect here without a reload.
+    final event = widget.event.copyWith(participants: participants);
+    final canManage = event.canManage(ref.watch(currentUserProvider)?.id);
 
     // People invited before, so the address typed last time is offered again.
     // Ordered most-recently-invited first by the repository.
@@ -1034,11 +1037,13 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                             icon: const Icon(Icons.refresh_rounded),
                           ),
                       ],
-                      // Blocking is available on every person row, whether or
-                      // not the viewer manages this countdown: Google Play's
-                      // UGC policy is about anyone being able to stop contact
-                      // with anyone. It used to live only on the long-press,
-                      // which nobody discovers, so it looked unimplemented.
+                      // The row menu. Blocking stays on every person row,
+                      // whether or not the viewer manages this countdown:
+                      // Google Play's UGC policy is about anyone being able to
+                      // stop contact with anyone, and it used to live only on
+                      // the long-press, which nobody discovers. "Change role"
+                      // and "Remove" are management actions and appear only
+                      // where the role policy allows them.
                       if (!participant.isCircle &&
                           participant.userId !=
                               ref.read(currentUserProvider)?.id)
@@ -1048,20 +1053,55 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                           icon: Icon(Icons.more_vert_rounded,
                               size: 18, color: colors.subtle),
                           onSelected: (value) {
-                            if (value == 'block') _blockUser(participant);
+                            switch (value) {
+                              case 'role':
+                                _changeRole(event, participant);
+                              case 'block':
+                                _blockUser(participant);
+                              case 'remove':
+                                _remove(participant);
+                            }
                           },
-                          itemBuilder: (context) => const [
-                            PopupMenuItem(
-                              value: 'block',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.block_rounded, size: 18),
-                                  SizedBox(width: 10),
-                                  Text('Block'),
-                                ],
+                          itemBuilder: (context) {
+                            final me = ref.read(currentUserProvider)?.id;
+                            // The live participant list is the authority for
+                            // what this viewer may do; `canManage` below comes
+                            // from it, and so does the role policy.
+                            final assignable = event.assignableRolesFor(
+                              actorId: me,
+                              target: participant,
+                            );
+                            final canRemove = canManage &&
+                                participant.userId != event.createdBy &&
+                                participant.inviteStatus.isAwaitingAnswer;
+                            return [
+                              if (assignable.isNotEmpty)
+                                const PopupMenuItem(
+                                  value: 'role',
+                                  child: _MenuAction(
+                                    icon: Icons.manage_accounts_outlined,
+                                    label: 'Change role',
+                                  ),
+                                ),
+                              if (canRemove)
+                                const PopupMenuItem(
+                                  value: 'remove',
+                                  child: _MenuAction(
+                                    icon: Icons.person_remove_outlined,
+                                    label: 'Remove',
+                                    destructive: true,
+                                  ),
+                                ),
+                              const PopupMenuItem(
+                                value: 'block',
+                                child: _MenuAction(
+                                  icon: Icons.block_rounded,
+                                  label: 'Block',
+                                  destructive: true,
+                                ),
                               ),
-                            ),
-                          ],
+                            ];
+                          },
                         ),
                     ],
                   ),
@@ -1069,6 +1109,52 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
               ),
             ),
       ],
+    );
+  }
+
+  /// "Change role" — the sheet behind the row menu.
+  ///
+  /// Only the roles the viewer may actually grant are offered, so an option
+  /// that would be refused is never a choice. The repository re-checks with
+  /// the same policy before it writes, and the security rules check it again.
+  Future<void> _changeRole(CountdownEvent event, Participant participant) async {
+    final me = ref.read(currentUserProvider);
+    if (me == null) return;
+    final assignable = event.assignableRolesFor(
+      actorId: me.id,
+      target: participant,
+    );
+    if (assignable.isEmpty) return;
+
+    final chosen = await showModalBottomSheet<ParticipantRole>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => _RoleSheet(
+        participant: participant,
+        roles: assignable,
+        topRole: event.roleFor(me.id),
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    if (chosen == participant.role) return;
+
+    final who = participant.displayName?.trim().isNotEmpty == true
+        ? participant.displayName!.trim()
+        : participant.email;
+
+    // The event is passed in so the policy is evaluated on the list the user
+    // is looking at; the repository re-reads the row before writing, so a role
+    // changed meanwhile is still respected.
+    await runAction(
+      context,
+      () => ref.read(eventRepositoryProvider).updateParticipantRole(
+            eventId: event.id,
+            actorId: me.id,
+            participant: participant,
+            role: chosen,
+            event: event,
+          ),
+      successMessage: '$who is now ${chosen.label.toLowerCase()}.',
     );
   }
 
@@ -1150,11 +1236,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
     return result ?? false;
   }
 
-  String _roleLabel(ParticipantRole role) => switch (role) {
-        ParticipantRole.admin => 'Admin',
-        ParticipantRole.editor => 'Editor',
-        ParticipantRole.viewer => 'Viewer',
-      };
+  String _roleLabel(ParticipantRole role) => role.label;
 }
 
 /// One row in the invite field's suggestion list.
@@ -1227,6 +1309,176 @@ class _SuggestionRow extends StatelessWidget {
   }
 }
 
+/// One row inside a [PopupMenuButton].
+///
+/// A shared shape rather than three inline `Row`s, so the icons line up and a
+/// destructive action reads as one everywhere in the menu.
+class _MenuAction extends StatelessWidget {
+  const _MenuAction({
+    required this.icon,
+    required this.label,
+    this.destructive = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = destructive ? context.colors.danger : null;
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 10),
+        Text(label, style: color == null ? null : TextStyle(color: color)),
+      ],
+    );
+  }
+}
+
+/// The "Change role" sheet.
+///
+/// Lists only the roles this viewer may grant ([roles]); the person's current
+/// role is shown as the selection so the sheet opens on the truth rather than
+/// looking like a fresh choice. Each option says what it means, because
+/// "Editor" alone does not tell anyone what an editor can do.
+class _RoleSheet extends StatelessWidget {
+  const _RoleSheet({
+    required this.participant,
+    required this.roles,
+    required this.topRole,
+  });
+
+  final Participant participant;
+  final List<ParticipantRole> roles;
+
+  /// The viewer's own role, so the sheet can say why some roles are missing
+  /// rather than silently offering two of three.
+  final ParticipantRole topRole;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final who = participant.displayName?.trim().isNotEmpty == true
+        ? participant.displayName!.trim()
+        : participant.email;
+    // Admin > editor > viewer, most powerful first.
+    final ordered = [...roles]
+      ..sort((a, b) => b.authorityRank.compareTo(a.authorityRank));
+    final withheld = ParticipantRole.values
+        .where((role) => !roles.contains(role))
+        .toList()
+      ..sort((a, b) => b.authorityRank.compareTo(a.authorityRank));
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Change role for $who',
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'This changes what they can do on this countdown from now on. '
+              'They currently have ${participant.role.label.toLowerCase()} '
+              'access.',
+              style:
+                  TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
+            ),
+            const SizedBox(height: 14),
+            for (final role in ordered)
+              _RoleOption(
+                role: role,
+                selected: role == participant.role,
+                onTap: role == participant.role
+                    ? null
+                    : () => Navigator.of(context).pop(role),
+              ),
+            if (withheld.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                '${withheld.map((r) => r.label).join(' and ')} cannot be '
+                'assigned by you — you are ${topRole.label.toLowerCase()}.',
+                style: TextStyle(fontSize: 11.5, color: colors.subtle),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RoleOption extends StatelessWidget {
+  const _RoleOption({
+    required this.role,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ParticipantRole role;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: selected ? colors.accentSoft : colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected ? colors.accent : colors.border,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        role.label,
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        role.description,
+                        style: TextStyle(
+                            fontSize: 12.5, height: 1.4, color: colors.muted),
+                      ),
+                    ],
+                  ),
+                ),
+                if (selected) ...[
+                  const SizedBox(width: 10),
+                  Icon(Icons.check_circle_rounded,
+                      size: 18, color: colors.accent),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _RoleDropdown extends StatelessWidget {
   const _RoleDropdown({required this.value, required this.onChanged});
 
@@ -1254,13 +1506,11 @@ class _RoleDropdown extends StatelessWidget {
           onChanged: (role) {
             if (role != null) onChanged(role);
           },
-          items: const [
-            DropdownMenuItem(
-                value: ParticipantRole.viewer, child: Text('Viewer')),
-            DropdownMenuItem(
-                value: ParticipantRole.editor, child: Text('Editor')),
-            DropdownMenuItem(
-                value: ParticipantRole.admin, child: Text('Admin')),
+          // Roles come from the enum, so this selector and the "Change role"
+          // sheet can never drift into two different sets of names.
+          items: [
+            for (final role in ParticipantRole.values)
+              DropdownMenuItem(value: role, child: Text(role.label)),
           ],
         ),
       ),
