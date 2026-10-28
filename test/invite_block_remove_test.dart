@@ -445,6 +445,175 @@ void main() {
           eventId: 'e1', actorId: 'owner', userId: 'ghost');
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Regressions from the "I cannot invite or accept anything" report
+  // ---------------------------------------------------------------------------
+  group('isBlocked never reports a false positive', () {
+    test('a blank target uid does not match every row', () async {
+      await db
+          .collection('users')
+          .doc('me')
+          .collection('blocked')
+          .doc('someone')
+          .set({'email': 'someone@example.com', 'active': true});
+
+      // The invite path passes '' when an address has no account yet.
+      expect(
+        await repo.isBlocked(userId: 'me', targetUid: ''),
+        isFalse,
+        reason: 'an unresolved account is not a blocked account',
+      );
+    });
+
+    test('a blank target uid still matches by email', () async {
+      await db
+          .collection('users')
+          .doc('me')
+          .collection('blocked')
+          .doc('someone')
+          .set({'email': 'someone@example.com', 'active': true});
+
+      expect(
+        await repo.isBlocked(
+            userId: 'me', targetUid: '', targetEmail: 'someone@example.com'),
+        isTrue,
+      );
+      expect(
+        await repo.isBlocked(
+            userId: 'me', targetUid: '', targetEmail: 'other@example.com'),
+        isFalse,
+      );
+    });
+
+    test('an empty blocked list never blocks anything', () async {
+      expect(await repo.isBlocked(userId: 'me', targetUid: 'them'), isFalse);
+      expect(
+        await repo.isBlocked(
+            userId: 'me', targetUid: '', targetEmail: 'x@example.com'),
+        isFalse,
+      );
+    });
+
+    test('an inactive row is not a live block', () async {
+      await db
+          .collection('users')
+          .doc('me')
+          .collection('blocked')
+          .doc('them')
+          .set({'email': 'them@example.com', 'active': false});
+
+      expect(await repo.isBlocked(userId: 'me', targetUid: 'them'), isFalse);
+    });
+  });
+
+  group('updateParticipantRole trusts Firestore, not the screen snapshot', () {
+    CountdownEvent staleEvent(List<Participant> participants) => CountdownEvent(
+          id: 'e1',
+          title: 'Trip',
+          description: '',
+          at: DateTime(2030),
+          createdBy: 'owner',
+          createdAt: DateTime(2026),
+          updatedAt: DateTime(2026),
+          participants: participants,
+        );
+
+    test('an admin whose row is missing from the passed event can still act',
+        () async {
+      await seedEvent();
+      await seedParticipant('admin', role: 'admin');
+      await seedParticipant('viewer');
+
+      // The stale screen copy: the admin's own row was never hydrated, so it
+      // is absent and `roleFor` would read them as a viewer.
+      final stale = staleEvent(const [
+        Participant(
+          userId: 'viewer',
+          email: 'viewer@example.com',
+          role: ParticipantRole.viewer,
+          inviteStatus: InviteStatus.accepted,
+        ),
+      ]);
+
+      await repo.updateParticipantRole(
+        eventId: 'e1',
+        actorId: 'admin',
+        participant: stale.participants.single,
+        role: ParticipantRole.editor,
+        event: stale,
+      );
+
+      expect((await row('viewer'))!['role'], 'editor');
+    });
+
+    test('a stale snapshot cannot grant authority either', () async {
+      await seedEvent();
+      // Firestore says editor; the stale copy claims admin.
+      await seedParticipant('editor', role: 'editor');
+      await seedParticipant('viewer');
+
+      final stale = staleEvent(const [
+        Participant(
+          userId: 'editor',
+          email: 'editor@example.com',
+          role: ParticipantRole.admin,
+          inviteStatus: InviteStatus.accepted,
+        ),
+        Participant(
+          userId: 'viewer',
+          email: 'viewer@example.com',
+          role: ParticipantRole.viewer,
+          inviteStatus: InviteStatus.accepted,
+        ),
+      ]);
+
+      await expectLater(
+        repo.updateParticipantRole(
+          eventId: 'e1',
+          actorId: 'editor',
+          participant: stale.participants.last,
+          role: ParticipantRole.editor,
+          event: stale,
+        ),
+        throwsA(isA<DataFailure>()),
+      );
+      expect((await row('viewer'))!['role'], 'viewer');
+    });
+  });
+
+  group('accepting is not blocked by a preference read', () {
+    test('an empty blocked list lets a normal invitation through', () async {
+      await seedEvent();
+      final invite = _invite();
+      await seedInvite(invite);
+
+      await repo.acceptInvitation(
+        invitation: invite,
+        userId: 'invitee',
+        email: 'invitee@example.com',
+      );
+
+      expect((await row('invitee'))!['inviteStatus'], 'accepted');
+    });
+
+    test('a real block still refuses the invitation', () async {
+      await seedEvent();
+      await repo.blockUser(userId: 'invitee', targetUid: 'owner');
+      final invite = _invite();
+      await seedInvite(invite);
+
+      await expectLater(
+        repo.acceptInvitation(
+          invitation: invite,
+          userId: 'invitee',
+          email: 'invitee@example.com',
+        ),
+        throwsA(isA<DataFailure>()),
+      );
+      expect(await row('invitee'), isNull);
+    });
+  });
 }
 
 /// The real block, with the participant cleanup guaranteed to be refused.

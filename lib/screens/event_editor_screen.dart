@@ -1152,8 +1152,10 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
         : participant.email;
 
     // The event is passed in so the policy is evaluated on the list the user
-    // is looking at; the repository re-reads the row before writing, so a role
-    // changed meanwhile is still respected.
+    // is looking at. The repository re-reads BOTH rows (the actor's authority
+    // and the target's current role) from Firestore before deciding, so a
+    // snapshot that is missing the actor's row — or older than a role granted
+    // elsewhere — cannot refuse a legitimate change.
     await runAction(
       context,
       () => ref.read(eventRepositoryProvider).updateParticipantRole(

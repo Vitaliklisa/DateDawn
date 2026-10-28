@@ -820,11 +820,25 @@ class EventRepository {
     // A block is not advisory: an invite to someone this user has blocked is
     // refused here, by email as well as by uid, so a re-typed address cannot
     // route around the block.
-    if (await isBlocked(
-      userId: inviterId,
-      targetUid: targetUserId ?? '',
-      targetEmail: target,
-    )) {
+    //
+    // `targetUserId` is deliberately NOT defaulted to `''` here any more. An
+    // unresolved address (someone who has not signed up) has no uid, and passing
+    // an empty one made "unknown account" indistinguishable from "blocked".
+    // Only the email can be checked in that case.
+    var blocked = false;
+    try {
+      blocked = await isBlocked(
+        userId: inviterId,
+        targetUid: targetUserId ?? '',
+        targetEmail: target,
+      );
+    } catch (error) {
+      // A read failure must not read as "they are blocked". The rules decide
+      // whether the invitation write is allowed; this is a courtesy check.
+      debugPrint('[datedawn] Could not check the blocked list before '
+          'inviting $target: $error');
+    }
+    if (blocked) {
       throw const DataFailure(
           'You cannot invite someone you have blocked. Unblock them in '
           'Settings → Blocked people first.');
@@ -929,10 +943,12 @@ class EventRepository {
   /// refused rather than silently writing an escalation. It throws [DataFailure]
   /// with the sentence to show, instead of a bare `permission-denied`.
   ///
-  /// [event] is optional: when the caller has one, the check runs locally with
-  /// no read at all; when it does not, the event and the participant row are
-  /// read here. Either way the row that decides is the one in Firestore, not
-  /// whatever the screen last rendered.
+  /// [event] is optional and is used only as a fast path for the *target* row.
+  /// The actor's own role is ALWAYS re-read from Firestore, because it is the
+  /// caller's authority — and a screen's copy of the event is a snapshot taken
+  /// when it opened, which can be missing the actor's row entirely (the row is
+  /// hydrated asynchronously) or older than a role granted on another device.
+  /// Trusting it refused legitimate changes with "you do not have permission".
   Future<void> updateParticipantRole({
     required String eventId,
     required String actorId,
@@ -954,6 +970,37 @@ class EventRepository {
       current = CountdownEvent.fromDoc(doc.id, doc.data() ?? {}).copyWith(
         participants:
             rows.docs.map((d) => Participant.fromMap(d.id, d.data())).toList(),
+      );
+    }
+
+    // Re-read the actor's own row and splice it into the event the policy is
+    // evaluated against. The creator short-circuits in `roleFor`, so this only
+    // matters for everyone else — exactly the admins this action is for.
+    if (actorId != current.createdBy) {
+      final actorRow = await _events
+          .doc(eventId)
+          .collection('participants')
+          .doc(actorId)
+          .get();
+      final actorData = actorRow.data();
+      final liveActorRole = actorData == null
+          ? null
+          : ParticipantRole.fromWire(actorData['role']);
+      if (liveActorRole == null) {
+        throw const DataFailure(
+            'You are not a collaborator on this countdown any more.');
+      }
+      current = current.copyWith(
+        participants: [
+          for (final row in current.participants)
+            if (row.userId != actorId) row,
+          Participant(
+            userId: actorId,
+            email: (actorData!['email'] as String?) ?? '',
+            role: liveActorRole,
+            inviteStatus: InviteStatus.fromWire(actorData['inviteStatus']),
+          ),
+        ],
       );
     }
 
@@ -1135,11 +1182,29 @@ class EventRepository {
     // Blocking is a standing refusal, so an invite from someone this user has
     // blocked cannot be accepted even if it was already on screen when the
     // block was made.
-    if (invitation.invitedBy.isNotEmpty &&
-        await isBlocked(userId: userId, targetUid: invitation.invitedBy)) {
-      throw const DataFailure(
-          'You have blocked this person. Unblock them in Settings → Blocked '
-          'people to accept their invitation.');
+    //
+    // The check is only meaningful when the invitation names an inviter, and it
+    // must not be able to block a genuine accept on its own. A read failure here
+    // (a rules problem, a network drop) is logged and the accept continues: the
+    // security rules are the real authority on whether this write is allowed,
+    // and refusing a valid invitation because a preference read failed is
+    // exactly the "I cannot accept anything" symptom.
+    if (invitation.invitedBy.isNotEmpty) {
+      var blocked = false;
+      try {
+        blocked = await isBlocked(
+          userId: userId,
+          targetUid: invitation.invitedBy,
+        );
+      } catch (error) {
+        debugPrint('[datedawn] Could not check the blocked list before '
+            'accepting ${invitation.id}: $error');
+      }
+      if (blocked) {
+        throw const DataFailure(
+            'You have blocked this person. Unblock them in Settings → Blocked '
+            'people to accept their invitation.');
+      }
     }
 
     // Already in? Say so plainly and settle the invitation, rather than
@@ -2656,17 +2721,32 @@ class EventRepository {
   }
 
   /// Whether this user has blocked [targetUid] or their email.
+  ///
+  /// **A blank `targetUid` matches nothing.** Callers pass `''` when they could
+  /// not resolve an address to an account (the common case for inviting someone
+  /// who has not signed up yet), and `d.id == ''` is exactly the kind of
+  /// comparison that silently turns "unknown" into "blocked". The email is the
+  /// only thing that can be checked in that case, and only when there is one.
+  ///
+  /// Rows without `active == true` are skipped for the same reason the list
+  /// query filters on it: they are not live blocks.
   Future<bool> isBlocked({
     required String userId,
     required String targetUid,
     String targetEmail = '',
   }) async {
-    final snap = await _blocked(userId).get();
+    if (userId.isEmpty) return false;
+    final uid = targetUid.trim();
     final email = targetEmail.trim().toLowerCase();
+    if (uid.isEmpty && email.isEmpty) return false;
+
+    final snap = await _blocked(userId).get();
     return snap.docs.any((d) {
-      if (d.id == targetUid) return true;
-      final rowEmail = ((d.data()['email'] as String?) ?? '').toLowerCase();
-      return email.isNotEmpty && rowEmail == email;
+      final data = d.data();
+      if (data[BlockedUser.activeField] == false) return false;
+      if (uid.isNotEmpty && d.id == uid) return true;
+      final rowEmail = ((data['email'] as String?) ?? '').trim().toLowerCase();
+      return email.isNotEmpty && rowEmail.isNotEmpty && rowEmail == email;
     });
   }
 
