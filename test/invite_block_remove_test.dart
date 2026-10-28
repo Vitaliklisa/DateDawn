@@ -486,6 +486,24 @@ void main() {
       );
     });
 
+    test('a legacy row without `active` still shows in the list', () async {
+      // Rows written before the field existed are live blocks. The filtered
+      // query skips them, so the unfiltered fallback is what finds them — and
+      // `isActive` reads an absent field as active.
+      await db
+          .collection('users')
+          .doc('me')
+          .collection('blocked')
+          .doc('them')
+          .set({'email': 'them@example.com'});
+
+      expect(
+        BlockedUser.fromMap('them', {'email': 'them@example.com'}).isActive,
+        isTrue,
+      );
+      expect(await repo.isBlocked(userId: 'me', targetUid: 'them'), isTrue);
+    });
+
     test('an empty blocked list never blocks anything', () async {
       expect(await repo.isBlocked(userId: 'me', targetUid: 'them'), isFalse);
       expect(

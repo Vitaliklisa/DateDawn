@@ -136,6 +136,10 @@ class BlockedPeopleScreen extends ConsumerWidget {
           .unblockUser(userId: me.id, targetUid: person.userId),
       successMessage: '${person.label} is unblocked.',
     );
+    // The list is a live snapshot, but an unblock also needs the invitations
+    // inbox to re-admit anything the block was filtering out.
+    ref.invalidate(blockedUsersProvider);
+    ref.invalidate(invitationsProvider);
   }
 }
 

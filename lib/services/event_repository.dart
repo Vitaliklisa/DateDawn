@@ -427,9 +427,56 @@ class EventRepository {
   }
 
   /// Live stream of one event's participants.
-  Stream<List<Participant>> watchParticipants(String eventId) =>
-      _events.doc(eventId).collection('participants').snapshots().map((snap) =>
-          snap.docs.map((d) => Participant.fromMap(d.id, d.data())).toList());
+  ///
+  /// Any person row that arrives without an email is resolved against
+  /// `users/{uid}` before it reaches the UI, so a collaborator is never drawn as
+  /// a nameless "?" tile. The repository also tries to persist the repair; the
+  /// hydrated value is shown either way, which is what a viewer (who cannot
+  /// write someone else's row) needs.
+  Stream<List<Participant>> watchParticipants(String eventId) => _events
+          .doc(eventId)
+          .collection('participants')
+          .snapshots()
+          .asyncMap((snap) async {
+        final rows =
+            snap.docs.map((d) => Participant.fromMap(d.id, d.data())).toList();
+        if (!rows.any(_needsIdentity)) return rows;
+
+        final repaired = <Participant>[];
+        for (final row in rows) {
+          if (!_needsIdentity(row)) {
+            repaired.add(row);
+            continue;
+          }
+          final identity = await _hydrateMember(row.userId);
+          if (identity.email.isEmpty) {
+            repaired.add(row);
+            continue;
+          }
+          repaired.add(Participant(
+            userId: row.userId,
+            email: identity.email,
+            role: row.role,
+            inviteStatus: row.inviteStatus,
+            displayName: identity.displayName ?? row.displayName,
+            photoUrl: identity.photoUrl ?? row.photoUrl,
+            joinedAt: row.joinedAt,
+            kind: row.kind,
+            circleName: row.circleName,
+          ));
+        }
+        // Persist, so the next reader sees a complete row too. Fire-and-forget:
+        // the stream has already emitted the corrected list.
+        unawaited(repairMissingParticipantEmails(eventId, rows));
+        return repaired;
+      });
+
+  /// Whether a participant row has no usable identity to draw.
+  bool _needsIdentity(Participant p) =>
+      !p.isCircle &&
+      p.userId.isNotEmpty &&
+      !p.userId.startsWith('circle:') &&
+      p.email.trim().isEmpty;
 
   /// Live stream of an event's notes, newest last.
   Stream<List<EventNote>> watchNotes(String eventId) => _events
@@ -613,14 +660,14 @@ class EventRepository {
       if (circle.members.isNotEmpty) {
         members.addAll(circle.members);
       } else if (circle.memberIds.isNotEmpty) {
+        // `memberIds` carries uids only. A row built from it used to have
+        // `email: ''` and no name — which is the collaborator that rendered as
+        // a bare "?" avatar, because `Participant.initials` has nothing to
+        // derive from. The identity is fetched from `users/{uid}` here instead
+        // of being invented, so the row is written with a real address.
         for (final memberId in circle.memberIds) {
           if (memberId.isEmpty) continue;
-          members.add(CircleMember(
-            userId: memberId,
-            email: '',
-            displayName: null,
-            photoUrl: null,
-          ));
+          members.add(await _hydrateMember(memberId));
         }
       } else {
         try {
@@ -1581,6 +1628,90 @@ class EventRepository {
   ///
   /// Returns the rows it managed to write, so the caller's in-memory copy of the
   /// new countdown matches what is in Firestore.
+  /// Builds a circle member from `users/{uid}`, so a uid with no profile data
+  /// in hand still produces a row that can be identified on screen.
+  ///
+  /// Best-effort: a failed read returns the uid-only member rather than nothing,
+  /// because a row that exists and is repairable later beats a partner who is
+  /// silently not shared with.
+  Future<CircleMember> _hydrateMember(String userId) async {
+    try {
+      final doc = await _db.collection('users').doc(userId).get();
+      final data = doc.data();
+      if (data == null) {
+        return CircleMember(
+          userId: userId,
+          email: '',
+          displayName: null,
+          photoUrl: null,
+        );
+      }
+      final email = ((data['email'] as String?) ?? '').trim().toLowerCase();
+      final name = (data['displayName'] as String?)?.trim();
+      return CircleMember(
+        userId: userId,
+        email: email,
+        displayName: (name == null || name.isEmpty) ? null : name,
+        photoUrl: data['photoUrl'] as String?,
+      );
+    } catch (error) {
+      debugPrint('[datedawn] Could not read the profile of $userId: $error');
+      return CircleMember(
+        userId: userId,
+        email: '',
+        displayName: null,
+        photoUrl: null,
+      );
+    }
+  }
+
+  /// Fills in the email on participant rows that were saved without one.
+  ///
+  /// Rows written by the couple auto-share before the hydration fix carry
+  /// `email: ''`, so the collaborator renders as a bare "?" tile with no way to
+  /// tell who it is. The identity is available on `users/{uid}`, so this repairs
+  /// those rows when the countdown's people list is loaded.
+  ///
+  /// Returns the number of rows repaired. Best-effort and idempotent: it only
+  /// touches person rows that have no email, and only when the profile has one.
+  Future<int> repairMissingParticipantEmails(
+    String eventId,
+    List<Participant> participants,
+  ) async {
+    final broken = participants
+        .where((p) =>
+            !p.isCircle &&
+            p.userId.isNotEmpty &&
+            !p.userId.startsWith('circle:') &&
+            p.email.trim().isEmpty)
+        .toList(growable: false);
+    if (broken.isEmpty) return 0;
+
+    var repaired = 0;
+    for (final participant in broken) {
+      final identity = await _hydrateMember(participant.userId);
+      if (identity.email.isEmpty) continue;
+      try {
+        await _events
+            .doc(eventId)
+            .collection('participants')
+            .doc(participant.userId)
+            .update({
+          'email': identity.email,
+          if (identity.displayName != null) 'displayName': identity.displayName,
+          if (identity.photoUrl != null) 'photoUrl': identity.photoUrl,
+        });
+        repaired++;
+      } catch (error) {
+        // A viewer cannot write another person's row; that is fine, the screen
+        // still shows the hydrated identity for this session.
+        debugPrint('[datedawn] Could not repair ${participant.userId}\'s '
+            'participant row: $error');
+      }
+    }
+    return repaired;
+  }
+
   Future<List<Participant>> _addCoupleMembers({
     required String eventId,
     required String inviterId,
@@ -1592,6 +1723,14 @@ class EventRepository {
     final batch = _db.batch();
     for (final member in members) {
       if (member.userId.isEmpty || member.userId == inviterId) continue;
+      // Never write a row with no way to identify the person. If the member
+      // arrived without an address (a circle built from `memberIds` before the
+      // hydration above, or a profile that could not be read), resolve it now.
+      // A row with a blank email renders as "?" and cannot be told apart from
+      // anyone else in the list.
+      final identity = member.email.trim().isEmpty
+          ? await _hydrateMember(member.userId)
+          : member;
       batch.set(
         _events.doc(eventId).collection('participants').doc(member.userId),
         {
@@ -1599,23 +1738,23 @@ class EventRepository {
           // Without it the partner's feed never matched this row, so the
           // countdown existed but never appeared for them.
           'userId': member.userId,
-          'email': member.email,
+          'email': identity.email.trim().toLowerCase(),
           'role': ParticipantRole.editor.name,
           'inviteStatus': InviteStatus.accepted.name,
           'joinedAt': Timestamp.fromDate(now),
-          if (member.displayName != null) 'displayName': member.displayName,
-          if (member.photoUrl != null) 'photoUrl': member.photoUrl,
+          if (identity.displayName != null) 'displayName': identity.displayName,
+          if (identity.photoUrl != null) 'photoUrl': identity.photoUrl,
         },
         SetOptions(merge: true),
       );
       written.add(
         Participant(
           userId: member.userId,
-          email: member.email,
+          email: identity.email.trim().toLowerCase(),
           role: ParticipantRole.editor,
           inviteStatus: InviteStatus.accepted,
-          displayName: member.displayName,
-          photoUrl: member.photoUrl,
+          displayName: identity.displayName,
+          photoUrl: identity.photoUrl,
           joinedAt: now,
         ),
       );
@@ -2455,12 +2594,12 @@ class EventRepository {
   /// into an empty list.
   Stream<List<BlockedUser>> watchBlockedUsers(String userId) {
     if (userId.isEmpty) return Stream.value(const []);
-    return _blocked(userId)
-        .where(BlockedUser.activeField, isEqualTo: true)
-        .snapshots()
-        .map((snap) {
-      final list =
-          snap.docs.map((d) => BlockedUser.fromMap(d.id, d.data())).toList();
+
+    List<BlockedUser> read(QuerySnapshot<Map<String, dynamic>> snap) {
+      final list = snap.docs
+          .map((d) => BlockedUser.fromMap(d.id, d.data()))
+          .where((b) => b.isActive)
+          .toList();
       list.sort((a, b) {
         final left = a.blockedAt;
         final right = b.blockedAt;
@@ -2470,7 +2609,60 @@ class EventRepository {
         return right.compareTo(left);
       });
       return list;
-    });
+    }
+
+    // The filtered query is the normal path: it is what `firestore.rules` can
+    // authorise as a query, so the read does not depend on the parent profile
+    // document.
+    //
+    // If it fails — a deployed rule set that has not caught up, an index
+    // problem, an offline client with no cache — the UNFILTERED read of the
+    // same subcollection is used before anything is reported as an error. It is
+    // authorised by the same `userId == uid()` check, so a failure there is a
+    // real failure and reaches the caller as one. The point is that a usable
+    // list is not withheld because the narrower query could not run.
+    final controller = StreamController<List<BlockedUser>>();
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? primary;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? fallback;
+    var usingFallback = false;
+
+    void startFallback() {
+      if (usingFallback) return;
+      usingFallback = true;
+      primary?.cancel();
+      primary = null;
+      fallback = _blocked(userId).snapshots().listen(
+        (snap) {
+          if (!controller.isClosed) controller.add(read(snap));
+        },
+        onError: (Object error) {
+          // Both reads failed: this is a genuine error, reported as one.
+          debugPrint('[datedawn] Blocked list unreadable: $error');
+          if (!controller.isClosed) controller.addError(error);
+        },
+      );
+    }
+
+    primary = _blocked(userId)
+        .where(BlockedUser.activeField, isEqualTo: true)
+        .snapshots()
+        .listen(
+      (snap) {
+        if (!controller.isClosed) controller.add(read(snap));
+      },
+      onError: (Object error) {
+        debugPrint('[datedawn] Blocked-list query failed, falling back to an '
+            'unfiltered read: $error');
+        startFallback();
+      },
+    );
+
+    controller.onCancel = () async {
+      await primary?.cancel();
+      await fallback?.cancel();
+    };
+
+    return controller.stream;
   }
 
   /// Blocks [targetUid] and severs every tie between the two accounts.

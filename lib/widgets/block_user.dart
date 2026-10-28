@@ -115,16 +115,27 @@ class _BlockUserSheetState extends ConsumerState<_BlockUserSheet> {
             targetPhotoUrl: widget.participant.photoUrl,
           );
       if (!mounted) return;
+      // The block succeeded. Re-read the blocked list now, so Settings → Blocked
+      // people shows this person the moment it is opened, and invalidate the
+      // same feeds the block pruned (participants, invitations, notes). The
+      // writes are done; this is what makes the UI agree with them.
+      ref.invalidate(blockedUsersProvider);
+      ref.invalidate(invitationsProvider);
       Navigator.of(context).pop(true);
       messenger.showSnackBar(
         SnackBar(
           content: Text('$_who is blocked.'),
           action: SnackBarAction(
             label: 'Undo',
-            onPressed: () => ref.read(eventRepositoryProvider).unblockUser(
-                  userId: me.id,
-                  targetUid: widget.participant.userId,
-                ),
+            onPressed: () async {
+              await ref.read(eventRepositoryProvider).unblockUser(
+                    userId: me.id,
+                    targetUid: widget.participant.userId,
+                  );
+              // Unblocking changes the list too — refresh it, or Settings would
+              // keep showing someone who is no longer blocked.
+              ref.invalidate(blockedUsersProvider);
+            },
           ),
         ),
       );

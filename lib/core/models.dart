@@ -217,11 +217,18 @@ class Participant {
 
   /// See `CircleMember.initials`: slicing the untrimmed label produced a tile
   /// showing a stray letter for a display name with a leading space.
+  ///
+  /// With no display name, the address supplies the letters — `alexfriedman999`
+  /// gives "AL", the same as a name would. "?" is only for a row that genuinely
+  /// has neither, which is a data problem rather than a rendering one.
   String get initials {
     final name = displayName?.trim();
-    final source = (name != null && name.isNotEmpty) ? name : email.trim();
-    final parts =
-        source.split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+    final source =
+        (name != null && name.isNotEmpty) ? name : _localPart(email.trim());
+    final parts = source
+        .split(RegExp(r'[\s._-]+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
     if (parts.isNotEmpty) {
       if (parts.length >= 2) {
         return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
@@ -230,6 +237,21 @@ class Participant {
       return word.substring(0, word.length >= 2 ? 2 : 1).toUpperCase();
     }
     return '?';
+  }
+
+  static String _localPart(String email) {
+    final at = email.indexOf('@');
+    return at > 0 ? email.substring(0, at) : email;
+  }
+
+  /// What to call this person on screen: their name, else their address, else a
+  /// neutral label. Never a bare "?" — a row that has an address must show it.
+  String get label {
+    final name = displayName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    final address = email.trim();
+    if (address.isNotEmpty) return address;
+    return isCircle ? (circleName ?? 'A circle') : 'Collaborator';
   }
 }
 
@@ -271,7 +293,8 @@ class BlockedUser {
     this.displayName,
     this.photoUrl,
     this.blockedAt,
-  });
+    bool? active,
+  }) : _active = active;
 
   /// The blocked account's uid — also the document id under
   /// `users/{me}/blocked/{uid}`, so one person can only ever be blocked once.
@@ -301,6 +324,18 @@ class BlockedUser {
     return email.isNotEmpty ? email : 'Blocked user';
   }
 
+  /// Whether this is a live block.
+  ///
+  /// Rows written before the field existed have no `active` key at all, and
+  /// those ARE live blocks — they were the only kind for a while. Only an
+  /// explicit `false` means "not a block", so this reads the absent case as
+  /// active. The list query filters on `active == true` and therefore skips
+  /// legacy rows; the unfiltered fallback read picks them up, and this is what
+  /// decides which of them are shown.
+  bool get isActive => _active ?? true;
+
+  final bool? _active;
+
   factory BlockedUser.fromMap(String id, Map<String, dynamic> map) {
     return BlockedUser(
       userId: id,
@@ -308,6 +343,7 @@ class BlockedUser {
       displayName: map['displayName'] as String?,
       photoUrl: map['photoUrl'] as String?,
       blockedAt: _parseDate(map['blockedAt']),
+      active: map[activeField] is bool ? map[activeField] as bool : null,
     );
   }
 }

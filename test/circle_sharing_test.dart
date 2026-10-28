@@ -356,5 +356,48 @@ void main() {
         reason: 'visibility must not depend on the participant-row write',
       );
     });
+
+    test('the auto-shared partner row carries their real email', () async {
+      // The "?" bug: a member built from `memberIds` alone had `email: ''`, so
+      // the partner's participant row rendered as a nameless tile. The identity
+      // now comes from `users/{uid}`.
+      await db.collection('users').doc('sam').set({
+        'email': 'alexfriedman999@gmail.com',
+        'displayName': 'Alex Friedman',
+      });
+      await db.collection('circles').doc('c1').set(
+            _circleDoc(
+                ownerId: 'alex', memberIds: ['alex', 'sam'], isCouple: true),
+          );
+
+      final circle = Circle(
+        id: 'c1',
+        name: 'Us',
+        ownerId: 'alex',
+        createdAt: DateTime(2026, 1, 1),
+        isCouple: true,
+        memberIds: const ['alex', 'sam'],
+      );
+
+      final created = await repo.createEvent(
+        userId: 'alex',
+        email: 'alex@example.com',
+        title: 'Trip',
+        description: '',
+        at: DateTime.now().add(const Duration(days: 10)),
+        autoShareCircleIds: const ['c1'],
+        circles: [circle],
+      );
+
+      final row = await db
+          .collection('events')
+          .doc(created.id)
+          .collection('participants')
+          .doc('sam')
+          .get();
+      expect(row.exists, isTrue);
+      expect(row.data()!['email'], 'alexfriedman999@gmail.com');
+      expect(row.data()!['displayName'], 'Alex Friedman');
+    });
   });
 }
