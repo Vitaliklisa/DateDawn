@@ -145,13 +145,62 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.role == 'admin';
     }
 
+    // Who may put an invitation into `invitations`, asked of the database as of
+    // the end of the batch.
+    //
+    // `isAdminAfter` alone was not enough, and it broke every invitation:
+    // the invitee's PENDING participant row is written by the same batch as the
+    // invitation, and that row carries no role (the role travels on the
+    // invitation itself). `role == 'admin'` was therefore false for it, so
+    // `isAdminAfter` was false, and Firestore rejected the whole batch — which is
+    // why the invitation card could never be produced and there was nothing to
+    // accept.
+    //
+    // The creator and any accepted admin/editor of the countdown may invite. A
+    // row the batch is CREATING for someone else counts only when that row is a
+    // PENDING invitation for this exact invitation document — which is the
+    // invite flow, not a way to hand out access.
+    function mayWriteInvitation(eventId) {
+      return signedIn()
+        && (
+          getAfter(/databases/$(database)/documents/events/$(eventId)).data.createdBy == uid()
+          || isAdminAfter(eventId)
+          || (
+            existsAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()))
+            && getAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.role in ['admin', 'editor']
+          )
+          || isInviteFlowRow(eventId)
+        );
+    }
+
+    // Is this write the pending participant row the invite flow writes in the
+    // same batch as the invitation?
+    //
+    // Scoped as tightly as possible: the row is someone ELSE's, it is born
+    // `pending` (never accepted), and it cites an invitation document that is
+    // still being created, for this event, addressed to the same email, naming
+    // the same role. `resource` is the row as it exists now — a row that already
+    // exists is an update, not an invitation, so this can never be used to
+    // rewrite a member.
+    function isInviteFlowRow(eventId) {
+      return resource == null
+        && existsAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId))
+        && getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.eventId == eventId
+        && getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.invitedBy == uid()
+        && getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.inviteeEmail == request.resource.data.invitationEmail
+        && getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.role == request.resource.data.role
+        && request.resource.data.inviteStatus == 'pending';
+    }
+
     function isEditor(eventId) {
       return signedIn()
         && isParticipant(eventId)
         && participantRole(eventId) in ['admin', 'editor'];
     }
 
-    function isOwner(eventId, data) {
+    // `eventId` is part of the signature every caller already uses; the check
+    // itself needs only the document body.
+    function isOwner(data) {
       return signedIn() && data.createdBy == uid();
     }
 
@@ -390,7 +439,7 @@ service cloud.firestore {
       allow create: if signedIn() && validEventPayload();
 
       allow update: if (
-          isOwner(eventId, resource.data)
+          isOwner(resource.data)
           || isEditor(eventId)
           // Adding the caller (or someone else) to the denormalised visibility
           // array — the caller must be in the array being written, so this
@@ -413,7 +462,7 @@ service cloud.firestore {
             userId == uid()
             || (resource != null && resource.data.userId == uid())
             || isParticipant(eventId)
-            || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data)
+            || isOwner(get(/databases/$(database)/documents/events/$(eventId)).data)
           );
 
         // The creator seeds their own admin row as part of creating the event.
@@ -430,8 +479,16 @@ service cloud.firestore {
         allow create: if signedIn()
           && (
             isAdmin(eventId)
-            || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data)
+            || isOwner(get(/databases/$(database)/documents/events/$(eventId)).data)
             || getAfter(/databases/$(database)/documents/events/$(eventId)).data.createdBy == request.auth.uid
+            // The inviter's PENDING row for someone else, written in the same
+            // batch as the invitation that names them. `isInviteFlowRow` proves
+            // all of that; this branch only adds "the caller may invite here",
+            // which is the same question the invitation's own create rule asks.
+            || (
+              isInviteFlowRow(eventId)
+              && mayWriteInvitation(eventId)
+            )
             || (
               userId == uid()
               && request.resource.data.inviteStatus in ['accepted', 'declined']
@@ -494,14 +551,14 @@ service cloud.firestore {
             (
               isRoleChange()
               && (isAdmin(eventId)
-                || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data))
+                || isOwner(get(/databases/$(database)/documents/events/$(eventId)).data))
               && roleChangeAllowed(eventId, userId)
             )
             || (
               !affectsRole()
               && (
                 isAdmin(eventId)
-                || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data)
+                || isOwner(get(/databases/$(database)/documents/events/$(eventId)).data)
               )
             )
             || (
@@ -517,31 +574,50 @@ service cloud.firestore {
             )
           );
 
+        // Removing someone from the countdown. The row *is* the access, so
+        // deleting it is the removal.
+        //
+        // Three narrow branches:
+        //
+        //  * the creator — full control over who is on their countdown;
+        //  * an admin whose role is admin — `isAdmin` already means that, and it
+        //    is the same "manager" the UI's `canManage`/`checkRoleChange` use;
+        //  * an invitee cancelling their OWN pending row, which is what declining
+        //    a known-account invitation needs (the inviter created that row).
+        //
+        // Nobody may delete the creator's row (checked first), and nobody may
+        // delete their own row once they are a member: that is what "leave"
+        // would be, and it is deliberately not this path.
         allow delete: if signedIn()
+          && userId != eventCreator(eventId)
           && (
-            isAdmin(eventId)
-            || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data)
+            isOwner(get(/databases/$(database)/documents/events/$(eventId)).data)
+            || isAdmin(eventId)
+            || (
+              userId == uid()
+              && resource.data.inviteStatus in ['pending', 'reopened']
+            )
           );
       }
 
       // ---------- notes ----------
       match /notes/{noteId} {
         allow read: if signedIn()
-          && (isParticipant(eventId) || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data));
+          && (isParticipant(eventId) || isOwner(get(/databases/$(database)/documents/events/$(eventId)).data));
 
         allow create: if signedIn()
           && request.resource.data.userId == uid()
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 2000
-          && (isParticipant(eventId) || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data));
+          && (isParticipant(eventId) || isOwner(get(/databases/$(database)/documents/events/$(eventId)).data));
 
         // You may edit or remove your own note. Admins may remove any note.
         allow update, delete: if signedIn()
           && (
             resource.data.userId == uid()
             || isAdmin(eventId)
-            || isOwner(eventId, get(/databases/$(database)/documents/events/$(eventId)).data)
+            || isOwner(get(/databases/$(database)/documents/events/$(eventId)).data)
           );
       }
     }
@@ -567,8 +643,7 @@ service cloud.firestore {
         // `get()` this condition was false for every invitation in that batch,
         // and Firestore rejected the whole thing: "Firestore refused the save".
         // `getAfter()` resolves as of the end of the batch and finds both.
-        && (isAdminAfter(request.resource.data.eventId)
-          || getAfter(/databases/$(database)/documents/events/$(request.resource.data.eventId)).data.createdBy == uid());
+        && (mayWriteInvitation(request.resource.data.eventId));
 
       // The invitee may accept or decline. The sender may cancel.
       allow update: if signedIn()

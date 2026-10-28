@@ -1,9 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/models.dart';
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
+import '../services/event_repository.dart';
 
 /// Blocking another person, from the people list on a countdown.
 ///
@@ -129,8 +131,23 @@ class _BlockUserSheetState extends ConsumerState<_BlockUserSheet> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _busy = false);
+      // Say what actually went wrong. A bare "Could not block" left the user
+      // with no idea whether to retry, sign in, or check their connection — and
+      // it hid a permission error behind the same sentence as a network drop.
+      final message = switch (error) {
+        DataFailure(:final message) => message,
+        FirebaseException(code: 'permission-denied') =>
+          'You do not have permission to do that. Make sure you are signed in, '
+              'then try again.',
+        FirebaseException(code: 'unavailable') =>
+          'No connection. Check your network and try again.',
+        _ => 'Could not block $_who. Please try again.',
+      };
       messenger.showSnackBar(
-        SnackBar(content: Text('Could not block $_who. Please try again.')),
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 6),
+        ),
       );
     }
   }

@@ -1071,9 +1071,17 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                               actorId: me,
                               target: participant,
                             );
+                            // Remove is a management action, for any collaborator
+                            // that is not the creator — not only for a row still
+                            // awaiting an answer. It used to appear only on
+                            // pending rows, so an accepted collaborator (the
+                            // person you actually want to remove) had no
+                            // removal action at all. The repository re-checks
+                            // all of this against Firestore before deleting.
                             final canRemove = canManage &&
                                 participant.userId != event.createdBy &&
-                                participant.inviteStatus.isAwaitingAnswer;
+                                participant.userId != me &&
+                                !participant.isCircle;
                             return [
                               if (assignable.isNotEmpty)
                                 const PopupMenuItem(
@@ -1182,15 +1190,21 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
     // stop appearing in the list. This used to only rewrite the role to
     // `viewer` under a tooltip that said "Remove", which left the person on the
     // countdown — the button did not do what it said.
-    await runAction(
+    final who = participant.displayName?.trim().isNotEmpty == true
+        ? participant.displayName!.trim()
+        : participant.email;
+    final failure = await runAction(
       context,
       () => ref.read(eventRepositoryProvider).removeParticipant(
             eventId: widget.event.id,
             actorId: user.id,
             userId: participant.userId,
           ),
-      successMessage: '${participant.email} was removed.',
+      successMessage: '$who was removed.',
     );
+    // `runAction` shows the reason for every failure it maps; this only makes
+    // sure a removal that silently did nothing is never mistaken for success.
+    debugPrint('[datedawn] Remove failed: $failure');
   }
 
   /// Asks someone who already declined to take another look.

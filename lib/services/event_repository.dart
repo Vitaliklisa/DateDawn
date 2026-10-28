@@ -1005,16 +1005,100 @@ class EventRepository {
   /// Deletes the participant row rather than only downgrading the role: the row
   /// *is* the access. The event document is left alone — this removes a
   /// collaborator, not the countdown.
+  ///
+  /// The guards are the same ones [updateParticipantRole] uses, evaluated
+  /// against the row as it is in Firestore rather than against whatever the
+  /// screen last rendered:
+  ///
+  ///  * only a manager (an admin, which includes the creator) may remove;
+  ///  * never the creator — their ownership is not something a menu item can
+  ///    take away;
+  ///  * never yourself through this path. Leaving is a different action with a
+  ///    different meaning (and is not offered here), so removing yourself is
+  ///    refused rather than silently treated as one;
+  ///  * not a circle placeholder, which is a share rather than a person.
+  ///
+  /// A participant row that has already gone is not an error: the caller's
+  /// intent — that they are no longer on the countdown — already holds.
   Future<void> removeParticipant({
     required String eventId,
     required String actorId,
     required String userId,
   }) async {
+    if (actorId.isEmpty) {
+      throw const DataFailure('Sign in to remove a collaborator.');
+    }
     if (userId == actorId) {
       throw const DataFailure(
           'You cannot remove yourself — delete the countdown instead.');
     }
-    await _events.doc(eventId).collection('participants').doc(userId).delete();
+
+    final eventDoc = await _events.doc(eventId).get();
+    if (!eventDoc.exists) {
+      throw const DataFailure('That countdown no longer exists.');
+    }
+    final createdBy = (eventDoc.data()?['createdBy'] as String?) ?? '';
+    if (userId == createdBy) {
+      throw const DataFailure(
+          'The person who created this countdown cannot be removed.');
+    }
+
+    final actorRole = await _roleOf(eventId, actorId);
+    final isCreator = actorId == createdBy;
+    if (!isCreator && !(actorRole?.canManage ?? false)) {
+      throw const DataFailure(
+          'Only an admin of this countdown can remove people.');
+    }
+
+    final targetRef =
+        _events.doc(eventId).collection('participants').doc(userId);
+    final targetDoc = await targetRef.get();
+    if (!targetDoc.exists) return;
+    final target = Participant.fromMap(targetDoc.id, targetDoc.data() ?? {});
+    if (target.isCircle) {
+      throw const DataFailure(
+          'A circle share is removed by unsharing the circle, not here.');
+    }
+
+    // A non-creator admin may not remove someone of equal or higher standing.
+    // In practice that is another admin, and the point is that two admins
+    // cannot unseat each other — only the creator decides who administers.
+    if (!isCreator &&
+        actorRole != null &&
+        actorRole.authorityRank <= target.role.authorityRank) {
+      throw const DataFailure(
+          'You can only remove someone with less access than you.');
+    }
+
+    try {
+      await targetRef.delete();
+    } on FirebaseException catch (error) {
+      debugPrint('[datedawn] Could not remove $userId from $eventId '
+          '(${error.code}): ${error.message}');
+      if (error.code == 'permission-denied') {
+        throw const DataFailure(
+            'You do not have permission to remove this person.');
+      }
+      rethrow;
+    }
+  }
+
+  /// The role [userId] currently holds on [eventId], or `null` if they hold no
+  /// row. Read fresh from Firestore, so a stale screen cannot authorise a write.
+  Future<ParticipantRole?> _roleOf(String eventId, String userId) async {
+    try {
+      final row = await _events
+          .doc(eventId)
+          .collection('participants')
+          .doc(userId)
+          .get();
+      final data = row.data();
+      if (data == null) return null;
+      return ParticipantRole.fromWire(data['role']);
+    } catch (error) {
+      debugPrint('[datedawn] Could not read the actor\'s role: $error');
+      return null;
+    }
   }
 
   /// Live stream of pending invitations addressed to this email.
@@ -1058,6 +1142,37 @@ class EventRepository {
           'people to accept their invitation.');
     }
 
+    // Already in? Say so plainly and settle the invitation, rather than
+    // rewriting a member's row.
+    //
+    // This is the second half of the "accept is impossible" failure. The
+    // inviter writes a PENDING participant row for a known account, and that
+    // row already carries the name, email and role. Re-accepting rewrote all of
+    // them, which the rules refuse on purpose: an invitee may settle their own
+    // row, but may not rewrite their role or identity, and the key allow-list
+    // for that path has no `displayName`/`photoUrl` in it at all. So a perfectly
+    // valid accept died with "Missing or insufficient permissions".
+    final row = await _events
+        .doc(invitation.eventId)
+        .collection('participants')
+        .doc(userId)
+        .get();
+    final existing = row.data();
+    if (row.exists && existing != null) {
+      final status = InviteStatus.fromWire(existing['inviteStatus']);
+      if (status == InviteStatus.accepted) {
+        // Idempotent: clear the invitation so it leaves the inbox.
+        try {
+          await _invitations
+              .doc(invitation.id)
+              .update({'status': InviteStatus.accepted.name});
+        } catch (error) {
+          debugPrint('[datedawn] Could not settle the invitation: $error');
+        }
+        throw const DataFailure('You are already on this countdown.');
+      }
+    }
+
     final batch = _db.batch();
     // One write shape for a row that may or may not exist.
     //
@@ -1072,6 +1187,14 @@ class EventRepository {
     // that it is still pending AND addressed to this caller's verified email.
     // Without it the rule had no way to tell a real invitee from any signed-in
     // user who knew an event id.
+    //
+    // The key set here is EXACTLY the invitee allow-list in the rules —
+    // `userId`, `email`, `inviteStatus`, `joinedAt`, `role`, `invitationId`,
+    // `invitationEmail` — and nothing else. `displayName` and `photoUrl` used to
+    // be written here and were the reason every accept was refused: the rule
+    // allows a closed list of keys, and they were not on it. They are not
+    // needed either: the inviter's row already carries them, and the name shown
+    // for a person comes from `users/{uid}` via the invite lookup.
     batch.set(
       _events.doc(invitation.eventId).collection('participants').doc(userId),
       {
@@ -1088,8 +1211,6 @@ class EventRepository {
         // field, so this stays accurate on a re-accept after a reopen.
         'invitationId': invitation.id,
         'invitationEmail': invitation.inviteeEmail.toLowerCase(),
-        if (displayName != null) 'displayName': displayName,
-        if (photoUrl != null) 'photoUrl': photoUrl,
       },
       SetOptions(merge: true),
     );
@@ -1099,7 +1220,16 @@ class EventRepository {
       'sharedWithMemberIds': FieldValue.arrayUnion([userId]),
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
-    await batch.commit();
+    try {
+      await batch.commit();
+    } on FirebaseException catch (error) {
+      if (error.code == 'permission-denied') {
+        throw const DataFailure(
+            'This invitation could not be accepted. It may have been '
+            'cancelled or replaced — ask for a fresh one.');
+      }
+      rethrow;
+    }
 
     // Best-effort: the user has already joined, so a notify failure is not
     // worth surfacing as an error.
@@ -1164,7 +1294,20 @@ class EventRepository {
         SetOptions(merge: true),
       );
     }
-    await batch.commit();
+    // The participant row's `delete` rule also has to authorise a pending
+    // invitee cancelling their own invitation: a row born `pending` by an admin
+    // would otherwise sit in the list forever after they declined, because the
+    // only delete branch was "an admin of this event".
+    try {
+      await batch.commit();
+    } on FirebaseException catch (error) {
+      if (error.code == 'permission-denied') {
+        throw const DataFailure(
+            'This invitation could not be declined. Ask the owner to remove '
+            'you from the countdown.');
+      }
+      rethrow;
+    }
 
     await _notifyInviter(
       inviterId: invitation.invitedBy,
@@ -2339,14 +2482,33 @@ class EventRepository {
     // an older build, which carries no `active` field and so does not match the
     // list query: blocking that person again brings the row back into view
     // instead of leaving an invisible block behind.
-    await _blocked(userId).doc(targetUid).set({
-      'email': email,
-      if (name != null && name.isNotEmpty) 'displayName': name,
-      if (photo != null && photo.isNotEmpty) 'photoUrl': photo,
-      'blockedAt': FieldValue.serverTimestamp(),
-      // The field the blocked-list query filters on. See watchBlockedUsers.
-      BlockedUser.activeField: true,
-    }, SetOptions(merge: true));
+    //
+    // This is the ONE write whose failure is a real failure — it is the block.
+    // Everything after it is cleanup and is best-effort: a person who can see a
+    // countdown but not edit it cannot remove someone else from it, and that
+    // refusal must not turn "they are blocked" into "you do not have
+    // permission to do that".
+    try {
+      await _blocked(userId).doc(targetUid).set({
+        'email': email,
+        if (name != null && name.isNotEmpty) 'displayName': name,
+        if (photo != null && photo.isNotEmpty) 'photoUrl': photo,
+        'blockedAt': FieldValue.serverTimestamp(),
+        // The field the blocked-list query filters on. See watchBlockedUsers.
+        BlockedUser.activeField: true,
+      }, SetOptions(merge: true));
+    } on FirebaseException catch (error) {
+      debugPrint('[datedawn] Block: writing the block row failed '
+          '(${error.code}) at users/$userId/blocked/$targetUid: '
+          '${error.message}');
+      if (error.code == 'permission-denied') {
+        throw const DataFailure(
+            'Your block could not be saved. Make sure you are signed in, then '
+            'try again.');
+      }
+      throw const DataFailure(
+          'Your block could not be saved — check your connection and try again.');
+    }
 
     // 2a. Shared countdowns: drop their participant row, so access ends and
     //     they stop appearing in the people list.
@@ -2369,12 +2531,7 @@ class EventRepository {
         for (final doc in sharedWithMe.docs) doc.id: doc.reference,
       };
       for (final eventRef in eventRefs.values) {
-        try {
-          await eventRef.collection('participants').doc(targetUid).delete();
-        } catch (error) {
-          debugPrint('[datedawn] Block: could not remove $targetUid from '
-              '${eventRef.id}: $error');
-        }
+        await removeBlockedParticipant(eventRef, targetUid);
       }
     } catch (error) {
       debugPrint('[datedawn] Block: could not list the caller\'s countdowns: '
@@ -2445,6 +2602,26 @@ class EventRepository {
       } catch (error) {
         debugPrint('[datedawn] Block: could not prune recents: $error');
       }
+    }
+  }
+
+  /// Removes one blocked person from one countdown, as part of a block.
+  ///
+  /// Separate and overridable on purpose: this is the step the rules can refuse
+  /// (the blocker may not administer every countdown they can see), and it must
+  /// never be able to fail the block itself. A test can override it to prove
+  /// exactly that without needing a fake that understands security rules.
+  @protected
+  @visibleForTesting
+  Future<void> removeBlockedParticipant(
+    DocumentReference<Map<String, dynamic>> eventRef,
+    String targetUid,
+  ) async {
+    try {
+      await eventRef.collection('participants').doc(targetUid).delete();
+    } catch (error) {
+      debugPrint('[datedawn] Block: could not remove $targetUid from '
+          '${eventRef.id}: $error');
     }
   }
 
