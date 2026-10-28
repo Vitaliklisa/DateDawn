@@ -53,8 +53,7 @@ class BlockedPeopleScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _BlockedListError(
           error: error,
-          onRetry: () async =>
-              ref.read(blockedUsersProvider.notifier).retry(),
+          onRetry: () async => ref.read(blockedUsersProvider.notifier).retry(),
         ),
         data: (people) {
           if (people.isEmpty) {

@@ -54,10 +54,10 @@ class _StreamingRepository implements EventRepository {
 class _RefusingRepository extends _StreamingRepository {
   _RefusingRepository()
       : super.factory(() => Stream.error(FirebaseException(
-            plugin: 'cloud_firestore',
-            code: 'permission-denied',
-            message: 'Missing or insufficient permissions.',
-          )));
+              plugin: 'cloud_firestore',
+              code: 'permission-denied',
+              message: 'Missing or insufficient permissions.',
+            )));
 }
 
 const _me = AppUser(id: 'me', email: 'me@example.com');
@@ -287,8 +287,7 @@ void main() {
       final failing = Stream<List<BlockedUser>>.fromFuture(
         Future<List<BlockedUser>>.error(StateError('boom')),
       );
-      final container =
-          _container(_StreamingRepository.factory(() => failing));
+      final container = _container(_StreamingRepository.factory(() => failing));
       _listen(container);
 
       await expectLater(
@@ -313,8 +312,8 @@ void main() {
     });
 
     test('an empty account resolves to an empty list, not a spinner', () async {
-      final container =
-          _container(_StreamingRepository.factory(() => Stream.value(const [])));
+      final container = _container(
+          _StreamingRepository.factory(() => Stream.value(const [])));
       _listen(container);
 
       expect(await container.read(blockedUsersProvider.future), isEmpty);
@@ -396,7 +395,8 @@ void main() {
       await binding.pump(const Duration(seconds: 1));
     }
 
-    Future<void> pumpScreen(WidgetTester tester, ProviderContainer container) async {
+    Future<void> pumpScreen(
+        WidgetTester tester, ProviderContainer container) async {
       tester.view.physicalSize = const Size(430, 900);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -452,8 +452,8 @@ void main() {
     });
 
     testWidgets('shows a useful empty state', (tester) async {
-      final container =
-          _container(_StreamingRepository.factory(() => Stream.value(const [])));
+      final container = _container(
+          _StreamingRepository.factory(() => Stream.value(const [])));
 
       await pumpScreen(tester, container);
 

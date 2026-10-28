@@ -1117,7 +1117,8 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
   /// Only the roles the viewer may actually grant are offered, so an option
   /// that would be refused is never a choice. The repository re-checks with
   /// the same policy before it writes, and the security rules check it again.
-  Future<void> _changeRole(CountdownEvent event, Participant participant) async {
+  Future<void> _changeRole(
+      CountdownEvent event, Participant participant) async {
     final me = ref.read(currentUserProvider);
     if (me == null) return;
     final assignable = event.assignableRolesFor(
@@ -1387,8 +1388,7 @@ class _RoleSheet extends StatelessWidget {
               'This changes what they can do on this countdown from now on. '
               'They currently have ${participant.role.label.toLowerCase()} '
               'access.',
-              style:
-                  TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
+              style: TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
             ),
             const SizedBox(height: 14),
             for (final role in ordered)

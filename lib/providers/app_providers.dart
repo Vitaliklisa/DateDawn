@@ -392,10 +392,7 @@ class BlockedUsers extends AsyncNotifier<List<BlockedUser>> {
     // dropped listener simply goes away with the notifier when the provider is
     // disposed or rebuilt. `finish` is idempotent, so a late event from a dead
     // read cannot resurrect a state that has already settled.
-    ref
-        .read(eventRepositoryProvider)
-        .watchBlockedUsers(user.id)
-        .listen(
+    ref.read(eventRepositoryProvider).watchBlockedUsers(user.id).listen(
           (people) => finish(people),
           onError: (Object error) => finish(const [], error: error),
         );

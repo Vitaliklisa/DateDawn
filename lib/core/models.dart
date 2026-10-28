@@ -475,8 +475,7 @@ class CountdownEvent {
           'Only an admin of this countdown can change roles.');
     }
     if (actorId == null || actorId == target.userId) {
-      return const RoleChangeCheck.denied(
-          'You cannot change your own role.');
+      return const RoleChangeCheck.denied('You cannot change your own role.');
     }
     if (target.userId == createdBy) {
       return const RoleChangeCheck.denied(

@@ -2331,7 +2331,8 @@ class EventRepository {
         if (storedPhoto != null && storedPhoto.isNotEmpty) photo = storedPhoto;
       }
     } catch (error) {
-      debugPrint('[datedawn] Block: could not read the blocked profile: $error');
+      debugPrint(
+          '[datedawn] Block: could not read the blocked profile: $error');
     }
 
     // `merge: true` and `active: true` together are what heal a row written by

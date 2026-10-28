@@ -59,7 +59,8 @@ final _rows = [
 void main() {
   group('checkRoleChange', () {
     final event = _event(_rows);
-    Participant row(String id) => event.participants.firstWhere((p) => p.userId == id);
+    Participant row(String id) =>
+        event.participants.firstWhere((p) => p.userId == id);
 
     test('an admin can change a viewer to editor or admin', () {
       for (final role in [ParticipantRole.editor, ParticipantRole.admin]) {
@@ -76,7 +77,9 @@ void main() {
       expect(
         event
             .checkRoleChange(
-                actorId: 'admin', target: row('viewer'), role: ParticipantRole.viewer)
+                actorId: 'admin',
+                target: row('viewer'),
+                role: ParticipantRole.viewer)
             .allowed,
         isFalse,
       );
@@ -86,7 +89,9 @@ void main() {
       expect(
         event
             .checkRoleChange(
-                actorId: 'admin', target: row('owner'), role: ParticipantRole.editor)
+                actorId: 'admin',
+                target: row('owner'),
+                role: ParticipantRole.editor)
             .allowed,
         isFalse,
         reason: 'the creator is protected before anyone else is considered',
@@ -96,7 +101,9 @@ void main() {
       expect(
         withTwoAdmins
             .checkRoleChange(
-                actorId: 'admin', target: otherAdmin, role: ParticipantRole.viewer)
+                actorId: 'admin',
+                target: otherAdmin,
+                role: ParticipantRole.viewer)
             .allowed,
         isTrue,
         reason: 'admins outrank each other; the creator is the protected one',
@@ -107,7 +114,9 @@ void main() {
       expect(
         event
             .checkRoleChange(
-                actorId: 'owner', target: row('admin'), role: ParticipantRole.viewer)
+                actorId: 'owner',
+                target: row('admin'),
+                role: ParticipantRole.viewer)
             .allowed,
         isTrue,
       );
@@ -124,14 +133,18 @@ void main() {
       expect(
         event
             .checkRoleChange(
-                actorId: 'admin', target: row('admin'), role: ParticipantRole.viewer)
+                actorId: 'admin',
+                target: row('admin'),
+                role: ParticipantRole.viewer)
             .allowed,
         isFalse,
       );
       expect(
         event
             .checkRoleChange(
-                actorId: 'owner', target: row('owner'), role: ParticipantRole.editor)
+                actorId: 'owner',
+                target: row('owner'),
+                role: ParticipantRole.editor)
             .allowed,
         isFalse,
       );
@@ -145,7 +158,9 @@ void main() {
       expect(
         event
             .checkRoleChange(
-                actorId: 'editor', target: row('viewer'), role: ParticipantRole.viewer)
+                actorId: 'editor',
+                target: row('viewer'),
+                role: ParticipantRole.viewer)
             .allowed,
         isFalse,
       );
@@ -159,7 +174,9 @@ void main() {
       expect(
         event
             .checkRoleChange(
-                actorId: 'viewer', target: row('editor'), role: ParticipantRole.viewer)
+                actorId: 'viewer',
+                target: row('editor'),
+                role: ParticipantRole.viewer)
             .allowed,
         isFalse,
       );
@@ -169,7 +186,9 @@ void main() {
       expect(
         event
             .checkRoleChange(
-                actorId: 'admin', target: row('viewer'), role: ParticipantRole.viewer)
+                actorId: 'admin',
+                target: row('viewer'),
+                role: ParticipantRole.viewer)
             .allowed,
         isFalse,
       );
@@ -380,7 +399,8 @@ void main() {
       expect(await storedRole('viewer'), 'viewer');
     });
 
-    test('reads the real role from the database, not the stale model', () async {
+    test('reads the real role from the database, not the stale model',
+        () async {
       // The screen still believes `viewer` is a viewer; the database says they
       // were just promoted to editor. An admin may still change an editor, but
       // the check must measure against 'editor', so demoting them to viewer is
@@ -431,7 +451,8 @@ void main() {
             ),
             participantsProvider('e1')
                 .overrideWith((ref) => Stream.value(_rows)),
-            recentContactsProvider.overrideWith((ref) => Stream.value(const [])),
+            recentContactsProvider
+                .overrideWith((ref) => Stream.value(const [])),
             circlesProvider.overrideWith((ref) => Stream.value(const [])),
             // The preview strip ticks once a second in the app; a periodic
             // timer in a widget test is a leak. One fixed instant is all this
