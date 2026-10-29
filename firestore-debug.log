@@ -1,4 +1,4 @@
-Oct. 29, 2026 12:03:53 A.M. com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start
+Oct. 29, 2026 9:14:35 A.M. com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start
 INFO: Started WebSocket server on ws://127.0.0.1:9150
 API endpoint: http://127.0.0.1:8080
 If you are using a library that supports the FIRESTORE_EMULATOR_HOST environment variable, run:
@@ -12,19 +12,19 @@ If you are running a Firestore in Datastore Mode project, run:
 Note: Support for Datastore Mode is in preview. If you encounter any bugs please file at https://github.com/firebase/firebase-tools/issues.
 Dev App Server is now running.
 
-Oct. 29, 2026 12:03:53 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Oct. 29, 2026 9:14:36 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected non-HTTP/2 connection.
-Oct. 29, 2026 12:03:53 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Oct. 29, 2026 9:14:36 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
-Oct. 29, 2026 12:03:55 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Oct. 29, 2026 9:14:37 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
-Oct. 29, 2026 12:03:55 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Oct. 29, 2026 9:14:37 A.M. io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
-Oct. 29, 2026 12:03:55 A.M. com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+Oct. 29, 2026 9:14:38 A.M. com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
 WARNING: Operation failed: 
-evaluation error at L566:26 for 'create' @ L566, false for 'create' @ L905, evaluation error at L645:26 for 'update' @ L645, false for 'update' @ L905, false for 'create' @ L566, false for 'create' @ L905
+evaluation error at L640:26 for 'create' @ L640, false for 'create' @ L866, evaluation error at L652:26 for 'update' @ L652, false for 'update' @ L866, Null value error. for 'create' @ L640, false for 'create' @ L866
 com.google.cloud.datastore.core.exception.DatastoreException: 
-evaluation error at L566:26 for 'create' @ L566, false for 'create' @ L905, evaluation error at L645:26 for 'update' @ L645, false for 'update' @ L905, false for 'create' @ L566, false for 'create' @ L905
+evaluation error at L640:26 for 'create' @ L640, false for 'create' @ L866, evaluation error at L652:26 for 'update' @ L652, false for 'update' @ L866, Null value error. for 'create' @ L640, false for 'create' @ L866
 	at com.google.cloud.datastore.core.exception.DatastoreException$Builder.build(DatastoreException.java:121)
 	at com.google.cloud.datastore.emulator.impl.rules.DefaultEmulatorRulesAuthorizer.verboseError(DefaultEmulatorRulesAuthorizer.java:318)
 	at com.google.cloud.datastore.emulator.impl.rules.DefaultEmulatorRulesAuthorizer.withVerboseErrors(DefaultEmulatorRulesAuthorizer.java:295)
@@ -50,4 +50,31 @@ evaluation error at L566:26 for 'create' @ L566, false for 'create' @ L905, eval
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
 	at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: com.google.firebase.rules.runtime.common.EvaluationException: Error:  line [190], column [14]. Null value error.
+	at com.google.firebase.rules.runtime.impl.DefaultEvaluator$TransformEvaluationException.apply(DefaultEvaluator.java:275)
+	at com.google.firebase.rules.runtime.impl.DefaultEvaluator$TransformEvaluationException.apply(DefaultEvaluator.java:261)
+	at com.google.common.util.concurrent.AbstractCatchingFuture$AsyncCatchingFuture.doFallback(AbstractCatchingFuture.java:211)
+	at com.google.common.util.concurrent.AbstractCatchingFuture$AsyncCatchingFuture.doFallback(AbstractCatchingFuture.java:198)
+	at com.google.common.util.concurrent.AbstractCatchingFuture.run(AbstractCatchingFuture.java:140)
+	at com.google.common.util.concurrent.DirectExecutor.execute(DirectExecutor.java:32)
+	at com.google.common.util.concurrent.AbstractFuture.executeListener(AbstractFuture.java:1306)
+	at com.google.common.util.concurrent.AbstractFuture.addListener(AbstractFuture.java:767)
+	at com.google.common.util.concurrent.FluentFuture$TrustedFuture.addListener(FluentFuture.java:122)
+	at com.google.common.util.concurrent.AbstractCatchingFuture.createAsync(AbstractCatchingFuture.java:63)
+	at com.google.common.util.concurrent.Futures.catchingAsync(Futures.java:413)
+	at com.google.firebase.rules.runtime.impl.DefaultEvaluator.evaluate(DefaultEvaluator.java:177)
+	at com.google.cloud.datastore.emulator.impl.rules.EmulatorRuleClient$EmulatorRuleEvaluator.evaluate(EmulatorRuleClient.java:88)
+	at com.google.cloud.datastore.core.auth.rules.AsyncTwoPhaseRulesAuthorizer.lambda$fullEvaluate$12(AsyncTwoPhaseRulesAuthorizer.java:952)
+	at com.google.cloud.datastore.computation.Computation.tryCatch(Computation.java:416)
+	at com.google.cloud.datastore.core.auth.rules.AsyncTwoPhaseRulesAuthorizer.fullEvaluate(AsyncTwoPhaseRulesAuthorizer.java:951)
+	at com.google.cloud.datastore.core.auth.rules.AsyncTwoPhaseRulesAuthorizer$CommitAuthorizerImpl.lambda$checkWrite$1(AsyncTwoPhaseRulesAuthorizer.java:1192)
+	at com.google.cloud.datastore.computation.Computation.lambda$tryClose$27(Computation.java:685)
+	at com.google.cloud.datastore.computation.Computation.tryCatch(Computation.java:416)
+	at com.google.cloud.datastore.computation.Computation.tryFinally(Computation.java:652)
+	at com.google.cloud.datastore.computation.Computation.tryFinally(Computation.java:658)
+	at com.google.cloud.datastore.computation.Computation.tryClose(Computation.java:685)
+	at com.google.cloud.datastore.core.auth.rules.AsyncTwoPhaseRulesAuthorizer$CommitAuthorizerImpl.checkWrite(AsyncTwoPhaseRulesAuthorizer.java:1161)
+	at com.google.cloud.datastore.emulator.impl.rules.DefaultEmulatorRulesAuthorizer.lambda$checkCommit$0(DefaultEmulatorRulesAuthorizer.java:124)
+	at com.google.cloud.datastore.emulator.impl.rules.DefaultEmulatorRulesAuthorizer.withVerboseErrors(DefaultEmulatorRulesAuthorizer.java:290)
+	... 22 more
 

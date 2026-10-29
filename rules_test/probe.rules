@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function existsUnsafe() {
+      return exists(/databases/$(database)/documents/probe/missing)
+        && get(/databases/$(database)/documents/probe/missing).data.v == 'yes';
+    }
+    match /unsafe/{id} { allow write: if existsUnsafe(); }
+  }
+}

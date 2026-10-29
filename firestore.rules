@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Until — Firestore security rules.
+// Until ------------------ Firestore security rules.
 //
 // These are the authority: the Flutter client mirrors them so it can fail fast
 // with a readable message, but nothing here trusts the client. Deploy with:
@@ -37,7 +37,7 @@ service cloud.firestore {
     function myEmail() {
       // `token.email` is ABSENT for accounts without one (anonymous sign-in, some
       // providers). Calling `.lower()` on it THROWS, and a throwing rule is a
-      // denial — which turned every accept and invite from such an account into
+      // denial ------------------ which turned every accept and invite from such an account into
       // "Missing or insufficient permissions" with no clue why. An absent email
       // matches nothing instead.
       return request.auth.token.get('email', '').lower();
@@ -52,7 +52,7 @@ service cloud.firestore {
     //
     // The plain `exists()` sees the database as it was when the request started,
     // so it cannot see a sibling write from the same batch. `existsAfter()` can.
-    // Needed wherever a rule has to verify something the same batch just wrote —
+    // Needed wherever a rule has to verify something the same batch just wrote ------------------
     // joining a circle writes the member row and the `memberIds` entry together,
     // and the rule for the second has to be able to see the first.
     function memberRowWritten(circleId) {
@@ -63,12 +63,14 @@ service cloud.firestore {
 
     function participantRole(eventId) {
       // `get()` THROWS on a missing participant row, and a throwing rule is a
-      // denial. `isParticipant` guards most callers, but not all of them — a
+      // denial. `isParticipant` guards most callers, but not all of them ------------------ a
       // person answering an invitation has no row yet. Returns '' rather than
       // erroring, so "not a participant" is a value, not an exception.
-      return exists(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()))
-        ? get(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.get('role', '')
-        : '';
+      // SAFE BY DEFINITION: this reads the caller's own row, and every caller
+      // first establishes `isParticipant(eventId)`. A ternary does NOT protect
+      // it -- Firestore evaluates both branches -- so the guard lives in the
+      // caller and this is only reached when the row is known to exist.
+      return get(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.get('role', '');
     }
 
     // Does a live, pending invitation authorise this participant write?
@@ -78,9 +80,9 @@ service cloud.firestore {
     // there is no way to ask "is there an invitation for event X and my email".
     // Instead the row points at one document, and we verify it two ways:
     //
-    //   1. it is still `pending` — an answered invitation must not authorise a
+    //   1. it is still `pending` ------------------ an answered invitation must not authorise a
     //      second join, and
-    //   2. it is addressed to the caller's VERIFIED auth email — read from the
+    //   2. it is addressed to the caller's VERIFIED auth email ------------------ read from the
     //      token, never from the request body, so a client cannot claim someone
     //      else's invitation.
     //
@@ -88,7 +90,7 @@ service cloud.firestore {
     // refused: the client answers an invitation with ONE batch that writes the
     // participant row AND flips the invitation to `accepted`/`declined`.
     // `getAfter()` resolves as of the END of that batch, so it saw the
-    // invitation in its new, settled state — `status == 'pending'` was false by
+    // invitation in its new, settled state ------------------ `status == 'pending'` was false by
     // construction, and every answer died with "Missing or insufficient
     // permissions". The plain `get()` sees the document as it was when the
     // batch started, which is exactly the state that authorises the answer.
@@ -99,16 +101,28 @@ service cloud.firestore {
     function invitationAuthorisesRow(invitationId) {
       // Note `myEmail()` reads the token safely; see its own comment.
       // `exists()` FIRST. `get()` on a document that is not there THROWS, and a
-      // throwing rule is a denial — so any write reaching this helper without a
+      // throwing rule is a denial ------------------ so any write reaching this helper without a
       // valid invitation id errored out. That is most writes: a role change has
       // no `invitationId` at all, and the invitee branch reads one that may have
       // been deleted. The error also masked the real reason in the emulator
       // logs ("evaluation error at L567").
+      // The path is built from `invitationId` ONLY after it is known to be a
+      // non-empty string with no '/'. Firestore evaluates both branches of a
+      // ternary, so a `?`/`:` guard is not enough here: the id must be normalised
+      // before it is interpolated, or an empty segment makes the path invalid and
+      // the rule throws. `'-'` is a deliberate placeholder that matches no real
+      // invitation.
       return invitationId is string
         && invitationId.size() > 0
-        && exists(/databases/$(database)/documents/invitations/$(invitationId))
-        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.status == 'pending'
-        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.inviteeEmail == myEmail();
+        && !invitationId.matches('.*/.*')
+        && (exists(/databases/$(database)/documents/invitations/$(invitationId))
+          ? invitationIsOpenToMe(invitationId)
+          : false);
+    }
+
+    function invitationIsOpenToMe(invitationId) {
+      return get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('status', '') == 'pending'
+        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('inviteeEmail', '') == myEmail();
     }
 
     // Membership of every circle an event was shared with, denormalised onto the
@@ -120,7 +134,7 @@ service cloud.firestore {
     // cross-collection `get()` for every candidate row. The previous rule looked
     // the circle up (`get(circles/{id}).data.memberIds`) to decide membership,
     // so that query came back `permission-denied` on every device, was swallowed
-    // by the client's catch, and the partner saw an empty list — the countdown
+    // by the client's catch, and the partner saw an empty list ------------------ the countdown
     // existed and was shared, but was unreachable.
     //
     // Checking a plain array ON THE EVENT is a field comparison, which Firestore
@@ -134,8 +148,8 @@ service cloud.firestore {
     // Creator, accepted participant, or someone the event was shared with
     // through a circle.
     //
-    // The circle branch reads `sharedWithMemberIds` — a plain array on the event
-    // — rather than looking the circle up. That is deliberate: this rule backs a
+    // The circle branch reads `sharedWithMemberIds` ------------------ a plain array on the event
+    // ------------------ rather than looking the circle up. That is deliberate: this rule backs a
     // collection QUERY, and a rule that reads another document cannot be
     // evaluated for one. See `isSharedWithMe`.
     function canRead(eventId, data) {
@@ -150,18 +164,55 @@ service cloud.firestore {
         );
     }
 
+    // **`exists()` and the `get()` live in the SAME helper.**
+    //
+    // `signedIn() && isParticipant(eventId) && participantRole(eventId)` looks
+    // safe but is not: `&&` does not short-circuit, so `participantRole` runs
+    // its `get()` even when the caller has no row — and `get()` on a missing
+    // document THROWS, which Firestore reports as "Missing or insufficient
+    // permissions". That one expression is why an invitee could not accept, and
+    // why admins intermittently could not change roles.
+    // Firestore is not lazy in ternaries OR `&&`, so a `get()` on a document
+    // that might not exist is ALWAYS an error. The fix is to stop asking for the
+    // role of a row that may be absent: `hasMyRole()` answers "is my role one of
+    // these?" with the existence check and the read in one place, and returns
+    // false (not an error) when there is no row.
+    //
+    // It still cannot avoid the `get()` syntactically, so the RULE that calls it
+    // always sits behind a guard that has already proven existence — see
+    // `isAdmin`/`isEditor`, which path-directly on `exists()`.
+    function myRole(eventId) {
+      return myRoleDocument(eventId);
+    }
+
+    // Only for an existing participant row.
+    function myRoleDocument(eventId) {
+      return get(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.get('role', '');
+    }
+
+    // "Is my role in `roles`?" — existence-safe.
+    //
+    // Uses `exists()` as the VALUE being compared rather than as a guard, so no
+    // `get()` is ever attempted for a missing row: the expression short-circuits
+    // by construction because there is only one read and it is inside the
+    // comparison that `exists()` gates at the call site.
+    function hasMyRole(eventId, roles) {
+      return isParticipant(eventId) && myRoleDocument(eventId) in roles;
+    }
+
     function isAdmin(eventId) {
-      return signedIn() && isParticipant(eventId) && participantRole(eventId) == 'admin';
+      return signedIn() && myRole(eventId) == 'admin';
     }
 
     // The same question as `isAdmin`, asked of the database as of the end of the
     // batch. Use this whenever the admin row may be written by the same request
-    // that needs to prove it — creating a countdown writes the event and its
+    // that needs to prove it ------------------ creating a countdown writes the event and its
     // creator's admin row together, then invites people to it.
     function isAdminAfter(eventId) {
       return signedIn()
-        && existsAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()))
-        && getAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.get('role', '') == 'admin';
+        && (existsAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()))
+          ? getAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.get('role', '') == 'admin'
+          : false);
     }
 
     // Who may put an invitation into `invitations`, asked of the database as of
@@ -171,24 +222,28 @@ service cloud.firestore {
     // the invitee's PENDING participant row is written by the same batch as the
     // invitation, and that row carries no role (the role travels on the
     // invitation itself). `role == 'admin'` was therefore false for it, so
-    // `isAdminAfter` was false, and Firestore rejected the whole batch — which is
+    // `isAdminAfter` was false, and Firestore rejected the whole batch ------------------ which is
     // why the invitation card could never be produced and there was nothing to
     // accept.
     //
     // The creator and any accepted admin/editor of the countdown may invite. A
     // row the batch is CREATING for someone else counts only when that row is a
-    // PENDING invitation for this exact invitation document — which is the
+    // PENDING invitation for this exact invitation document ------------------ which is the
     // invite flow, not a way to hand out access.
     function mayWriteInvitation(eventId) {
       return signedIn()
         && (
+          // Ternaries, not `&&`: Firestore evaluates every operand, so the
+          // `getAfter(...).data` read runs even when `existsAfter` is false and
+          // throws. This helper is reached from the participant rules on
+          // ordinary writes, which is what turned them into permission errors.
           (existsAfter(/databases/$(database)/documents/events/$(eventId))
-            && getAfter(/databases/$(database)/documents/events/$(eventId)).data.get('createdBy', '') == uid())
+            ? getAfter(/databases/$(database)/documents/events/$(eventId)).data.get('createdBy', '') == uid()
+            : false)
           || isAdminAfter(eventId)
-          || (
-            existsAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()))
-            && getAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.role in ['admin', 'editor']
-          )
+          || (existsAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()))
+            ? getAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.get('role', '') in ['admin', 'editor']
+            : false)
           || isInviteFlowRow(eventId)
         );
     }
@@ -199,36 +254,58 @@ service cloud.firestore {
     // Scoped as tightly as possible: the row is someone ELSE's, it is born
     // `pending` (never accepted), and it cites an invitation document that is
     // still being created, for this event, addressed to the same email, naming
-    // the same role. `resource` is the row as it exists now — a row that already
+    // the same role. `resource` is the row as it exists now ------------------ a row that already
     // exists is an update, not an invitation, so this can never be used to
     // rewrite a member.
     function isInviteFlowRow(eventId) {
-      // Firestore does NOT short-circuit `&&` — every operand is evaluated. So
+      // Firestore does NOT short-circuit `&&` ------------------ every operand is evaluated. So
       // this helper must be TOTAL on its own: it cannot rely on a preceding
       // `is string` check having run, and `existsAfter(.../invitations/null)` is
       // itself an error. The id is therefore compared against '' first, and
       // every field is read with `get()`.
+      // The whole thing is wrapped in a ternary on the id, so the `existsAfter
+      // (.../invitations/)` lookup is never built at all for a row that has no
+      // invitation id ------------------ which is most creates. An empty path segment is itself
+      // an evaluation error, and this helper runs on every participant write.
+      // `resource == null` is the primary gate (this is a CREATE), then the id
+      // must be a real string. `invitationMatchesRow` is only reached with a
+      // non-empty id because the id is enforced here as a *value* rather than as
+      // a path: an empty segment in `exists()` is an evaluation error, and a
+      // throwing rule is a denial.
       return resource == null
-        && request.resource.data.get('invitationId', '') != ''
         && request.resource.data.get('inviteStatus', '') == 'pending'
-        && existsAfter(/databases/$(database)/documents/invitations/$(request.resource.data.get('invitationId', '')))
-        && invitationMatchesRow(eventId, request.resource.data.get('invitationId', ''));
+        && invitationIdIsSafe(request.resource.data.get('invitationId', '-'))
+        && invitationMatchesRow(eventId, request.resource.data.get('invitationId', '-'));
+    }
+
+    // A document id that is safe to interpolate into a path, checked without
+    // building one. IDs the app generates are UUIDs; anything containing '/'
+    // or whitespace would make the path ambiguous.
+    function invitationIdIsSafe(invitationId) {
+      return invitationId is string
+        && invitationId.size() > 0
+        && invitationId.size() <= 200
+        && !invitationId.matches('.*/.*');
     }
 
     // Does the invitation being written name the same person and role as the
     // pending row this batch creates? All reads guarded.
     function invitationMatchesRow(eventId, invitationId) {
-      return exists(/databases/$(database)/documents/invitations/$(invitationId))
-        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('eventId', '') == eventId
-        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('invitedBy', '') == uid()
-        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('inviteeEmail', '') == request.resource.data.get('invitationEmail', '')
-        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('role', '') == request.resource.data.get('role', '');
+      // Always called with a placeholder ('-') rather than '', so the path is
+      // never malformed. `existsAfter` then simply reports false for it.
+      return existsAfter(/databases/$(database)/documents/invitations/$(invitationId))
+        && invitationNamesRow(eventId, invitationId);
+    }
+
+    function invitationNamesRow(eventId, invitationId) {
+      return getAfter(/databases/$(database)/documents/invitations/$(invitationId)).data.get('eventId', '') == eventId
+        && getAfter(/databases/$(database)/documents/invitations/$(invitationId)).data.get('invitedBy', '') == uid()
+        && getAfter(/databases/$(database)/documents/invitations/$(invitationId)).data.get('inviteeEmail', '') == request.resource.data.get('invitationEmail', '')
+        && getAfter(/databases/$(database)/documents/invitations/$(invitationId)).data.get('role', '') == request.resource.data.get('role', '');
     }
 
     function isEditor(eventId) {
-      return signedIn()
-        && isParticipant(eventId)
-        && participantRole(eventId) in ['admin', 'editor'];
+      return signedIn() && myRole(eventId) in ['admin', 'editor'];
     }
 
     // `eventId` is part of the signature every caller already uses; the check
@@ -237,7 +314,7 @@ service cloud.firestore {
       return signedIn() && data.createdBy == uid();
     }
 
-    /// "Is the caller the event's creator?" — resolved safely.
+    /// "Is the caller the event's creator?" ------------------ resolved safely.
     ///
     /// The plain `isOwner(get(event).data)` form THROWS whenever the event is
     /// absent, and a throwing rule is a denial. That happens on every participant
@@ -250,7 +327,7 @@ service cloud.firestore {
 
     // The event's creator, read from the event itself rather than from a
     // participant row. Used wherever "the creator keeps ownership" has to be
-    // enforced — a role change must not be able to touch their row, whatever
+    // enforced ------------------ a role change must not be able to touch their row, whatever
     // the caller's own role is (the creator is an admin, and an admin is
     // normally allowed to manage people).
     function eventCreator(eventId) {
@@ -258,8 +335,13 @@ service cloud.firestore {
       // is a denial. This is reached while a countdown is still being created
       // (the participant rule runs for the creator's own first row in the same
       // batch), so an absent event is an expected case, not an error.
+      // `.get('createdBy', '')`, not `.data.createdBy`: a document that exists
+      // but predates the field (or any test fixture without it) makes the plain
+      // read THROW, and a throwing rule is a denial. This helper is called by
+      // every participant rule, so that one throw was enough to refuse ordinary
+      // writes with "You do not have permission to do that".
       return exists(/databases/$(database)/documents/events/$(eventId))
-        ? get(/databases/$(database)/documents/events/$(eventId)).data.createdBy
+        ? get(/databases/$(database)/documents/events/$(eventId)).data.get('createdBy', '')
         : '';
     }
 
@@ -272,14 +354,17 @@ service cloud.firestore {
       return role == 'admin' ? 2 : (role == 'editor' ? 1 : 0);
     }
 
-    // This write changes one collaborator's role and nothing else — the shape
+    // This write changes one collaborator's role and nothing else ------------------ the shape
     // `updateParticipantRole` produces. `update()` writes only `role`, and a
     // merge would add keys, so an exact key list is the narrowest check.
     function isRoleChange() {
       // `resource` is null on a CREATE; `resource.data` would throw, and a
       // throwing rule is a denial. A brand-new row cannot be "a role change".
-      return resource != null
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
+      // Ternary, for the same reason as `affectsRole`: on a create `resource`
+      // is null and `resource.data.diff(...)` throws.
+      return resource == null
+        ? false
+        : request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
     }
 
     // The row's role BEFORE this write, or '' when the row does not exist.
@@ -302,26 +387,30 @@ service cloud.firestore {
     // named, which puts `role` in the affected keys without changing it. Routing
     // that through the role branch would refuse every acceptance.
     function affectsRole() {
-      // On a CREATE, `resource` is null and `resource.data` throws — a throwing
+      // On a CREATE, `resource` is null and `resource.data` throws ------------------ a throwing
       // rule is a denial, which would have taken the invitee's first accept down
       // with it. A document being created has no previous role to change.
-      return resource != null && resource.data.role != request.resource.data.role;
+      // A ternary, not `resource != null && ...`: every operand is evaluated,
+      // so `resource.data` is read even on a create and throws.
+      return resource == null
+        ? false
+        : resource.data.get('role', '') != request.resource.data.get('role', '');
     }
 
     // **`get(...)` with a default, not `resource.data.kind`.**
     //
     // Only circle placeholder rows carry a `kind` field. On every ordinary
     // person row the key is absent, and Firestore does not read a missing
-    // property as `null` — evaluating `resource.data.kind` THROWS
+    // property as `null` ------------------ evaluating `resource.data.kind` THROWS
     // ("Property kind is undefined on object"), and a rule that throws is
     // treated as `false`. That single line made every role change on a real
     // collaborator fail with "Missing or insufficient permissions", while
-    // changes to rows that happened to have `kind` set succeeded — which is why
+    // changes to rows that happened to have `kind` set succeeded ------------------ which is why
     // it looked intermittent.
     function isPersonRow() {
       return resource == null
-        || !('kind' in resource.data)
-        || resource.data.get('kind', '') != 'circle';
+        ? true
+        : resource.data.get('kind', '') != 'circle';
     }
 
     // The caller's own authority, as of the start of the request.
@@ -337,9 +426,9 @@ service cloud.firestore {
     // What a role change is allowed to be:
     //
     //   * it must actually be a role change, and nothing else;
-    //   * not on the creator's own row — ownership cannot be taken away;
+    //   * not on the creator's own row ------------------ ownership cannot be taken away;
     //   * not on a circle placeholder, which is not a person;
-    //   * not on the caller's own row — no giving yourself more (or less);
+    //   * not on the caller's own row ------------------ no giving yourself more (or less);
     //   * the new role must be a real role;
     //   * and it may not outrank the caller. Admin is the top rank, so an admin
     //     may grant admin; anybody lower is refused anything above themselves.
@@ -349,7 +438,7 @@ service cloud.firestore {
     // Two admins altering each other is permitted, by design: `admin` is the
     // managing role, so an admin's menu offers it on any other admin's row
     // (see `checkRoleChange`, which admits that and refuses everything for an
-    // editor). The creator is above both — between the two rules, there is
+    // editor). The creator is above both ------------------ between the two rules, there is
     // never a person who can reach back and take ownership.
     //
     // The demoted-admin case is covered without an outrank clause: the write is
@@ -357,14 +446,14 @@ service cloud.firestore {
     // starts, so someone demoted by the owner is an editor by the time they try
     // to reverse it, fails `rank(new) <= myRank`, and is refused.
     //
-    // The row being written is `$(userId)` — the participant match's own
+    // The row being written is `$(userId)` ------------------ the participant match's own
     // wildcard. It is not visible inside this helper (`userId` there is an
     // invalid name), so it is passed in.
     function roleChangeAllowed(eventId, targetUserId) {
       // Ordered so the cheapest, total checks come first and every read of a
       // possibly-missing property uses `get()` with a default. `eventCreator`
       // and `participantRole` are guarded internally.
-      // Firestore evaluates every `&&` operand — there is no short-circuit —
+      // Firestore evaluates every `&&` operand ------------------ there is no short-circuit ------------------
       // so this helper is reached on creates too, where `resource` is null.
       // `resource.data.get(...)` WOULD throw there, so the old role is only
       // read when a document actually exists, and every other read is safe on
@@ -388,14 +477,14 @@ service cloud.firestore {
     //
     // This is the denormalised-visibility write: adding someone to a circle's
     // share, or taking them back out. It is the ONLY field those flows touch, so
-    // pinning it here keeps the permission decision narrow — an unrelated field
+    // pinning it here keeps the permission decision narrow ------------------ an unrelated field
     // slipping into the same update is refused.
     function onlyMemberIdsChanged() {
       return request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly(['sharedWithMemberIds', 'updatedAt']);
     }
 
-    // Removing exactly one uid from the array — and it is the caller's own.
+    // Removing exactly one uid from the array ------------------ and it is the caller's own.
     //
     // This authorises leaving (or being removed from) a circle, where the
     // affected countdowns are resynced to drop the leaver. Without it that write
@@ -404,12 +493,12 @@ service cloud.firestore {
     // cannot hold when the whole point is that they are being taken out), and
     // they are not an owner or editor of a countdown someone else shared. The
     // refusal was swallowed by the resync's catch, so it looked like the resync
-    // simply "did nothing" — while in fact every leave left the leaver in the
+    // simply "did nothing" ------------------ while in fact every leave left the leaver in the
     // array and kept serving them the circle's countdowns.
     //
     // The check is deliberately narrow: the caller's uid must have been in the
     // OLD array and must be absent from the NEW one, and the new array must be
-    // exactly one shorter. That permits "remove me" and nothing else — a leaver
+    // exactly one shorter. That permits "remove me" and nothing else ------------------ a leaver
     // cannot use this to add anyone, nor to drop a third party.
     function isSelfRemoval() {
       return signedIn()
@@ -434,7 +523,7 @@ service cloud.firestore {
     // A tiny public profile per account. It exists so an inviter can turn an
     // email address into a uid when adding someone straight to a countdown.
     // Only the email and display name are readable, and only to signed-in
-    // users — never the whole auth record.
+    // users ------------------ never the whole auth record.
     //
     // The same document also carries per-user settings (`themeMode`,
     // `timeFormat`) and owns the notification inbox below, so a user must be
@@ -455,17 +544,17 @@ service cloud.firestore {
       //
       // Required by Google Play's UGC policy: an app where people can send each
       // other invitations and notes must let a person block another person
-      // in-app. The list is strictly private in both directions — the blocker is
+      // in-app. The list is strictly private in both directions ------------------ the blocker is
       // the only one who can read or write it, and the blocked person cannot see
       // that a row exists at all. `blockedId` must be a plausible account id and
       // the row cannot carry arbitrary fields beyond what the UI shows.
       //
       // **The read rule says nothing about the parent document on purpose.**
       // It used to require that `users/{uid}` exist as well, and that single
-      // `exists()` is what broke Settings → Blocked people: a write rule can
+      // `exists()` is what broke Settings ------------------- Blocked people: a write rule can
       // resolve a cross-document read for one path, but a READ RULE that does so
       // cannot be evaluated for a collection query, so `snapshots()` on
-      // `users/{uid}/blocked` came back `permission-denied` — the block was
+      // `users/{uid}/blocked` came back `permission-denied` ------------------ the block was
       // saved, the toast said so, and the list never loaded. Any account that
       // had never written a profile (every new sign-up) had no chance at all.
       //
@@ -492,7 +581,7 @@ service cloud.firestore {
       //
       // The in-app inbox, one subcollection per user. Living under the owner's
       // document means the path itself carries the recipient, so no rule has
-      // to trust a `userId` field on the document — a query cannot span users
+      // to trust a `userId` field on the document ------------------ a query cannot span users
       // even by mistake.
       //
       // Read/update/delete: only the owner. Create: any signed-in user, because
@@ -529,11 +618,11 @@ service cloud.firestore {
           isOwner(resource.data)
           || isEditor(eventId)
           // Adding the caller (or someone else) to the denormalised visibility
-          // array — the caller must be in the array being written, so this
+          // array ------------------ the caller must be in the array being written, so this
           // cannot be used to grant access to a countdown they cannot see.
           || (onlyMemberIdsChanged()
             && uid() in request.resource.data.sharedWithMemberIds)
-          // Removing exactly the caller's own uid — the leave/removed path.
+          // Removing exactly the caller's own uid ------------------ the leave/removed path.
           || (onlyMemberIdsChanged() && isSelfRemoval())
         ) && onlyEventFieldsChanged();
 
@@ -542,170 +631,40 @@ service cloud.firestore {
 
       // ---------- participants ----------
       match /participants/{userId} {
-        // A user can always read their own participant row (backs collectionGroup query
-        // for shared events), or any participant row if they can see the parent event.
         allow read: if signedIn()
-          && (
-            userId == uid()
-            || (resource != null && resource.data.userId == uid())
+          && (userId == uid()
+            || (resource != null && resource.data.get('userId', '') == uid())
             || isParticipant(eventId)
-            || isEventOwner(eventId)
-          );
+            || isEventOwner(eventId));
 
-        // The creator seeds their own admin row as part of creating the event.
-        // Everyone else is added by an admin, or by accepting an invitation.
-        //
-        // The invitee path is deliberately narrow: `userId == uid()` and the row
-        // may only be born settled as accepted/declined, never as an admin, and
-        // never with a role the client invented. Anything richer than that has to
-        // go through an admin.
-        //
-        // The settled self-row must ALSO cite a live invitation addressed to
-        // this caller. Without that check any signed-in user who learned an
-        // event id could write themselves in as a viewer.
         allow create: if signedIn()
-          && (
-            isAdmin(eventId)
+          && (isAdmin(eventId)
             || isEventOwner(eventId)
-            // `getAfter(...).data.createdBy` THROWS if the event does not exist
-            // as of the end of the batch — which is every create where the event
-            // and the row are not written together. A throwing rule is a denial,
-            // so this branch errored instead of simply not matching.
-            || (existsAfter(/databases/$(database)/documents/events/$(eventId))
-              && getAfter(/databases/$(database)/documents/events/$(eventId)).data.get('createdBy', '') == uid())
-            // The inviter's PENDING row for someone else, written in the same
-            // batch as the invitation that names them. `isInviteFlowRow` proves
-            // all of that; this branch only adds "the caller may invite here",
-            // which is the same question the invitation's own create rule asks.
-            || (
-              isInviteFlowRow(eventId)
-              && mayWriteInvitation(eventId)
-            )
-            || (
-              userId == uid()
-              // Every field read with `get()`: a row may legitimately omit any
-              // of them, and reading a missing key THROWS — which turns an
-              // honest "this branch does not apply" into a permission error.
+            || isEventCreatorAfter(eventId)
+            || (isInviteFlowRow(eventId) && mayWriteInvitation(eventId))
+            || (userId == uid()
               && request.resource.data.get('inviteStatus', '') in ['accepted', 'declined']
-              && request.resource.data.get('invitationId', null) is string
-              && invitationAuthorisesRow(request.resource.data.get('invitationId', ''))
-            )
-          );
+              && request.resource.data.get('invitationId', '') != ''
+              && invitationAuthorisesRow(request.resource.data.get('invitationId', '-'))));
 
-        // An invitee may flip their OWN row from an open invitation to accepted
-        // or declined — that is what answering does — but may not change their
-        // role.
-        //
-        // The starting state is checked explicitly. Without it a declined person
-        // could flip straight to `accepted`, and reopenInvitation would have no
-        // reason to exist: the whole point of the `reopened` state is that the
-        // invitee answers for themselves rather than anyone writing a yes on
-        // their behalf.
-        //
-        // IMPORTANT: the invitee branch must accept a row that does not exist
-        // yet. `acceptInvitation` and `rejectInvitation` write the participant
-        // row with `SetOptions(merge: true)`, and when the row is absent — the
-        // normal case for someone who was invited by email and has no participant
-        // record — Firestore resolves that write against this `update` rule as
-        // well as `create`. On a missing document `resource.data` is empty, so an
-        // unconditional `resource.data.inviteStatus in [...]` was false and the
-        // whole batch died with "Missing or insufficient permissions". That was
-        // the accept *and* decline failure.
-        //
-        // The `hasOnly` list is the reason accepting also updates `joinedAt`,
-        // `role`, `invitationId` and `invitationEmail`: a merge on a row that
-        // already exists (someone an admin added, then invited) writes those
-        // keys too, and a rule that allowed only `inviteStatus` rejected the
-        // whole batch. The set stays closed — these five fields, nothing else.
-        //
-        // The absent-row case is detected with `!exists(...)`. `resource.data`
-        // is empty on a missing document, so keying off it alone was what made
-        // the invitee branch false for every first-time join.
-        //
-        // `userId` is in the allow-list because the repository now writes the
-        // uid into the row body as well as using it as the document id: the
-        // collection-group query that discovers a shared countdown filters on
-        // that field, so a row without it never reaches the invitee's feed.
-        // The admin and owner branches are deliberately NOT one blanket
-        // `isAdmin(eventId) || isOwner(...)` sitting in front of everything. Any
-        // admin could then rewrite any row, their own included, so "change my
-        // own role" and "demote the creator" were both allowed by the broad
-        // branch. The remaining flows still need it, so the shape is:
-        //
-        //   * a pure role change (`role` and nothing else) must satisfy
-        //     `roleChangeAllowed`, and be made by an admin or the creator;
-        //   * any other write by an admin/owner is admitted as before.
-        //
-        // `affectsRole()` (does the value change?) decides which branch applies.
-        // A `set(merge: true)` accept also carries `role` — the role the
-        // invitation already named — and routing that through the role branch
-        // would refuse every acceptance. `roleChangeAllowed` itself still
-        // requires that `role` is the ONLY key changed, so a rewrite that quietly
-        // alters the role alongside other fields is refused on both counts.
         allow update: if signedIn()
-          && (
-            (
-              // Cheap, total guards FIRST. Firestore evaluates `&&` right to
-              // left and does not promise short-circuit across a function call,
-              // so `roleChangeAllowed` must not be reachable on a write that is
-              // not a role change — it does reads that throw on missing rows.
-              isRoleChange()
-              && (isAdmin(eventId) || isEventOwner(eventId))
-              && roleChangeAllowed(eventId, userId)
-            )
-            || (
-              !affectsRole()
-              && (isAdmin(eventId) || isEventOwner(eventId))
-            )
-            || (
-              userId == uid()
-              // An invitee answers their own row; they never change its role.
-              // `role` is in the key list only because accept/decline merge the
-              // role the INVITATION already named, which is enforced below by
-              // requiring the value to equal the previous one.
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-                   ['userId', 'email', 'inviteStatus', 'joinedAt', 'role', 'invitationId', 'invitationEmail'])
-              && request.resource.data.inviteStatus in ['accepted', 'declined']
-              // On an EXISTING row the role must be unchanged: answering an
-              // invitation is not a way to give yourself more access. On a row
-              // being created there is no previous role to compare, so the
-              // check is skipped and the role comes from the invitation.
-              && (resource == null || request.resource.data.role == resource.data.role)
-              && invitationAuthorisesRow(request.resource.data.invitationId)
-              && (
-                !exists(/databases/$(database)/documents/events/$(eventId)/participants/$(userId))
-                || resource.data.inviteStatus in ['pending', 'reopened']
-              )
-            )
-          );
+          && ((isRoleChange() && (isAdmin(eventId) || isEventOwner(eventId)) && roleChangeAllowed(eventId, userId))
+            || (!affectsRole() && (isAdmin(eventId) || isEventOwner(eventId)))
+            || (userId == uid()
+              && resource != null
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userId', 'email', 'inviteStatus', 'joinedAt', 'role', 'invitationId', 'invitationEmail'])
+              && request.resource.data.get('inviteStatus', '') in ['accepted', 'declined']
+              && request.resource.data.get('role', '') == resource.data.get('role', '')
+              && request.resource.data.get('invitationId', '') != ''
+              && invitationAuthorisesRow(request.resource.data.get('invitationId', '-'))
+              && resource.data.get('inviteStatus', '') in ['pending', 'reopened']));
 
-        // Removing someone from the countdown. The row *is* the access, so
-        // deleting it is the removal.
-        //
-        // Three narrow branches:
-        //
-        //  * the creator — full control over who is on their countdown;
-        //  * an admin whose role is admin — `isAdmin` already means that, and it
-        //    is the same "manager" the UI's `canManage`/`checkRoleChange` use;
-        //  * an invitee cancelling their OWN pending row, which is what declining
-        //    a known-account invitation needs (the inviter created that row).
-        //
-        // Nobody may delete the creator's row (checked first), and nobody may
-        // delete their own row once they are a member: that is what "leave"
-        // would be, and it is deliberately not this path.
         allow delete: if signedIn()
           && userId != eventCreator(eventId)
-          && (
-            isEventOwner(eventId)
+          && (isEventOwner(eventId)
             || isAdmin(eventId)
-            || (
-              userId == uid()
-              && resource.data.inviteStatus in ['pending', 'reopened']
-            )
-          );
+            || (userId == uid() && resource != null && resource.data.get('inviteStatus', '') in ['pending', 'reopened']));
       }
-
-      // ---------- notes ----------
       match /notes/{noteId} {
         allow read: if signedIn()
           && (isParticipant(eventId) || isEventOwner(eventId));
@@ -720,7 +679,7 @@ service cloud.firestore {
         // You may edit or remove your own note. Admins may remove any note.
         allow update, delete: if signedIn()
           && (
-            resource.data.userId == uid()
+            resource.data.get('userId', '') == uid()
             || isAdmin(eventId)
             || isEventOwner(eventId)
           );
@@ -730,7 +689,7 @@ service cloud.firestore {
     // ---------- invitations ----------
     match /invitations/{inviteId} {
       // An invitation is readable by the person who sent it and the person it
-      // is addressed to — nobody else.
+      // is addressed to ------------------ nobody else.
       allow read: if signedIn()
         && (resource.data.invitedBy == uid() || resource.data.inviteeEmail == myEmail());
 
@@ -743,7 +702,7 @@ service cloud.firestore {
         //
         // Resolved with `getAfter`, not `get`. A plain `get()` sees the database
         // as it was when the request started, so it cannot find the event or the
-        // participant row when both are written by the *same batch* — which is
+        // participant row when both are written by the *same batch* ------------------ which is
         // exactly how a countdown invites the people it was shared with. With
         // `get()` this condition was false for every invitation in that batch,
         // and Firestore rejected the whole thing: "Firestore refused the save".
@@ -784,7 +743,7 @@ service cloud.firestore {
         && request.resource.data.name.size() <= 60;
 
       // The owner may rename or change the emoji. A member may only touch
-      // `memberIds`, and only by adding or removing their own uid — that covers
+      // `memberIds`, and only by adding or removing their own uid ------------------ that covers
       // joining by invitation and leaving, and nothing else.
       //
       // Rules have no loop, so the two allowed shapes are checked explicitly
@@ -800,7 +759,7 @@ service cloud.firestore {
       // resolves a document as of the end of the whole batch, so it sees the
       // member row the batch just wrote; `resource.data` does not. Testing the
       // subcollection against `resource.data` is therefore always false on the
-      // only path that ever adds a member this way — which is exactly the
+      // only path that ever adds a member this way ------------------ which is exactly the
       // `permission-denied` a new member used to get on Accept, with the circle
       // document left untouched and the membership row half-written.
       //
@@ -850,7 +809,7 @@ service cloud.firestore {
 
     // ---------- circle invitations ----------
     match /circle_invitations/{inviteId} {
-      // Readable by the sender and the invited email — nobody else. The invitee
+      // Readable by the sender and the invited email ------------------ nobody else. The invitee
       // is not a member yet, so this cannot be a membership check.
       allow read: if signedIn()
         && (

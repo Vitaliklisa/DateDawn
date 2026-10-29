@@ -1,0 +1,786 @@
+rules_version = '2';
+
+// Until ------------------ Firestore security rules.
+//
+// These are the authority: the Flutter client mirrors them so it can fail fast
+// with a readable message, but nothing here trusts the client. Deploy with:
+//
+//   firebase deploy --only firestore:rules
+//
+// Shape:
+//   events/{eventId}
+//     ...fields..., deletedAt?
+//     participants/{userId}   email, role, inviteStatus, joinedAt
+//     notes/{noteId}          userId, text, createdAt, updatedAt
+//   invitations/{inviteId}    eventId, invitedBy, inviteeEmail, role, status,
+//                             createdAt, expiresAt, eventTitle
+//   users/{userId}            email, displayName, themeMode  (profile + settings)
+//     blocked/{blockedId}    email, displayName?, blockedAt, active  (private)
+//     recent_contacts/{id}
+//     notifications/{id}
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // The caller's email, lowercased. Firebase always stores it lowercased,
+    // but normalising here keeps the invitation match exact.
+    function myEmail() {
+      // `token.email` is ABSENT for accounts without one (anonymous sign-in, some
+      // providers). Calling `.lower()` on it THROWS, and a throwing rule is a
+      // denial ------------------ which turned every accept and invite from such an account into
+      // "Missing or insufficient permissions" with no clue why. An absent email
+      // matches nothing instead.
+      return request.auth.token.get('email', '').lower();
+    }
+
+    function isParticipant(eventId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()));
+    }
+
+    // Does a document exist once the whole batch has committed?
+    //
+    // The plain `exists()` sees the database as it was when the request started,
+    // so it cannot see a sibling write from the same batch. `existsAfter()` can.
+    // Needed wherever a rule has to verify something the same batch just wrote ------------------
+    // joining a circle writes the member row and the `memberIds` entry together,
+    // and the rule for the second has to be able to see the first.
+    function memberRowWritten(circleId) {
+      return existsAfter(
+        /databases/$(database)/documents/circles/$(circleId)/members/$(uid())
+      );
+    }
+
+    function participantRole(eventId) {
+      // `get()` THROWS on a missing participant row, and a throwing rule is a
+      // denial. `isParticipant` guards most callers, but not all of them ------------------ a
+      // person answering an invitation has no row yet. Returns '' rather than
+      // erroring, so "not a participant" is a value, not an exception.
+      return exists(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()))
+        ? get(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.get('role', '')
+        : '';
+    }
+
+    // Does a live, pending invitation authorise this participant write?
+    //
+    // The client denormalises the invitation id onto the participant row, which
+    // is what makes this checkable at all: rules cannot query a collection, so
+    // there is no way to ask "is there an invitation for event X and my email".
+    // Instead the row points at one document, and we verify it two ways:
+    //
+    //   1. it is still `pending` ------------------ an answered invitation must not authorise a
+    //      second join, and
+    //   2. it is addressed to the caller's VERIFIED auth email ------------------ read from the
+    //      token, never from the request body, so a client cannot claim someone
+    //      else's invitation.
+    //
+    // `get`, NOT `getAfter`. This is the whole reason accept and decline were
+    // refused: the client answers an invitation with ONE batch that writes the
+    // participant row AND flips the invitation to `accepted`/`declined`.
+    // `getAfter()` resolves as of the END of that batch, so it saw the
+    // invitation in its new, settled state ------------------ `status == 'pending'` was false by
+    // construction, and every answer died with "Missing or insufficient
+    // permissions". The plain `get()` sees the document as it was when the
+    // batch started, which is exactly the state that authorises the answer.
+    //
+    // The trade is safe because the invitation's own update rule independently
+    // requires the caller to be its addressee, so a row still cannot cite an
+    // invitation that was never theirs.
+    function invitationAuthorisesRow(invitationId) {
+      // Note `myEmail()` reads the token safely; see its own comment.
+      // `exists()` FIRST. `get()` on a document that is not there THROWS, and a
+      // throwing rule is a denial ------------------ so any write reaching this helper without a
+      // valid invitation id errored out. That is most writes: a role change has
+      // no `invitationId` at all, and the invitee branch reads one that may have
+      // been deleted. The error also masked the real reason in the emulator
+      // logs ("evaluation error at L567").
+      // A ternary, not `&&`: the `exists()` on an empty id segment is itself an
+      // evaluation error, and this helper is reached on writes that carry no
+      // invitation at all. Only a non-empty id ever builds a path.
+      return invitationId is string && invitationId.size() > 0
+        ? (exists(/databases/$(database)/documents/invitations/$(invitationId))
+          && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('status', '') == 'pending'
+          && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('inviteeEmail', '') == myEmail())
+        : false;
+    }
+
+    // Membership of every circle an event was shared with, denormalised onto the
+    // event document itself as `sharedWithMemberIds`.
+    //
+    // **Why this exists.** The client discovers a circle-shared countdown with a
+    // query over the whole `events` collection. Firestore refuses any query whose
+    // rule has to read ANOTHER document, because it cannot evaluate a
+    // cross-collection `get()` for every candidate row. The previous rule looked
+    // the circle up (`get(circles/{id}).data.memberIds`) to decide membership,
+    // so that query came back `permission-denied` on every device, was swallowed
+    // by the client's catch, and the partner saw an empty list ------------------ the countdown
+    // existed and was shared, but was unreachable.
+    //
+    // Checking a plain array ON THE EVENT is a field comparison, which Firestore
+    // can prove for a query, so the same read becomes allowed.
+    function isSharedWithMe(data) {
+      return signedIn()
+        && data.sharedWithMemberIds != null
+        && uid() in data.sharedWithMemberIds;
+    }
+
+    // Creator, accepted participant, or someone the event was shared with
+    // through a circle.
+    //
+    // The circle branch reads `sharedWithMemberIds` ------------------ a plain array on the event
+    // ------------------ rather than looking the circle up. That is deliberate: this rule backs a
+    // collection QUERY, and a rule that reads another document cannot be
+    // evaluated for one. See `isSharedWithMe`.
+    function canRead(eventId, data) {
+      return signedIn()
+        && (
+          data.createdBy == uid()
+          || (
+            isParticipant(eventId)
+            && get(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.get('inviteStatus', '') == 'accepted'
+          )
+          || isSharedWithMe(data)
+        );
+    }
+
+    function isAdmin(eventId) {
+      return signedIn() && isParticipant(eventId) && participantRole(eventId) == 'admin';
+    }
+
+    // The same question as `isAdmin`, asked of the database as of the end of the
+    // batch. Use this whenever the admin row may be written by the same request
+    // that needs to prove it ------------------ creating a countdown writes the event and its
+    // creator's admin row together, then invites people to it.
+    function isAdminAfter(eventId) {
+      return signedIn()
+        && (existsAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()))
+          ? getAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.get('role', '') == 'admin'
+          : false);
+    }
+
+    // Who may put an invitation into `invitations`, asked of the database as of
+    // the end of the batch.
+    //
+    // `isAdminAfter` alone was not enough, and it broke every invitation:
+    // the invitee's PENDING participant row is written by the same batch as the
+    // invitation, and that row carries no role (the role travels on the
+    // invitation itself). `role == 'admin'` was therefore false for it, so
+    // `isAdminAfter` was false, and Firestore rejected the whole batch ------------------ which is
+    // why the invitation card could never be produced and there was nothing to
+    // accept.
+    //
+    // The creator and any accepted admin/editor of the countdown may invite. A
+    // row the batch is CREATING for someone else counts only when that row is a
+    // PENDING invitation for this exact invitation document ------------------ which is the
+    // invite flow, not a way to hand out access.
+    function mayWriteInvitation(eventId) {
+      return signedIn()
+        && (
+          // Ternaries, not `&&`: Firestore evaluates every operand, so the
+          // `getAfter(...).data` read runs even when `existsAfter` is false and
+          // throws. This helper is reached from the participant rules on
+          // ordinary writes, which is what turned them into permission errors.
+          (existsAfter(/databases/$(database)/documents/events/$(eventId))
+            ? getAfter(/databases/$(database)/documents/events/$(eventId)).data.get('createdBy', '') == uid()
+            : false)
+          || isAdminAfter(eventId)
+          || (existsAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid()))
+            ? getAfter(/databases/$(database)/documents/events/$(eventId)/participants/$(uid())).data.get('role', '') in ['admin', 'editor']
+            : false)
+          || isInviteFlowRow(eventId)
+        );
+    }
+
+    // Is this write the pending participant row the invite flow writes in the
+    // same batch as the invitation?
+    //
+    // Scoped as tightly as possible: the row is someone ELSE's, it is born
+    // `pending` (never accepted), and it cites an invitation document that is
+    // still being created, for this event, addressed to the same email, naming
+    // the same role. `resource` is the row as it exists now ------------------ a row that already
+    // exists is an update, not an invitation, so this can never be used to
+    // rewrite a member.
+    function isInviteFlowRow(eventId) {
+      // Firestore does NOT short-circuit `&&` ------------------ every operand is evaluated. So
+      // this helper must be TOTAL on its own: it cannot rely on a preceding
+      // `is string` check having run, and `existsAfter(.../invitations/null)` is
+      // itself an error. The id is therefore compared against '' first, and
+      // every field is read with `get()`.
+      // The whole thing is wrapped in a ternary on the id, so the `existsAfter
+      // (.../invitations/)` lookup is never built at all for a row that has no
+      // invitation id ------------------ which is most creates. An empty path segment is itself
+      // an evaluation error, and this helper runs on every participant write.
+      return resource == null
+        && request.resource.data.get('invitationId', '') != ''
+        && (request.resource.data.get('inviteStatus', '') == 'pending'
+          ? invitationMatchesRow(eventId, request.resource.data.get('invitationId', ''))
+          : false);
+    }
+
+    // Does the invitation being written name the same person and role as the
+    // pending row this batch creates? All reads guarded.
+    function invitationMatchesRow(eventId, invitationId) {
+      return exists(/databases/$(database)/documents/invitations/$(invitationId))
+        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('eventId', '') == eventId
+        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('invitedBy', '') == uid()
+        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('inviteeEmail', '') == request.resource.data.get('invitationEmail', '')
+        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('role', '') == request.resource.data.get('role', '');
+    }
+
+    function isEditor(eventId) {
+      return signedIn()
+        && isParticipant(eventId)
+        && participantRole(eventId) in ['admin', 'editor'];
+    }
+
+    // `eventId` is part of the signature every caller already uses; the check
+    // itself needs only the document body.
+    function isOwner(data) {
+      return signedIn() && data.createdBy == uid();
+    }
+
+    /// "Is the caller the event's creator?" ------------------ resolved safely.
+    ///
+    /// The plain `isOwner(get(event).data)` form THROWS whenever the event is
+    /// absent, and a throwing rule is a denial. That happens on every participant
+    /// CREATE (the event may be written by the same batch, so it is not visible
+    /// to `get()` yet), which is why the emulator logged
+    /// "evaluation error at L580" on ordinary writes.
+    function isEventOwner(eventId) {
+      return eventCreator(eventId) != '' && eventCreator(eventId) == uid();
+    }
+
+    // The event's creator, read from the event itself rather than from a
+    // participant row. Used wherever "the creator keeps ownership" has to be
+    // enforced ------------------ a role change must not be able to touch their row, whatever
+    // the caller's own role is (the creator is an admin, and an admin is
+    // normally allowed to manage people).
+    function eventCreator(eventId) {
+      // `exists()` first: `get()` on an absent event THROWS, and a throwing rule
+      // is a denial. This is reached while a countdown is still being created
+      // (the participant rule runs for the creator's own first row in the same
+      // batch), so an absent event is an expected case, not an error.
+      // `.get('createdBy', '')`, not `.data.createdBy`: a document that exists
+      // but predates the field (or any test fixture without it) makes the plain
+      // read THROW, and a throwing rule is a denial. This helper is called by
+      // every participant rule, so that one throw was enough to refuse ordinary
+      // writes with "You do not have permission to do that".
+      return exists(/databases/$(database)/documents/events/$(eventId))
+        ? get(/databases/$(database)/documents/events/$(eventId)).data.get('createdBy', '')
+        : '';
+    }
+
+    // Role authority, in one place. Admin > editor > viewer, matching
+    // `ParticipantRole.authorityRank` in the client and `checkRoleChange`,
+    // which is the same policy stated for the UI: only an admin/creator may
+    // change a role, never their own, never the creator's, and never up to a
+    // level above their own.
+    function rank(role) {
+      return role == 'admin' ? 2 : (role == 'editor' ? 1 : 0);
+    }
+
+    // This write changes one collaborator's role and nothing else ------------------ the shape
+    // `updateParticipantRole` produces. `update()` writes only `role`, and a
+    // merge would add keys, so an exact key list is the narrowest check.
+    function isRoleChange() {
+      // `resource` is null on a CREATE; `resource.data` would throw, and a
+      // throwing rule is a denial. A brand-new row cannot be "a role change".
+      // Ternary, for the same reason as `affectsRole`: on a create `resource`
+      // is null and `resource.data.diff(...)` throws.
+      return resource == null
+        ? false
+        : request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
+    }
+
+    // The row's role BEFORE this write, or '' when the row does not exist.
+    //
+    // A ternary, not `resource == null || resource.data.role`: Firestore
+    // evaluates both branches of a logical operator on a null document and the
+    // `resource.data` read throws. A conditional expression only evaluates the
+    // branch it takes.
+    function previousRole() {
+      return resource == null ? '' : resource.data.get('role', '');
+    }
+
+    // Does this write change `role`? Used only to choose between the
+    // role-change branch and the general management branch of the participant
+    // update rule; the stricter `isRoleChange()` is what actually authorises the
+    // change.
+    //
+    // Deliberately a comparison of the VALUE, not `hasAny(['role'])` on the
+    // diff: an acceptance merges the row with the role its invitation already
+    // named, which puts `role` in the affected keys without changing it. Routing
+    // that through the role branch would refuse every acceptance.
+    function affectsRole() {
+      // On a CREATE, `resource` is null and `resource.data` throws ------------------ a throwing
+      // rule is a denial, which would have taken the invitee's first accept down
+      // with it. A document being created has no previous role to change.
+      // A ternary, not `resource != null && ...`: every operand is evaluated,
+      // so `resource.data` is read even on a create and throws.
+      return resource == null
+        ? false
+        : resource.data.get('role', '') != request.resource.data.get('role', '');
+    }
+
+    // **`get(...)` with a default, not `resource.data.kind`.**
+    //
+    // Only circle placeholder rows carry a `kind` field. On every ordinary
+    // person row the key is absent, and Firestore does not read a missing
+    // property as `null` ------------------ evaluating `resource.data.kind` THROWS
+    // ("Property kind is undefined on object"), and a rule that throws is
+    // treated as `false`. That single line made every role change on a real
+    // collaborator fail with "Missing or insufficient permissions", while
+    // changes to rows that happened to have `kind` set succeeded ------------------ which is why
+    // it looked intermittent.
+    function isPersonRow() {
+      return resource == null
+        ? true
+        : resource.data.get('kind', '') != 'circle';
+    }
+
+    // The caller's own authority, as of the start of the request.
+    //
+    // Deliberately NOT `getAfter`: that would describe the power this very write
+    // is granting, which is exactly what the check must not measure.
+    function myRank(eventId) {
+      return isAdmin(eventId)
+        ? 2
+        : (isEditor(eventId) && participantRole(eventId) == 'editor' ? 1 : 0);
+    }
+
+    // What a role change is allowed to be:
+    //
+    //   * it must actually be a role change, and nothing else;
+    //   * not on the creator's own row ------------------ ownership cannot be taken away;
+    //   * not on a circle placeholder, which is not a person;
+    //   * not on the caller's own row ------------------ no giving yourself more (or less);
+    //   * the new role must be a real role;
+    //   * and it may not outrank the caller. Admin is the top rank, so an admin
+    //     may grant admin; anybody lower is refused anything above themselves.
+    //     Being refused `admin` here is what stops a demoted admin from handing
+    //     the power straight back through someone else's row.
+    //
+    // Two admins altering each other is permitted, by design: `admin` is the
+    // managing role, so an admin's menu offers it on any other admin's row
+    // (see `checkRoleChange`, which admits that and refuses everything for an
+    // editor). The creator is above both ------------------ between the two rules, there is
+    // never a person who can reach back and take ownership.
+    //
+    // The demoted-admin case is covered without an outrank clause: the write is
+    // checked against the caller's role as it is in Firestore when the request
+    // starts, so someone demoted by the owner is an editor by the time they try
+    // to reverse it, fails `rank(new) <= myRank`, and is refused.
+    //
+    // The row being written is `$(userId)` ------------------ the participant match's own
+    // wildcard. It is not visible inside this helper (`userId` there is an
+    // invalid name), so it is passed in.
+    function roleChangeAllowed(eventId, targetUserId) {
+      // Ordered so the cheapest, total checks come first and every read of a
+      // possibly-missing property uses `get()` with a default. `eventCreator`
+      // and `participantRole` are guarded internally.
+      // Firestore evaluates every `&&` operand ------------------ there is no short-circuit ------------------
+      // so this helper is reached on creates too, where `resource` is null.
+      // `resource.data.get(...)` WOULD throw there, so the old role is only
+      // read when a document actually exists, and every other read is safe on
+      // its own.
+      return isRoleChange()
+        && targetUserId != eventCreator(eventId)
+        && targetUserId != uid()
+        && isPersonRow()
+        && request.resource.data.get('role', '') in ['admin', 'editor', 'viewer']
+        && rank(request.resource.data.get('role', '')) <= myRank(eventId)
+        && myRank(eventId) > rank(previousRole());
+    }
+
+    // Only the fields the editor is allowed to touch may change.
+    function onlyEventFieldsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['title', 'description', 'at', 'updatedAt', 'deletedAt', 'sharedWithCircleIds', 'sharedWithMemberIds', 'circleId']);
+    }
+
+    // Is this write only rewriting `sharedWithMemberIds` (plus the timestamp)?
+    //
+    // This is the denormalised-visibility write: adding someone to a circle's
+    // share, or taking them back out. It is the ONLY field those flows touch, so
+    // pinning it here keeps the permission decision narrow ------------------ an unrelated field
+    // slipping into the same update is refused.
+    function onlyMemberIdsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['sharedWithMemberIds', 'updatedAt']);
+    }
+
+    // Removing exactly one uid from the array ------------------ and it is the caller's own.
+    //
+    // This authorises leaving (or being removed from) a circle, where the
+    // affected countdowns are resynced to drop the leaver. Without it that write
+    // is refused: the leaver is no longer a member, so the add branch below is
+    // false by construction (`uid() in request.resource.data.sharedWithMemberIds`
+    // cannot hold when the whole point is that they are being taken out), and
+    // they are not an owner or editor of a countdown someone else shared. The
+    // refusal was swallowed by the resync's catch, so it looked like the resync
+    // simply "did nothing" ------------------ while in fact every leave left the leaver in the
+    // array and kept serving them the circle's countdowns.
+    //
+    // The check is deliberately narrow: the caller's uid must have been in the
+    // OLD array and must be absent from the NEW one, and the new array must be
+    // exactly one shorter. That permits "remove me" and nothing else ------------------ a leaver
+    // cannot use this to add anyone, nor to drop a third party.
+    function isSelfRemoval() {
+      return signedIn()
+        && uid() in resource.data.sharedWithMemberIds
+        && !(uid() in request.resource.data.sharedWithMemberIds)
+        && request.resource.data.sharedWithMemberIds.size()
+             == resource.data.sharedWithMemberIds.size() - 1;
+    }
+
+    function validEventPayload() {
+      return request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 280
+        && request.resource.data.at is timestamp
+        && request.resource.data.createdBy == uid();
+    }
+
+    // ---------- users ----------
+    //
+    // A tiny public profile per account. It exists so an inviter can turn an
+    // email address into a uid when adding someone straight to a countdown.
+    // Only the email and display name are readable, and only to signed-in
+    // users ------------------ never the whole auth record.
+    //
+    // The same document also carries per-user settings (`themeMode`,
+    // `timeFormat`) and owns the notification inbox below, so a user must be
+    // able to write their own. Those settings are plain display preferences and
+    // nothing reads them across users, so no field-level check is needed here.
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && userId == uid();
+      allow delete: if false;
+
+      // Recent invite suggestions are private to the account that created
+      // them. Rules on the parent document do not extend to subcollections.
+      match /recent_contacts/{contactId} {
+        allow read, create, update, delete: if signedIn() && userId == uid();
+      }
+
+      // ---------- blocked users ----------
+      //
+      // Required by Google Play's UGC policy: an app where people can send each
+      // other invitations and notes must let a person block another person
+      // in-app. The list is strictly private in both directions ------------------ the blocker is
+      // the only one who can read or write it, and the blocked person cannot see
+      // that a row exists at all. `blockedId` must be a plausible account id and
+      // the row cannot carry arbitrary fields beyond what the UI shows.
+      //
+      // **The read rule says nothing about the parent document on purpose.**
+      // It used to require that `users/{uid}` exist as well, and that single
+      // `exists()` is what broke Settings ------------------- Blocked people: a write rule can
+      // resolve a cross-document read for one path, but a READ RULE that does so
+      // cannot be evaluated for a collection query, so `snapshots()` on
+      // `users/{uid}/blocked` came back `permission-denied` ------------------ the block was
+      // saved, the toast said so, and the list never loaded. Any account that
+      // had never written a profile (every new sign-up) had no chance at all.
+      //
+      // A block row lives under the owner's own user document. Touching it there
+      // is the same relationship this rule already had, without a lookup a
+      // query cannot prove.
+      match /blocked/{blockedId} {
+        allow read: if signedIn() && userId == uid();
+
+        allow create: if signedIn()
+          && userId == uid()
+          && blockedId.size() > 0
+          && blockedId != uid()
+          && request.resource.data.email is string
+          && request.resource.data.active == true;
+
+        allow update, delete: if signedIn()
+          && userId == uid()
+          && blockedId.size() > 0
+          && blockedId != uid();
+      }
+
+      // ---------- notifications ----------
+      //
+      // The in-app inbox, one subcollection per user. Living under the owner's
+      // document means the path itself carries the recipient, so no rule has
+      // to trust a `userId` field on the document ------------------ a query cannot span users
+      // even by mistake.
+      //
+      // Read/update/delete: only the owner. Create: any signed-in user, because
+      // "your friend joined your circle" is written by the friend, not by the
+      // recipient. The create is still constrained to a well-formed document so
+      // it cannot be used as arbitrary storage.
+      match /notifications/{notificationId} {
+        allow read, update, delete: if signedIn() && userId == uid();
+
+        allow create: if signedIn()
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 120
+          && request.resource.data.body is string
+          && request.resource.data.body.size() <= 500
+          && request.resource.data.type in ['invitation', 'circle', 'system', 'reminder']
+          && request.resource.data.read == false;
+
+        // The owner may only flip `read`; nothing else is theirs to change.
+        allow update: if signedIn()
+          && userId == uid()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      }
+    }
+
+    // ---------- events ----------
+    match /events/{eventId} {
+      allow read: if canRead(eventId, resource.data);
+      // Creating is unrestricted for a signed-in user, provided they name
+      // themselves as the creator.
+      allow create: if signedIn() && validEventPayload();
+
+      allow update: if (
+          isOwner(resource.data)
+          || isEditor(eventId)
+          // Adding the caller (or someone else) to the denormalised visibility
+          // array ------------------ the caller must be in the array being written, so this
+          // cannot be used to grant access to a countdown they cannot see.
+          || (onlyMemberIdsChanged()
+            && uid() in request.resource.data.sharedWithMemberIds)
+          // Removing exactly the caller's own uid ------------------ the leave/removed path.
+          || (onlyMemberIdsChanged() && isSelfRemoval())
+        ) && onlyEventFieldsChanged();
+
+      // Soft delete only: a hard delete would orphan participants and notes.
+      allow delete: if false;
+
+      // ---------- participants ----------
+      match /participants/{userId} {
+        allow read: if signedIn()
+          && (
+            userId == uid()
+            || (resource != null && resource.data.get('userId', '') == uid())
+            || isParticipant(eventId)
+            || isEventOwner(eventId)
+          );
+
+        allow create: if signedIn() && (isAdmin(eventId))
+        allow update: if falseal
+        allow delete: if signedIn()
+          && userId != eventCreator(eventId)
+          && (
+            isEventOwner(eventId)
+            || isAdmin(eventId)
+            || (userId == uid() && resource != null && resource.data.get('inviteStatus', '') in ['pending', 'reopened'])
+          );
+      }
+      match /notes/{noteId} {
+        allow read: if signedIn()
+          && (isParticipant(eventId) || isEventOwner(eventId));
+
+        allow create: if signedIn()
+          && request.resource.data.userId == uid()
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && (isParticipant(eventId) || isEventOwner(eventId));
+
+        // You may edit or remove your own note. Admins may remove any note.
+        allow update, delete: if signedIn()
+          && (
+            resource.data.userId == uid()
+            || isAdmin(eventId)
+            || isEventOwner(eventId)
+          );
+      }
+    }
+
+    // ---------- invitations ----------
+    match /invitations/{inviteId} {
+      // An invitation is readable by the person who sent it and the person it
+      // is addressed to ------------------ nobody else.
+      allow read: if signedIn()
+        && (resource.data.invitedBy == uid() || resource.data.inviteeEmail == myEmail());
+
+      allow create: if signedIn()
+        && request.resource.data.invitedBy == uid()
+        && request.resource.data.inviteeEmail is string
+        && request.resource.data.inviteeEmail == request.resource.data.inviteeEmail.lower()
+        && request.resource.data.status == 'pending'
+        // Only an admin of the target event may invite to it.
+        //
+        // Resolved with `getAfter`, not `get`. A plain `get()` sees the database
+        // as it was when the request started, so it cannot find the event or the
+        // participant row when both are written by the *same batch* ------------------ which is
+        // exactly how a countdown invites the people it was shared with. With
+        // `get()` this condition was false for every invitation in that batch,
+        // and Firestore rejected the whole thing: "Firestore refused the save".
+        // `getAfter()` resolves as of the end of the batch and finds both.
+        && (mayWriteInvitation(request.resource.data.eventId));
+
+      // The invitee may accept or decline. The sender may cancel.
+      allow update: if signedIn()
+        && (
+          (
+            resource.data.inviteeEmail == myEmail()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+            && request.resource.data.status in ['accepted', 'declined', 'rejected']
+          )
+          || (
+            resource.data.invitedBy == uid()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          )
+        );
+
+      allow delete: if signedIn() && resource.data.invitedBy == uid();
+    }
+
+    // ---------- circles ----------
+    //
+    // A circle is a standing group. Membership is the whole permission model:
+    // you can see a circle (and the countdowns shared with it) if your uid is
+    // in `memberIds`.
+    match /circles/{circleId} {
+      allow read: if signedIn()
+        && uid() in resource.data.memberIds;
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == uid()
+        && request.resource.data.memberIds == [uid()]
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 60;
+
+      // The owner may rename or change the emoji. A member may only touch
+      // `memberIds`, and only by adding or removing their own uid ------------------ that covers
+      // joining by invitation and leaving, and nothing else.
+      //
+      // Rules have no loop, so the two allowed shapes are checked explicitly
+      // rather than "the diff is exactly my uid":
+      //   join  -> new list = old list + me
+      //   leave -> new list = old list - me
+      //
+      // The join shape reads `getAfter`, not `resource`.
+      //
+      // `resource.data` is the state of the document **as it is committed in the
+      // same batch as this write**, and the client's acceptCircleInvitation
+      // batch commits the membership subcollection write first. `getAfter`
+      // resolves a document as of the end of the whole batch, so it sees the
+      // member row the batch just wrote; `resource.data` does not. Testing the
+      // subcollection against `resource.data` is therefore always false on the
+      // only path that ever adds a member this way ------------------ which is exactly the
+      // `permission-denied` a new member used to get on Accept, with the circle
+      // document left untouched and the membership row half-written.
+      //
+      // The `memberIds` diff is still computed against `resource.data`: that is
+      // what actually protects against a non-owner granting themselves access,
+      // and it stays exactly as strict as before.
+      allow update: if signedIn()
+        && (
+          (resource.data.ownerId == uid()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'emoji', 'memberIds']))
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds'])
+            && (
+              (request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
+                && uid() in request.resource.data.memberIds
+                && !(uid() in resource.data.memberIds)
+                && memberRowWritten(circleId))
+              || (request.resource.data.memberIds.size() == resource.data.memberIds.size() - 1
+                && !(uid() in request.resource.data.memberIds)
+                && uid() in resource.data.memberIds)
+            )
+          )
+        );
+
+      allow delete: if signedIn() && resource.data.ownerId == uid();
+
+      // Members of the circle, with names and avatars for the UI.
+      match /members/{userId} {
+        allow read: if signedIn()
+          && uid() in get(/databases/$(database)/documents/circles/$(circleId)).data.memberIds;
+
+        // You add yourself (accepting an invitation). Only the circle owner may
+        // add someone else, which is what a couple auto-share does.
+        allow create, update: if signedIn()
+          && (
+            userId == uid()
+            || get(/databases/$(database)/documents/circles/$(circleId)).data.ownerId == uid()
+          );
+
+        allow delete: if signedIn()
+          && (
+            userId == uid()
+            || get(/databases/$(database)/documents/circles/$(circleId)).data.ownerId == uid()
+          );
+      }
+    }
+
+    // ---------- circle invitations ----------
+    match /circle_invitations/{inviteId} {
+      // Readable by the sender and the invited email ------------------ nobody else. The invitee
+      // is not a member yet, so this cannot be a membership check.
+      allow read: if signedIn()
+        && (
+          resource.data.invitedBy == uid()
+          || resource.data.inviteeEmail == request.auth.token.email.lower()
+        );
+
+      allow create: if signedIn()
+        && request.resource.data.invitedBy == uid()
+        && request.resource.data.inviteeEmail is string
+        && request.resource.data.inviteeEmail == request.resource.data.inviteeEmail.lower()
+        && request.resource.data.status == 'pending'
+        // Only the owner of the target circle may invite into it.
+        && exists(/databases/$(database)/documents/circles/$(request.resource.data.get('circleId', '')))
+        && get(/databases/$(database)/documents/circles/$(request.resource.data.get('circleId', ''))).data.get('ownerId', '') == uid();
+
+      // The invitee answers; the sender may cancel.
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && (
+          resource.data.inviteeEmail == request.auth.token.email.lower()
+          || resource.data.invitedBy == uid()
+        );
+
+      allow delete: if signedIn() && resource.data.invitedBy == uid();
+    }
+
+    // ---------- invitation responses ----------
+    //
+    // One-way feedback: "your friend joined" / "your friend declined". Only the
+    // recipient reads them, and only the responder's own action creates one, so
+    // a user cannot forge an answer on someone else's behalf.
+    match /responses/{responseId} {
+      allow read: if signedIn() && resource.data.recipientId == uid();
+
+      allow create: if signedIn()
+        && request.resource.data.recipientId is string
+        && request.resource.data.responderEmail == request.auth.token.email.lower()
+        && request.resource.data.accepted is bool
+        && request.resource.data.read == false;
+
+      // Only the recipient may mark it read.
+      allow update: if signedIn()
+        && resource.data.recipientId == uid()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+
+      allow delete: if signedIn() && resource.data.recipientId == uid();
+    }
+
+    // Everything not matched above is denied.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
