@@ -423,15 +423,23 @@ void main() {
   });
 
   group('the collaborator row menu', () {
+    /// Pumps the real editor screen for [actorId].
+    ///
+    /// [repository] defaults to none, so the screen's menus are exercised
+    /// without a backend; an end-to-end case passes a real `EventRepository`
+    /// over a fake Firestore and gets an actual write when a role is picked.
     Future<void> pumpEditor(
       WidgetTester tester,
-      String actorId,
-    ) async {
+      String actorId, {
+      EventRepository? repository,
+      List<Participant>? rows,
+    }) async {
+      final people = rows ?? _rows;
       tester.view.physicalSize = const Size(900, 1400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
-      final event = _event(_rows);
+      final event = _event(people);
       final router = GoRouter(
         initialLocation: '/event/e1/edit',
         routes: [
@@ -449,8 +457,10 @@ void main() {
             currentUserProvider.overrideWithValue(
               AppUser(id: actorId, email: '$actorId@example.com'),
             ),
+            if (repository != null)
+              eventRepositoryProvider.overrideWithValue(repository),
             participantsProvider('e1')
-                .overrideWith((ref) => Stream.value(_rows)),
+                .overrideWith((ref) => Stream.value(people)),
             recentContactsProvider
                 .overrideWith((ref) => Stream.value(const [])),
             circlesProvider.overrideWith((ref) => Stream.value(const [])),
@@ -477,11 +487,6 @@ void main() {
 
     /// Taps the ⋮ on the collaborator row whose name is [displayName].
     ///
-    /// The rows are in the order of [_rows], and each has exactly one menu, so
-    /// the menu's index is the row's index — which is far steadier than an
-    /// ancestor walk through the dialog layout.
-    /// Taps the ⋮ on the collaborator row whose name is [displayName].
-    ///
     /// Every person row except the viewer's own gets a menu (the policy refuses
     /// a self role change and self-blocking, so there is nothing to offer on
     /// it), so the menu's index is the row's index minus any self row above it.
@@ -490,18 +495,123 @@ void main() {
       String actorId,
       String displayName,
     ) async {
-      final rows = [
+      final visible = [
         for (final p in _rows)
           if (p.userId != actorId) p,
       ];
       final index =
-          rows.indexWhere((p) => (p.displayName ?? p.email) == displayName);
+          visible.indexWhere((p) => (p.displayName ?? p.email) == displayName);
       expect(index, isNonNegative, reason: 'no menu row named $displayName');
       final menus = find.byTooltip('More actions');
-      expect(menus, findsNWidgets(rows.length));
+      expect(menus, findsNWidgets(visible.length));
       await tester.tap(menus.at(index));
       await tester.pumpAndSettle();
     }
+
+    /// An editor screen backed by a real repository writing to a fake Firestore.
+    Future<(FakeFirebaseFirestore, EventRepository)> pumpLive(
+      WidgetTester tester,
+      String actorId,
+    ) async {
+      final db = FakeFirebaseFirestore();
+      await db.collection('events').doc('e1').set({
+        'title': 'Trip',
+        'createdBy': 'owner',
+        'at': Timestamp.fromDate(DateTime(2030)),
+      });
+      for (final row in _rows) {
+        await db
+            .collection('events')
+            .doc('e1')
+            .collection('participants')
+            .doc(row.userId)
+            .set({
+          'userId': row.userId,
+          'email': row.email,
+          'displayName': row.displayName,
+          'role': row.role.name,
+          'inviteStatus': row.inviteStatus.name,
+        });
+      }
+      final repo = EventRepository(firestore: db);
+      await pumpEditor(tester, actorId, repository: repo);
+      return (db, repo);
+    }
+
+    testWidgets(
+        'an ADMIN changes another collaborator\'s role and it is written',
+        (tester) async {
+      final (db, _) = await pumpLive(tester, 'admin');
+
+      await openMenuFor(tester, 'admin', 'viewer');
+      await tester.tap(find.text('Change role'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(
+          of: find.byType(BottomSheet), matching: find.text('Editor')));
+      await tester.pumpAndSettle();
+
+      final saved = await db
+          .collection('events')
+          .doc('e1')
+          .collection('participants')
+          .doc('viewer')
+          .get();
+      expect(saved.data()!['role'], 'editor',
+          reason: 'the admin\'s choice must reach Firestore');
+    });
+
+    testWidgets('an admin can promote someone to Admin', (tester) async {
+      final (db, _) = await pumpLive(tester, 'admin');
+
+      await openMenuFor(tester, 'admin', 'viewer');
+      await tester.tap(find.text('Change role'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(
+          of: find.byType(BottomSheet), matching: find.text('Admin')));
+      await tester.pumpAndSettle();
+
+      final saved = await db
+          .collection('events')
+          .doc('e1')
+          .collection('participants')
+          .doc('viewer')
+          .get();
+      expect(saved.data()!['role'], 'admin');
+    });
+
+    testWidgets('an editor cannot open Change role at all', (tester) async {
+      final (db, _) = await pumpLive(tester, 'editor');
+
+      await openMenuFor(tester, 'editor', 'viewer');
+
+      expect(find.text('Change role'), findsNothing);
+      final saved = await db
+          .collection('events')
+          .doc('e1')
+          .collection('participants')
+          .doc('viewer')
+          .get();
+      expect(saved.data()!['role'], 'viewer');
+    });
+
+    testWidgets('the CREATOR can change another admin\'s role', (tester) async {
+      final (db, _) = await pumpLive(tester, 'owner');
+
+      await openMenuFor(tester, 'owner', 'admin');
+      await tester.tap(find.text('Change role'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(
+          of: find.byType(BottomSheet), matching: find.text('Viewer')));
+      await tester.pumpAndSettle();
+
+      final saved = await db
+          .collection('events')
+          .doc('e1')
+          .collection('participants')
+          .doc('admin')
+          .get();
+      expect(saved.data()!['role'], 'viewer');
+    });
 
     testWidgets('an admin sees Change role, Remove and Block on a collaborator',
         (tester) async {
