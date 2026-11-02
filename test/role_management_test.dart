@@ -500,9 +500,10 @@ void main() {
       String actorId, {
       EventRepository? repository,
       List<Participant>? rows,
+      Size viewportSize = const Size(900, 1400),
     }) async {
       final people = rows ?? _rows;
-      tester.view.physicalSize = const Size(900, 1400);
+      tester.view.physicalSize = viewportSize;
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
@@ -551,6 +552,30 @@ void main() {
         await tester.pumpWidget(const SizedBox.shrink());
       });
     }
+
+    testWidgets('delete stays reachable in a split-screen viewport',
+        (tester) async {
+      await pumpEditor(
+        tester,
+        'owner',
+        viewportSize: const Size(960, 540),
+      );
+
+      final actions = find.byTooltip('Countdown actions');
+      expect(actions, findsOneWidget);
+      await tester.tap(actions);
+      await tester.pumpAndSettle();
+
+      final deleteAction = find.text('Delete countdown');
+      expect(deleteAction, findsOneWidget);
+      await tester.tap(deleteAction);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Delete this countdown?'),
+        findsOneWidget,
+      );
+    });
 
     /// Taps the ⋮ on the collaborator row whose name is [displayName].
     ///

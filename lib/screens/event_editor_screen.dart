@@ -36,7 +36,6 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   late DateTime _at;
   String? _error;
   bool _busy = false;
-  bool _confirmDelete = false;
 
   /// Circles this countdown will be shared with. Only used when creating: an
   /// existing countdown manages its circles from the detail screen, where the
@@ -306,6 +305,30 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     }
   }
 
+  Future<void> _confirmDeleteCountdown() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete this countdown?'),
+        content: const Text('The countdown cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: dialogContext.colors.danger,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) await _delete();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -336,6 +359,22 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(editing ? 'Edit countdown' : 'New countdown'),
+        actions: [
+          if (editing && (widget.event?.canManage(user?.id) ?? false))
+            PopupMenuButton<String>(
+              tooltip: 'Countdown actions',
+              enabled: !_busy,
+              onSelected: (value) {
+                if (value == 'delete') _confirmDeleteCountdown();
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Text('Delete countdown'),
+                ),
+              ],
+            ),
+        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -438,67 +477,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                 ],
               ),
             ],
-            if (_confirmDelete) ...[
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Delete this countdown? The countdown cannot be undone.',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () =>
-                                setState(() => _confirmDelete = false),
-                            child: const Text('Keep'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            style: FilledButton.styleFrom(
-                                backgroundColor: colors.danger),
-                            onPressed: _busy ? null : _delete,
-                            child: const Text('Delete'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
             const SizedBox(height: 26),
             Row(
               children: [
-                if (editing &&
-                    (widget.event
-                            ?.canManage(ref.watch(currentUserProvider)?.id) ??
-                        false))
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: OutlinedButton(
-                      onPressed: _busy
-                          ? null
-                          : () => setState(() => _confirmDelete = true),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(96, 50),
-                        foregroundColor: colors.muted,
-                      ),
-                      child: const Text('Delete'),
-                    ),
-                  ),
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: (_busy || !canEdit) ? null : _save,
