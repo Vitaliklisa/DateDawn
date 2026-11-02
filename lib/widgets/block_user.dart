@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,20 +23,28 @@ import '../services/event_repository.dart';
 Future<bool> showBlockUserSheet(
   BuildContext context, {
   required Participant participant,
+  required String eventId,
 }) async {
   if (participant.isCircle) return false;
   final blocked = await showModalBottomSheet<bool>(
     context: context,
     showDragHandle: true,
-    builder: (_) => _BlockUserSheet(participant: participant),
+    builder: (_) => _BlockUserSheet(
+      participant: participant,
+      eventId: eventId,
+    ),
   );
   return blocked ?? false;
 }
 
 class _BlockUserSheet extends ConsumerStatefulWidget {
-  const _BlockUserSheet({required this.participant});
+  const _BlockUserSheet({
+    required this.participant,
+    required this.eventId,
+  });
 
   final Participant participant;
+  final String eventId;
 
   @override
   ConsumerState<_BlockUserSheet> createState() => _BlockUserSheetState();
@@ -146,26 +156,66 @@ class _BlockUserSheetState extends ConsumerState<_BlockUserSheet> {
     // people shows this person the moment it is opened, and invalidate the
     // same feeds the block pruned (participants, invitations, notes). The
     // writes are done; this is what makes the UI agree with them.
-    ref.invalidate(blockedUsersProvider);
-    ref.invalidate(invitationsProvider);
+    final container = ProviderScope.containerOf(context, listen: false);
+    final repository = ref.read(eventRepositoryProvider);
+    container.invalidate(blockedUsersProvider);
+    container.invalidate(invitationsProvider);
+    container.invalidate(eventsProvider);
+    container.invalidate(participantsProvider(widget.eventId));
     Navigator.of(context).pop(true);
     messenger.showSnackBar(
       SnackBar(
         content: Text('$_who is blocked.'),
         action: SnackBarAction(
           label: 'Undo',
-          onPressed: () async {
-            await ref.read(eventRepositoryProvider).unblockUser(
-                  userId: me.id,
-                  targetUid: widget.participant.userId,
-                );
-            // Unblocking changes the list too — refresh it, or Settings would
-            // keep showing someone who is no longer blocked.
-            ref.invalidate(blockedUsersProvider);
+          onPressed: () {
+            unawaited(
+              _undoBlock(
+                container: container,
+                repository: repository,
+                messenger: messenger,
+                userId: me.id,
+                targetUid: widget.participant.userId,
+                eventId: widget.eventId,
+                who: _who,
+              ),
+            );
           },
         ),
       ),
     );
+  }
+
+  Future<void> _undoBlock({
+    required ProviderContainer container,
+    required EventRepository repository,
+    required ScaffoldMessengerState messenger,
+    required String userId,
+    required String targetUid,
+    required String eventId,
+    required String who,
+  }) async {
+    try {
+      await repository.unblockUser(userId: userId, targetUid: targetUid);
+      container.invalidate(blockedUsersProvider);
+      container.invalidate(invitationsProvider);
+      container.invalidate(eventsProvider);
+      container.invalidate(participantsProvider(eventId));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '$who is unblocked. Countdown access was not restored.',
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('[datedawn] Could not undo block for $targetUid: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      messenger.showSnackBar(
+        const SnackBar(
+            content: Text('Could not undo block. Please try again.')),
+      );
+    }
   }
 
   /// What to tell the user when the block write itself was refused.

@@ -927,10 +927,12 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
             // place you would want to block someone, so block lives on the row
             // rather than in a menu hidden away in Settings.
             GestureDetector(
-              onLongPress:
-                  participant.isCircle ? null : () => _blockUser(participant),
-              onSecondaryTap:
-                  participant.isCircle ? null : () => _blockUser(participant),
+              onLongPress: participant.isCircle
+                  ? null
+                  : () => _blockUser(participant, event.id),
+              onSecondaryTap: participant.isCircle
+                  ? null
+                  : () => _blockUser(participant, event.id),
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Container(
@@ -1057,7 +1059,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                               case 'role':
                                 _changeRole(event, participant);
                               case 'block':
-                                _blockUser(participant);
+                                _blockUser(participant, event.id);
                               case 'remove':
                                 _remove(participant);
                             }
@@ -1169,12 +1171,13 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
     );
   }
 
-  Future<void> _blockUser(Participant participant) async {
+  Future<void> _blockUser(Participant participant, String eventId) async {
     final me = ref.read(currentUserProvider);
     if (me == null || participant.userId == me.id) return;
     final blocked = await showBlockUserSheet(
       context,
       participant: participant,
+      eventId: eventId,
     );
     if (!blocked || !mounted) return;
     // The block removed them from this countdown, so the list refreshes on its
