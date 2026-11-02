@@ -97,8 +97,8 @@ void main() {
             home: Scaffold(
               body: ListView(
                 children: [
-                  InvitationsInbox(showWhenEmpty: true),
-                  _CountdownFeed(),
+                  const InvitationsInbox(showWhenEmpty: true),
+                  const _CountdownFeed(),
                 ],
               ),
             ),

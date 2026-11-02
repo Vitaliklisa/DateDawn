@@ -360,7 +360,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         ),
         title: Text(editing ? 'Edit countdown' : 'New countdown'),
         actions: [
-          if (editing && (widget.event?.canManage(user?.id) ?? false))
+          if (editing && (widget.event?.canManage(user.id) ?? false))
             PopupMenuButton<String>(
               tooltip: 'Countdown actions',
               enabled: !_busy,
