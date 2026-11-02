@@ -114,6 +114,15 @@ await check('accept without a real invitation is refused', async () => {
   await assertFails(run());
 });
 
+await check('an expired invitation cannot authorize a participant row', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore(), 'invitations/inv1'), {
+      expiresAt: new Date('2020-01-01'),
+    });
+  });
+  await assertFails(acceptBatch('invitee', 'inv1', 'editor')());
+});
+
 await check('a stranger cannot accept into someone else\'s event', async () => {
   const run = acceptBatch('stranger', 'inv1', 'editor');
   await assertFails(run());
@@ -152,6 +161,46 @@ await check('the invited uid creates their own row with the invited role',
 
 await check('the invited uid cannot create their own row as admin', async () => {
   await assertFails(selfCreateBatch('invitee', 'admin')());
+});
+
+await check('an invitee cannot create unrelated fields on their row', async () => {
+  const db = env.authenticatedContext('invitee', {
+    email: 'invitee@example.com',
+  }).firestore();
+  await assertFails(
+    setDoc(doc(db, 'events/e1/participants/invitee'), {
+      userId: 'invitee',
+      email: 'invitee@example.com',
+      role: 'editor',
+      inviteStatus: 'accepted',
+      joinedAt: new Date(),
+      invitationId: 'inv1',
+      invitationEmail: 'invitee@example.com',
+      isAdmin: true,
+    }),
+  );
+});
+
+await check('an invitee cannot add unrelated fields while accepting', async () => {
+  const db = env.authenticatedContext('invitee', {
+    email: 'invitee@example.com',
+  }).firestore();
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'events/e1/participants/invitee'), {
+      userId: 'invitee',
+      email: 'invitee@example.com',
+      role: 'editor',
+      inviteStatus: 'pending',
+      invitationId: 'inv1',
+      invitationEmail: 'invitee@example.com',
+    });
+  });
+  await assertFails(
+    updateDoc(doc(db, 'events/e1/participants/invitee'), {
+      inviteStatus: 'accepted',
+      isAdmin: true,
+    }),
+  );
 });
 
 await check('a stranger cannot create a row citing my invitation', async () => {

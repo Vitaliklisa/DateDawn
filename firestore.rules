@@ -133,7 +133,8 @@ service cloud.firestore {
 
     function invitationIsOpenToMe(invitationId) {
       return get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('status', '') == 'pending'
-        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('inviteeEmail', '') == myEmail();
+        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('inviteeEmail', '') == myEmail()
+        && get(/databases/$(database)/documents/invitations/$(invitationId)).data.get('expiresAt', request.time) > request.time;
     }
 
     // Membership of every circle an event was shared with, denormalised onto the
@@ -567,8 +568,32 @@ service cloud.firestore {
 
     function isSelfAnsweringInviteCreate(eventId, targetUserId) {
       return resource == null
+        && request.resource.data.keys().hasOnly([
+          'userId', 'email', 'role', 'inviteStatus', 'joinedAt',
+          'invitationId', 'invitationEmail'
+        ])
+        && request.resource.data.get('userId', '') == targetUserId
+        && request.resource.data.get('email', '') == myEmail()
+        && request.resource.data.get('invitationEmail', '') == myEmail()
         && isSelfAnsweringInvite(eventId, targetUserId)
         && roleMatchesInvitation();
+    }
+
+    // The invitee may only settle their own row with the participant fields
+    // the client writes while accepting. In particular, they cannot attach
+    // unrelated privilege-bearing fields to an otherwise valid acceptance.
+    function isSafeSelfAnsweringInviteUpdate(eventId, targetUserId) {
+      return resource != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'userId', 'email', 'inviteStatus', 'joinedAt', 'role',
+          'invitationId', 'invitationEmail'
+        ])
+        && request.resource.data.get('userId', '') == targetUserId
+        && request.resource.data.get('email', '') == myEmail()
+        && request.resource.data.get('invitationEmail', '') == myEmail()
+        && isSelfAnsweringInvite(eventId, targetUserId)
+        && request.resource.data.get('role', '') == resource.data.get('role', '')
+        && resource.data.get('inviteStatus', '') in ['pending', 'reopened', 'declined'];
     }
 
     // Only the fields the editor is allowed to touch may change.
@@ -780,15 +805,8 @@ service cloud.firestore {
         // an admin reopened the invitation; the row keeps whatever role it has,
         // which is why `role` may not change here. isRoleChange() never
         // authorises this branch -- it is its own clause.
-        // Folded into one helper for the same reason the role-change branch is:
-        // as an inline `&&` chain in the match block, this branch evaluated
-        // false for a perfectly valid accept while every conjunct tested fine
-        // on its own. The helper is called with the wildcard explicitly.
         allow update: if signedIn()
-          && resource != null
-          && isSelfAnsweringInvite(eventId, userId)
-          && request.resource.data.get('role', '') == resource.data.get('role', '')
-          && resource.data.get('inviteStatus', '') in ['pending', 'reopened', 'declined'];
+          && isSafeSelfAnsweringInviteUpdate(eventId, userId);
 
         allow delete: if signedIn()
           && userId != eventCreator(eventId)

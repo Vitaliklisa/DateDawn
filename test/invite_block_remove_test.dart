@@ -232,6 +232,11 @@ void main() {
         userId: 'invitee',
         email: 'invitee@example.com',
       );
+      await repo.acceptInvitation(
+        invitation: invite,
+        userId: 'invitee',
+        email: 'invitee@example.com',
+      );
 
       // The invitation is still settled, so it leaves the inbox.
       final inviteDoc = await db.collection('invitations').doc('inv-1').get();
@@ -240,6 +245,31 @@ void main() {
       // Critically: the member's admin role was NOT downgraded to the
       // invitation's viewer role.
       expect((await row('invitee'))!['role'], 'admin');
+    });
+
+    test('a revoked invitation has a distinct explanation', () async {
+      await seedEvent();
+      final invite = _invite();
+      await seedInvite(invite);
+      await db
+          .collection('invitations')
+          .doc(invite.id)
+          .update({'status': 'revoked'});
+
+      await expectLater(
+        repo.acceptInvitation(
+          invitation: invite,
+          userId: 'invitee',
+          email: 'invitee@example.com',
+        ),
+        throwsA(
+          isA<DataFailure>().having(
+            (failure) => failure.message,
+            'message',
+            contains('revoked'),
+          ),
+        ),
+      );
     });
 
     test('an expired invitation is refused before any write', () async {
