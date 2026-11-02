@@ -146,6 +146,76 @@ try {
       }),
     );
   });
+
+  // Demoting a PEER. `admin` is the managing role, so an admin may act on any
+  // row except the creator's and their own. These three cases were refused by
+  // the old `myRank > rank(previousRole())` conjunct, which required the caller
+  // to strictly outrank the person they were changing -- impossible for an
+  // admin acting on another admin.
+  await check('admin demotes another admin to viewer', async () => {
+    const db = dbFor('admin');
+    await assertSucceeds(
+      updateDoc(doc(db, 'events/e1/participants/other-admin'), {
+        role: 'viewer',
+      }),
+    );
+  });
+
+  await check('admin demotes another admin to editor', async () => {
+    const db = dbFor('admin');
+    await assertSucceeds(
+      updateDoc(doc(db, 'events/e1/participants/other-admin'), {
+        role: 'editor',
+      }),
+    );
+  });
+
+  await check('admin can still demote an editor', async () => {
+    const db = dbFor('admin');
+    await assertSucceeds(
+      updateDoc(doc(db, 'events/e1/participants/editor'), { role: 'viewer' }),
+    );
+  });
+
+  await check('a demoted admin cannot demote the original admin back', async () => {
+    // `other-admin` is demoted first, then tries to reverse it. Their own role
+    // is read fresh, so the rank check uses `editor`, and promoting/demoting
+    // `admin` is above them.
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'events/e1/participants/other-admin'), {
+        userId: 'other-admin',
+        email: 'other-admin@example.com',
+        role: 'editor',
+        inviteStatus: 'accepted',
+      });
+    });
+    const db = dbFor('other-admin');
+    await assertFails(
+      updateDoc(doc(db, 'events/e1/participants/admin'), { role: 'viewer' }),
+    );
+  });
+
+  await check('an admin cannot promote anyone to admin beyond their own rank', async () => {
+    // Sanity for the surviving rank clause: viewer -> admin by a viewer is
+    // refused, and an editor acting on anyone is refused.
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'events/e1/participants/editor2'), {
+        userId: 'editor2',
+        email: 'editor2@example.com',
+        role: 'editor',
+        inviteStatus: 'accepted',
+      });
+    });
+    const db = dbFor('editor2');
+    await assertFails(
+      updateDoc(doc(db, 'events/e1/participants/viewer'), { role: 'admin' }),
+    );
+    await assertFails(
+      updateDoc(doc(db, 'events/e1/participants/editor'), { role: 'viewer' }),
+    );
+  });
 } catch (e) {
   console.error('SETUP ERROR', e);
   failures++;

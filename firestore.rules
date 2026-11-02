@@ -430,10 +430,21 @@ service cloud.firestore {
     //   * not on a circle placeholder, which is not a person;
     //   * not on the caller's own row ------------------ no giving yourself more (or less);
     //   * the new role must be a real role;
-    //   * and it may not outrank the caller. Admin is the top rank, so an admin
-    //     may grant admin; anybody lower is refused anything above themselves.
+    //   * and it may not grant more authority than the caller holds.
     //     Being refused `admin` here is what stops a demoted admin from handing
     //     the power straight back through someone else's row.
+    //
+    // **The comparison is new-role vs MY rank, not MY rank vs their old role.**
+    // The rule used to end in `myRank(eventId) > rank(previousRole())`, which
+    // reads as "you must outrank the person you are changing". Because `admin`
+    // is the top rank, that conjunct made it impossible for an admin to change
+    // another admin's role at all -- demoting a peer failed, and a viewer
+    // promoted to admin could then no longer be demoted by anyone but the
+    // creator. The demoting admin saw a bare `permission-denied` from the
+    // collaborator menu, which is the "change role does nothing" report.
+    // Outranking is not the policy: `checkRoleChange` in the client has never
+    // required it, `admin` is the managing role, and the only row that is
+    // protected from equal-rank action is the creator's (first check above).
     //
     // Two admins altering each other is permitted, by design: `admin` is the
     // managing role, so an admin's menu offers it on any other admin's row
@@ -463,8 +474,28 @@ service cloud.firestore {
         && targetUserId != uid()
         && isPersonRow()
         && request.resource.data.get('role', '') in ['admin', 'editor', 'viewer']
-        && rank(request.resource.data.get('role', '')) <= myRank(eventId)
-        && myRank(eventId) > rank(previousRole());
+        && rank(request.resource.data.get('role', '')) <= myRank(eventId);
+    }
+
+    // Is this request a role change, asked of the REQUEST alone?
+    //
+    // Deliberately split from `isRoleChange()`: that helper is fine inside
+    // `roleChangeAllowed`, but this question has to be asked *before* any
+    // helper that reads another document is called. Firestore cannot prove a
+    // request-only predicate from a cross-document read, and an update rule
+    // that is refused for lack of a proof never reaches the helper that would
+    // have allowed it. Keeping the shape check in its own helper is what lets
+    // the update rule gate on it first.
+    function requestIsRoleChange() {
+      return resource != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
+    }
+
+    // Is this request a role-management write that is NOT a role change --
+    // identity repair, invitation status, a circle placeholder?
+    function requestTouchesRole() {
+      return resource != null
+        && resource.data.get('role', '') != request.resource.data.get('role', '');
     }
 
     // Only the fields the editor is allowed to touch may change.
@@ -647,17 +678,34 @@ service cloud.firestore {
               && request.resource.data.get('invitationId', '') != ''
               && invitationAuthorisesRow(request.resource.data.get('invitationId', '-'))));
 
+        // Role changes are decided FIRST, on the request shape alone, and then
+        // handed to the policy helper. The old single expression put
+        // `isRoleChange() && isAdmin(...) && roleChangeAllowed(...)` in one
+        // `&&` chain whose head also contained the invitee branch; an admin
+        // demoting another admin has no `invitationId`, the invitee branch
+        // threw while being evaluated, and the whole update was refused before
+        // `roleChangeAllowed` was ever called. That is why "change role" failed
+        // for admins while succeeding for viewers, and why the failure read as
+        // a bare `permission-denied`.
         allow update: if signedIn()
-          && ((isRoleChange() && (isAdmin(eventId) || isEventOwner(eventId)) && roleChangeAllowed(eventId, userId))
-            || (!affectsRole() && (isAdmin(eventId) || isEventOwner(eventId)))
-            || (userId == uid()
-              && resource != null
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userId', 'email', 'inviteStatus', 'joinedAt', 'role', 'invitationId', 'invitationEmail'])
-              && request.resource.data.get('inviteStatus', '') in ['accepted', 'declined']
-              && request.resource.data.get('role', '') == resource.data.get('role', '')
-              && request.resource.data.get('invitationId', '') != ''
-              && invitationAuthorisesRow(request.resource.data.get('invitationId', '-'))
-              && resource.data.get('inviteStatus', '') in ['pending', 'reopened']));
+          && requestIsRoleChange()
+          && (isAdmin(eventId) || isEventOwner(eventId))
+          && roleChangeAllowed(eventId, userId);
+
+        allow update: if signedIn()
+          && !requestIsRoleChange()
+          && !affectsRole()
+          && (isAdmin(eventId) || isEventOwner(eventId));
+
+        allow update: if signedIn()
+          && userId == uid()
+          && resource != null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userId', 'email', 'inviteStatus', 'joinedAt', 'role', 'invitationId', 'invitationEmail'])
+          && request.resource.data.get('inviteStatus', '') in ['accepted', 'declined']
+          && request.resource.data.get('role', '') == resource.data.get('role', '')
+          && request.resource.data.get('invitationId', '') != ''
+          && invitationAuthorisesRow(request.resource.data.get('invitationId', '-'))
+          && resource.data.get('inviteStatus', '') in ['pending', 'reopened'];
 
         allow delete: if signedIn()
           && userId != eventCreator(eventId)
