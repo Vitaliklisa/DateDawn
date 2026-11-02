@@ -2936,8 +2936,7 @@ class EventRepository {
         await removeBlockedParticipant(eventRef, targetUid, actorId: userId);
       }
     } catch (error) {
-      debugPrint('[datedawn] Block: could not list the caller\'s countdowns: '
-          '$error');
+      debugPrint('[datedawn] Block: shared-countdown cleanup failed: $error');
     }
 
     // 2b. The caller's own participant row is NOT deleted, and must not be.
