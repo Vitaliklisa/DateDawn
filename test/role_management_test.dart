@@ -682,14 +682,53 @@ void main() {
     testWidgets('an admin sees Change role, Remove and Block on a collaborator',
         (tester) async {
       await pumpEditor(tester, 'admin');
-      // `invited` is the row still awaiting an answer — the one an admin can
-      // remove. (`viewer` is already accepted: the useful actions there are a
-      // role change or a block, not removal.)
-      await openMenuFor(tester, 'admin', 'invited');
+      await openMenuFor(tester, 'admin', 'viewer');
 
       expect(find.text('Change role'), findsOneWidget);
       expect(find.text('Block'), findsOneWidget);
       expect(find.text('Remove'), findsOneWidget);
+    });
+
+    testWidgets('removing an accepted collaborator requires confirmation',
+        (tester) async {
+      final (db, _) = await pumpLive(tester, 'admin');
+
+      await openMenuFor(tester, 'admin', 'viewer');
+      await tester.tap(find.text('Remove'));
+      await tester.pumpAndSettle();
+      expect(find.text('Remove this person?'), findsOneWidget);
+
+      await tester.tap(find.text('Keep'));
+      await tester.pumpAndSettle();
+      expect(
+        (await db
+                .collection('events')
+                .doc('e1')
+                .collection('participants')
+                .doc('viewer')
+                .get())
+            .exists,
+        isTrue,
+        reason: 'canceling confirmation must not remove access',
+      );
+
+      await openMenuFor(tester, 'admin', 'viewer');
+      await tester.tap(find.text('Remove'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+      await tester.pumpAndSettle();
+
+      expect(
+        (await db
+                .collection('events')
+                .doc('e1')
+                .collection('participants')
+                .doc('viewer')
+                .get())
+            .exists,
+        isFalse,
+        reason: 'confirming must delete the participant row',
+      );
     });
 
     testWidgets('the Change role sheet offers Viewer, Editor and Admin',
