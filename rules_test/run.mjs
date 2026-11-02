@@ -12,6 +12,7 @@
 // Exit code is the test's own.
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 const JDK21 = 'C:\\Program Files\\Microsoft\\jdk-21.0.13.21-hotspot';
 
@@ -33,13 +34,37 @@ if (files.length === 0) {
   process.exit(2);
 }
 
+if (files.some((file) => !/^[\w./\\-]+$/.test(file))) {
+  console.error('test-file paths may contain only letters, numbers, /, \\, ., _, and -');
+  process.exit(2);
+}
+
 const command = files.map((f) => `node ${f}`).join(' && ');
 const projectId = `datedawn-rules-${process.pid}`;
+const firebaseCli =
+  process.platform === 'win32'
+    ? resolve(
+        process.env.APPDATA ?? '',
+        'npm',
+        'node_modules',
+        'firebase-tools',
+        'lib',
+        'bin',
+        'firebase.js',
+      )
+    : 'firebase';
+if (process.platform === 'win32' && !existsSync(firebaseCli)) {
+  console.error(
+    'Firebase CLI not found at the standard Windows npm global path. ' +
+      'Install firebase-tools globally or update rules_test/run.mjs.',
+  );
+  process.exit(2);
+}
 
 const result = spawnSync(
-  process.platform === 'win32' ? 'npx.cmd' : 'npx',
+  process.platform === 'win32' ? process.execPath : firebaseCli,
   [
-    'firebase',
+    ...(process.platform === 'win32' ? [firebaseCli] : []),
     'emulators:exec',
     '--only',
     'firestore',
@@ -49,7 +74,6 @@ const result = spawnSync(
   ],
   {
     stdio: 'inherit',
-    shell: false,
     env: {
       ...process.env,
       JAVA_HOME: javaHome,
@@ -57,5 +81,10 @@ const result = spawnSync(
     },
   },
 );
+
+if (result.error) {
+  console.error(`Could not start Firebase CLI: ${result.error.message}`);
+  process.exit(1);
+}
 
 process.exit(result.status ?? 1);
