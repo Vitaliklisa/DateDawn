@@ -1122,6 +1122,7 @@ class EventRepository {
       throw const DataFailure('That countdown no longer exists.');
     }
     final createdBy = (eventDoc.data()?['createdBy'] as String?) ?? '';
+    final eventTitle = (eventDoc.data()?['title'] as String?)?.trim();
     if (userId == createdBy) {
       throw const DataFailure(
           'The person who created this countdown cannot be removed.');
@@ -1167,6 +1168,34 @@ class EventRepository {
             'You do not have permission to remove this person.');
       }
       rethrow;
+    }
+
+    if (userId != actorId) {
+      final actorProfile = isCreator ? null : await lookupUserById(actorId);
+      final actorName = actorProfile?['displayName']?.trim();
+      final actorEmail = actorProfile?['email']?.trim();
+      final actorLabel = actorName != null && actorName.isNotEmpty
+          ? actorName
+          : actorEmail != null && actorEmail.isNotEmpty
+              ? actorEmail
+              : actorId;
+      try {
+        await _notify(
+          userId: userId,
+          title:
+              'You were removed from "${eventTitle?.isNotEmpty == true ? eventTitle : 'a countdown'}"',
+          body: isCreator
+              ? 'The owner removed you from this countdown.'
+              : '$actorLabel removed you from this countdown.',
+          kind: NotificationKind.system,
+        );
+      } catch (error, stackTrace) {
+        debugPrint(
+          '[datedawn] Could not notify $userId about removal from $eventId: '
+          '$error',
+        );
+        debugPrintStack(stackTrace: stackTrace);
+      }
     }
   }
 
@@ -2209,8 +2238,9 @@ class EventRepository {
     if (sink == null || userId.isEmpty) return;
     try {
       await sink(userId: userId, title: title, body: body, kind: kind);
-    } catch (_) {
-      // Best-effort.
+    } catch (error, stackTrace) {
+      debugPrint('[datedawn] Could not notify $userId: $error');
+      debugPrintStack(stackTrace: stackTrace);
     }
   }
 
