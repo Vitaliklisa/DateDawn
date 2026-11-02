@@ -93,13 +93,13 @@ void main() {
   group('RecentContact', () {
     final contact = RecentContact(
       userId: 'friend',
-      email: 'vhomenko119@gmail.com',
+      email: 'friend@example.com',
       lastInvitedAt: _epoch,
     );
 
     test('matches a partial email query case-insensitively', () {
-      expect(contact.matches('v'), isTrue);
-      expect(contact.matches('VHOMENKO'), isTrue);
+      expect(contact.matches('f'), isTrue);
+      expect(contact.matches('FRIEND'), isTrue);
       expect(contact.matches('not-a-match'), isFalse);
     });
   });
