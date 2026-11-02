@@ -716,9 +716,20 @@ void main() {
       await openMenuFor(tester, 'admin', 'viewer');
       await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
-      await tester.pumpAndSettle();
+      final previousDebugPrint = debugPrint;
+      final debugMessages = <String>[];
+      debugPrint = (message, {wrapWidth}) {
+        if (message != null) debugMessages.add(message);
+      };
+      try {
+        await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+        await tester.pumpAndSettle();
+      } finally {
+        debugPrint = previousDebugPrint;
+      }
 
+      expect(find.text('viewer was removed.'), findsOneWidget);
+      expect(debugMessages, isNot(contains('[datedawn] Remove failed: null')));
       expect(
         (await db
                 .collection('events')

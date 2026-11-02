@@ -1206,7 +1206,9 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
     );
     // `runAction` shows the reason for every failure it maps; this only makes
     // sure a removal that silently did nothing is never mistaken for success.
-    debugPrint('[datedawn] Remove failed: $failure');
+    if (failure != null) {
+      debugPrint('[datedawn] Remove failed: $failure');
+    }
   }
 
   /// Asks someone who already declined to take another look.
