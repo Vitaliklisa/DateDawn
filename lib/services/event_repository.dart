@@ -891,6 +891,32 @@ class EventRepository {
           'Settings → Blocked people first.');
     }
 
+    if (targetUserId != null) {
+      DocumentSnapshot<Map<String, dynamic>> reverseBlock;
+      try {
+        reverseBlock = await _db
+            .collection('users')
+            .doc(targetUserId)
+            .collection('blocked')
+            .doc(inviterId)
+            .get();
+      } on FirebaseException catch (error) {
+        debugPrint('[datedawn] Could not verify invitation eligibility for '
+            '$targetUserId: ${error.code}');
+        throw const DataFailure(
+          'Could not verify whether this person can receive your invitation. '
+          'Please try again.',
+        );
+      }
+
+      final blockData = reverseBlock.data();
+      if (reverseBlock.exists && blockData?['active'] != false) {
+        throw const DataFailure(
+          'This person is unavailable for invitations.',
+        );
+      }
+    }
+
     // The `invitations` document is written in BOTH branches, and the pending
     // participant row carries its id.
     //

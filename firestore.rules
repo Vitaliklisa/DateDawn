@@ -673,10 +673,9 @@ service cloud.firestore {
       //
       // Required by Google Play's UGC policy: an app where people can send each
       // other invitations and notes must let a person block another person
-      // in-app. The list is strictly private in both directions ------------------ the blocker is
-      // the only one who can read or write it, and the blocked person cannot see
-      // that a row exists at all. `blockedId` must be a plausible account id and
-      // the row cannot carry arbitrary fields beyond what the UI shows.
+      // in-app. Only the blocker can list the collection. A potential invitee
+      // can get only the document whose id is their own uid, so an inviter can
+      // check eligibility without gaining access to anyone's block list.
       //
       // **The read rule says nothing about the parent document on purpose.**
       // It used to require that `users/{uid}` exist as well, and that single
@@ -691,7 +690,9 @@ service cloud.firestore {
       // is the same relationship this rule already had, without a lookup a
       // query cannot prove.
       match /blocked/{blockedId} {
-        allow read: if signedIn() && userId == uid();
+        allow get: if signedIn()
+          && (userId == uid() || blockedId == uid());
+        allow list: if signedIn() && userId == uid();
 
         allow create: if signedIn()
           && userId == uid()
