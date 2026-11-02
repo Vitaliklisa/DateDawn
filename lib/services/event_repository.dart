@@ -1054,26 +1054,16 @@ class EventRepository {
     // Read the target row as it actually is. The role on the model the caller
     // passed in may be older than the database, and it is the database role a
     // change is measured against.
-    var target = participant;
-    try {
-      final row = await _events
-          .doc(eventId)
-          .collection('participants')
-          .doc(participant.userId)
-          .get();
-      if (!row.exists) {
-        throw const DataFailure('That person is no longer on this countdown.');
-      }
-      target = Participant.fromMap(row.id, row.data() ?? {});
-    } on DataFailure {
-      rethrow;
-    } catch (error) {
-      // Offline or unreadable: fall back to what the caller has, which the
-      // policy still checks. The write itself will be refused by the rules if
-      // the real state disagrees.
-      debugPrint('[datedawn] Could not re-read ${participant.userId}\'s role: '
-          '$error');
+    final targetRow = await _events
+        .doc(eventId)
+        .collection('participants')
+        .doc(participant.userId)
+        .get();
+    if (!targetRow.exists) {
+      throw const DataFailure('That person is no longer on this countdown.');
     }
+    final target = Participant.fromMap(
+        targetRow.id, targetRow.data() ?? <String, dynamic>{});
 
     final check = current.checkRoleChange(
       actorId: actorId,
@@ -1227,7 +1217,12 @@ class EventRepository {
     String? displayName,
     String? photoUrl,
   }) async {
-    await _guardInvitation(invitation);
+    final alreadyAccepted = await _guardInvitation(
+      invitation,
+      acceptingUserId: userId,
+      acceptingEmail: email,
+    );
+    if (alreadyAccepted) return;
 
     // Blocking is a standing refusal, so an invite from someone this user has
     // blocked cannot be accepted even if it was already on screen when the
@@ -1377,10 +1372,18 @@ class EventRepository {
         '[datedawn] Accept ${invitation.id} for event ${invitation.eventId} '
         'as $userId refused (${error.code}): ${error.message}',
       );
+      if (error.code == 'permission-denied' || error.code == 'not-found') {
+        final settled = await _isInvitationAcceptedBy(
+          invitation: invitation,
+          userId: userId,
+          email: email,
+        );
+        if (settled) return;
+      }
       if (error.code == 'permission-denied') {
         throw const DataFailure(
-            'This invitation could not be accepted. It may have been '
-            'cancelled, revoked, or replaced — ask for a fresh one.');
+            'Your account could not accept this invitation. Sign in with the '
+            'invited account, then retry or ask the owner for help.');
       }
       if (error.code == 'not-found') {
         throw const DataFailure(
@@ -1548,7 +1551,11 @@ class EventRepository {
   ///
   /// This re-reads the document, which is the only authority on whether an
   /// answer is still open.
-  Future<void> _guardInvitation(Invitation invitation) async {
+  Future<bool> _guardInvitation(
+    Invitation invitation, {
+    String? acceptingUserId,
+    String? acceptingEmail,
+  }) async {
     // Check the LIVE document first, not the snapshot.
     //
     // The snapshot the card was built with says `pending` for ever, and it also
@@ -1556,7 +1563,24 @@ class EventRepository {
     // authority on whether the invitation is still open, and reading it first
     // is what lets the four outcomes below be told apart instead of all
     // collapsing into "already been answered".
-    final doc = await _invitations.doc(invitation.id).get();
+    DocumentSnapshot<Map<String, dynamic>> doc;
+    try {
+      doc = await _invitations.doc(invitation.id).get();
+    } on FirebaseException catch (error) {
+      debugPrint('[datedawn] Could not read invitation ${invitation.id} '
+          '(${error.code}): ${error.message}');
+      if (error.code == 'permission-denied') {
+        throw const DataFailure(
+            'You do not have permission to read this invitation. Sign in with '
+            'the invited account and retry.');
+      }
+      if (error.code == 'not-found') {
+        throw const DataFailure(
+            'That invitation no longer exists. Ask the owner to send a new '
+            'one.');
+      }
+      rethrow;
+    }
     final live = doc.data();
     if (!doc.exists || live == null) {
       throw const DataFailure(
@@ -1565,14 +1589,30 @@ class EventRepository {
     }
 
     final liveStatus = live['status'];
+    if (liveStatus == InviteStatus.accepted.name) {
+      if (acceptingUserId != null &&
+          acceptingEmail != null &&
+          await _isInvitationAcceptedBy(
+            invitation: invitation,
+            userId: acceptingUserId,
+            email: acceptingEmail,
+            invitationData: live,
+          )) {
+        return true;
+      }
+      throw const DataFailure(
+          'This invitation has already been accepted and is no longer open.');
+    }
+    if (liveStatus == InviteStatus.declined.name ||
+        liveStatus == InviteStatus.rejected.name) {
+      throw const DataFailure(
+          'This invitation was already declined. Ask the owner to send a new '
+          'one.');
+    }
     if (liveStatus != InviteStatus.pending.name) {
-      throw DataFailure(
-        liveStatus == InviteStatus.declined.name
-            ? 'That invitation was already declined. Ask the owner to invite '
-                'you again.'
-            : 'That invitation was already accepted or cancelled. Ask for a '
-                'fresh one.',
-      );
+      throw const DataFailure(
+          'This invitation was withdrawn or revoked. Ask the owner to send a '
+          'new one.');
     }
 
     // Expiry from the stored document, so a clock skew on the device cannot
@@ -1586,6 +1626,38 @@ class EventRepository {
       throw const DataFailure(
           'That invitation has expired. Ask the owner to send a new one.');
     }
+    return false;
+  }
+
+  /// Confirms a duplicate accept against both live documents, not the card's
+  /// stale snapshot or a client-supplied user id alone.
+  Future<bool> _isInvitationAcceptedBy({
+    required Invitation invitation,
+    required String userId,
+    required String email,
+    Map<String, dynamic>? invitationData,
+  }) async {
+    final liveInvitation =
+        invitationData ?? (await _invitations.doc(invitation.id).get()).data();
+    if (liveInvitation == null ||
+        liveInvitation['status'] != InviteStatus.accepted.name ||
+        ((liveInvitation['inviteeEmail'] as String?) ?? '')
+                .trim()
+                .toLowerCase() !=
+            email.trim().toLowerCase()) {
+      return false;
+    }
+
+    final row = await _events
+        .doc(invitation.eventId)
+        .collection('participants')
+        .doc(userId)
+        .get();
+    final data = row.data();
+    return data != null &&
+        data['inviteStatus'] == InviteStatus.accepted.name &&
+        ((data['email'] as String?) ?? '').trim().toLowerCase() ==
+            email.trim().toLowerCase();
   }
 
   /// Whether [userId] still has a decision to make on [eventId].
