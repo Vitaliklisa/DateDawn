@@ -396,15 +396,7 @@ service cloud.firestore {
         : request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
     }
 
-    // The row's role BEFORE this write, or '' when the row does not exist.
-    //
-    // A ternary, not `resource == null || resource.data.role`: Firestore
-    // evaluates both branches of a logical operator on a null document and the
-    // `resource.data` read throws. A conditional expression only evaluates the
-    // branch it takes.
-    function previousRole() {
-      return resource == null ? '' : resource.data.get('role', '');
-    }
+
 
     // Does this write change `role`? Used only to choose between the
     // role-change branch and the general management branch of the participant
@@ -520,12 +512,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
     }
 
-    // Is this request a role-management write that is NOT a role change --
-    // identity repair, invitation status, a circle placeholder?
-    function requestTouchesRole() {
-      return resource != null
-        && resource.data.get('role', '') != request.resource.data.get('role', '');
-    }
+
 
     // Is this invitee settling their OWN participant row against an open
     // invitation? Works for both write shapes the client uses:
