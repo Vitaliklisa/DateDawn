@@ -20,6 +20,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
+
+class _MockFirestore extends Mock implements FirebaseFirestore {}
+
+class _MockCollectionReference
+    extends Mock
+    implements CollectionReference<Map<String, dynamic>> {}
+
+class _MockDocumentReference
+    extends Mock
+    implements DocumentReference<Map<String, dynamic>> {}
+
+class _MockDocumentSnapshot
+    extends Mock
+    implements DocumentSnapshot<Map<String, dynamic>> {}
 
 Participant _person(
   String id,
@@ -419,6 +434,57 @@ void main() {
         role: ParticipantRole.viewer,
       );
       expect(await storedRole('viewer'), 'viewer');
+    });
+
+    test('a failed live target read never falls back to the stale row',
+        () async {
+      final firestore = _MockFirestore();
+      final events = _MockCollectionReference();
+      final event = _MockDocumentReference();
+      final participants = _MockCollectionReference();
+      final actorRow = _MockDocumentReference();
+      final targetRow = _MockDocumentReference();
+      final actorSnapshot = _MockDocumentSnapshot();
+
+      when(() => firestore.collection('events')).thenReturn(events);
+      when(() => events.doc('e1')).thenReturn(event);
+      when(() => event.collection('participants')).thenReturn(participants);
+      when(() => participants.doc('admin')).thenReturn(actorRow);
+      when(() => participants.doc('viewer')).thenReturn(targetRow);
+      when(() => actorRow.get()).thenAnswer((_) async => actorSnapshot);
+      when(() => actorSnapshot.data()).thenReturn({
+        'email': 'admin@example.com',
+        'role': 'admin',
+        'inviteStatus': 'accepted',
+      });
+      when(() => targetRow.get()).thenAnswer(
+        (_) => Future.error(
+          FirebaseException(
+            plugin: 'cloud_firestore',
+            code: 'permission-denied',
+            message: 'Missing or insufficient permissions.',
+          ),
+        ),
+      );
+
+      final repository = EventRepository(firestore: firestore);
+      final stale = _event([
+        _person('owner', ParticipantRole.admin),
+        _person('admin', ParticipantRole.admin),
+        _person('viewer', ParticipantRole.viewer),
+      ]);
+
+      await expectLater(
+        repository.updateParticipantRole(
+          eventId: 'e1',
+          actorId: 'admin',
+          participant: _person('viewer', ParticipantRole.viewer),
+          role: ParticipantRole.editor,
+          event: stale,
+        ),
+        throwsA(isA<FirebaseException>()),
+      );
+      verifyNever(() => targetRow.update({'role': 'editor'}));
     });
   });
 
