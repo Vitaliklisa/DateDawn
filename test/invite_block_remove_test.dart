@@ -145,9 +145,39 @@ void main() {
         reason: 'a key outside the rule\'s allow-list refuses the whole batch',
       );
       expect(data['inviteStatus'], 'accepted');
-      // The role is the one the invitation granted, not one the client chose.
-      expect(data['role'], 'editor');
+      // The row's role is NOT rewritten by an accept. It keeps what the admin
+      // who created the row gave it (`viewer` here); the invitation's role is
+      // only used when the row is created for the first time. Changing a role
+      // stays an admin action, and the update rule requires `role` to be
+      // unchanged -- which is exactly what this write shape satisfies.
+      expect(data['role'], 'viewer');
       expect(data['invitationId'], 'inv-1');
+    });
+
+    test('accepting does not rewrite the role on a row that already exists',
+        () async {
+      await seedEvent();
+      // The row was given `viewer` (an admin edited it, or an invitation was
+      // reopened with a different role) while the invitation still says
+      // `editor`. Rewriting `role` from the invitation is exactly what the
+      // update rule refuses -- `request.resource.data.role` must equal
+      // `resource.data.role` -- and it was the reason accepting failed with
+      // "this invitation could not be accepted".
+      await seedParticipant('invitee', status: 'pending', role: 'viewer');
+      final invite = _invite(role: ParticipantRole.editor);
+      await seedInvite(invite);
+
+      await repo.acceptInvitation(
+        invitation: invite,
+        userId: 'invitee',
+        email: 'invitee@example.com',
+      );
+
+      final data = (await row('invitee'))!;
+      expect(data['inviteStatus'], 'accepted');
+      expect(data['role'], 'viewer',
+          reason: 'changing a role is an admin action, not an accept side '
+              'effect');
     });
 
     test('the invitation is settled and the event lists the member', () async {
@@ -184,27 +214,28 @@ void main() {
       expect(data['userId'], 'invitee');
     });
 
-    test('accepting when already a member says so, and does not rewrite',
+    test(
+        'accepting when already a member succeeds quietly and does not rewrite',
         () async {
       await seedEvent();
       await seedParticipant('invitee', role: 'admin');
       final invite = _invite(role: ParticipantRole.viewer);
       await seedInvite(invite);
 
-      await expectLater(
-        repo.acceptInvitation(
-          invitation: invite,
-          userId: 'invitee',
-          email: 'invitee@example.com',
-        ),
-        throwsA(
-          isA<DataFailure>().having(
-            (e) => e.message,
-            'message',
-            contains('already on this countdown'),
-          ),
-        ),
+      // Accepting twice is idempotent, not an error: the inbox mounts more than
+      // one copy of the card and the stream re-emits while the first write is
+      // in flight, so a second call is a normal user action. It used to throw
+      // "You are already on this countdown.", which surfaced as a failure on a
+      // countdown the person had just joined.
+      await repo.acceptInvitation(
+        invitation: invite,
+        userId: 'invitee',
+        email: 'invitee@example.com',
       );
+
+      // The invitation is still settled, so it leaves the inbox.
+      final inviteDoc = await db.collection('invitations').doc('inv-1').get();
+      expect(inviteDoc.data()!['status'], 'accepted');
 
       // Critically: the member's admin role was NOT downgraded to the
       // invitation's viewer role.
@@ -353,17 +384,20 @@ void main() {
       expect(await row('viewer'), isNull);
     });
 
-    test('a non-creator admin cannot remove another admin', () async {
+    // `admin` is the managing role. Two admins may remove each other; only the
+    // creator is above that. This used to be refused by a client-only
+    // "must outrank the target" guard that the security rules never had, so the
+    // menu offered Remove and the repository refused it with "You can only
+    // remove someone with less access than you".
+    test('a non-creator admin can remove another admin', () async {
       await seedEvent();
       await seedParticipant('admin', role: 'admin');
       await seedParticipant('admin2', role: 'admin');
 
-      await expectLater(
-        repo.removeParticipant(
-            eventId: 'e1', actorId: 'admin', userId: 'admin2'),
-        throwsA(isA<DataFailure>()),
-      );
-      expect(await row('admin2'), isNotNull);
+      await repo.removeParticipant(
+          eventId: 'e1', actorId: 'admin', userId: 'admin2');
+
+      expect(await row('admin2'), isNull);
     });
 
     test('an editor cannot remove anyone', () async {
@@ -420,7 +454,34 @@ void main() {
 
     test('a role change on the target is respected before removal', () async {
       // The screen believes `viewer` is a viewer; Firestore says they were just
-      // promoted to admin. A non-creator admin must then be refused.
+      // promoted to editor. The repository re-reads the row, so it removes the
+      // person it actually found -- it does not act on the stale screen copy.
+      // What still stops is anything the rules would refuse: the creator, or a
+      // row that is not a person.
+      await seedEvent();
+      await seedParticipant('admin', role: 'admin');
+      await seedParticipant('viewer');
+      await db
+          .collection('events')
+          .doc('e1')
+          .collection('participants')
+          .doc('viewer')
+          .update({'role': 'editor'});
+
+      await repo.removeParticipant(
+          eventId: 'e1', actorId: 'admin', userId: 'viewer');
+
+      expect(await row('viewer'), isNull,
+          reason: 'the live row, not the screen\'s copy, is what is acted on');
+    });
+
+    test(
+        'a role change to admin elsewhere does not block the creator-invited '
+        'admin from a stale screen', () async {
+      // The stale-screen case that DOES still matter: the target was promoted
+      // to admin after the screen loaded. A non-creator admin may now remove
+      // them too (admin is the managing role), so this is allowed; the creator
+      // remains the only row nobody can remove.
       await seedEvent();
       await seedParticipant('admin', role: 'admin');
       await seedParticipant('viewer');
@@ -431,12 +492,10 @@ void main() {
           .doc('viewer')
           .update({'role': 'admin'});
 
-      await expectLater(
-        repo.removeParticipant(
-            eventId: 'e1', actorId: 'admin', userId: 'viewer'),
-        throwsA(isA<DataFailure>()),
-      );
-      expect(await row('viewer'), isNotNull);
+      await repo.removeParticipant(
+          eventId: 'e1', actorId: 'admin', userId: 'viewer');
+
+      expect(await row('viewer'), isNull);
     });
 
     test('removing someone who is already gone is not an error', () async {
@@ -648,8 +707,9 @@ class _RefusingCleanupRepository extends EventRepository {
   @override
   Future<void> removeBlockedParticipant(
     DocumentReference<Map<String, dynamic>> eventRef,
-    String targetUid,
-  ) async {
+    String targetUid, {
+    String? actorId,
+  }) async {
     throw FirebaseException(
       plugin: 'cloud_firestore',
       code: 'permission-denied',

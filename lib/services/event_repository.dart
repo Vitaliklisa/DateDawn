@@ -1154,15 +1154,18 @@ class EventRepository {
           'A circle share is removed by unsharing the circle, not here.');
     }
 
-    // A non-creator admin may not remove someone of equal or higher standing.
-    // In practice that is another admin, and the point is that two admins
-    // cannot unseat each other — only the creator decides who administers.
-    if (!isCreator &&
-        actorRole != null &&
-        actorRole.authorityRank <= target.role.authorityRank) {
-      throw const DataFailure(
-          'You can only remove someone with less access than you.');
-    }
+    // **No "must outrank the target" check.**
+    //
+    // This used to refuse when `actorRole.authorityRank <= target.role.rank`,
+    // i.e. an admin could only remove someone *below* admin. `admin` is the
+    // managing role in this app, and the rules' delete branch
+    // (`isEventOwner || isAdmin`) has never required outranking, so this guard
+    // was the client inventing a stricter policy than the server: an admin
+    // removing another admin was refused with "You can only remove someone with
+    // less access than you" even though the write would have been allowed.
+    //
+    // What still protects people is above: the creator cannot be removed, and
+    // nobody can remove themselves through this path.
 
     try {
       await targetRef.delete();
@@ -1273,7 +1276,18 @@ class EventRepository {
     if (row.exists && existing != null) {
       final status = InviteStatus.fromWire(existing['inviteStatus']);
       if (status == InviteStatus.accepted) {
-        // Idempotent: clear the invitation so it leaves the inbox.
+        // **Accepting twice is a success, not an error.**
+        //
+        // This used to settle the invitation and then throw "You are already
+        // on this countdown." An idempotent accept has to return normally: the
+        // inbox mounts more than one copy of the card, the stream re-emits
+        // while the first write is in flight, and a second tap is a normal user
+        // action. Throwing turned every one of those into an error toast on a
+        // countdown the person had, in fact, just joined.
+        //
+        // The invitation is still settled so it leaves the inbox, and a
+        // failure to do that is logged rather than surfaced -- the membership
+        // is what the user asked for.
         try {
           await _invitations
               .doc(invitation.id)
@@ -1281,7 +1295,7 @@ class EventRepository {
         } catch (error) {
           debugPrint('[datedawn] Could not settle the invitation: $error');
         }
-        throw const DataFailure('You are already on this countdown.');
+        return;
       }
     }
 
@@ -1316,7 +1330,26 @@ class EventRepository {
         // appeared in their list.
         'userId': userId,
         'email': email.toLowerCase(),
-        'role': invitation.role.name,
+        // **Do not rewrite `role` on a row that already exists.**
+        //
+        // The inviter pre-creates a `pending` row carrying the role from the
+        // invitation, and that row is what an admin-written invite leaves
+        // behind. But a row can also be born by a DECLINE (`rejectInvitation`
+        // creates it with the invitation's role) and then reopened by an admin
+        // with a different role, or have had its role edited while the
+        // invitation sat unanswered.
+        //
+        // The accept update rule (firestore.rules) has a branch for a row whose
+        // role is unchanged, keyed on `request.resource.data.role ==
+        // resource.data.role`. Sending the invitation's role regardless made
+        // that comparison false on any row whose stored role had moved on, so
+        // the write fell through every branch and the accept died with
+        // `permission-denied` -- "this invitation could not be accepted".
+        //
+        // The merge keeps the stored role when we omit it, which is exactly
+        // right: changing someone's role is the admin's call, not a side effect
+        // of them tapping Accept.
+        if (!row.exists) 'role': invitation.role.name,
         'inviteStatus': InviteStatus.accepted.name,
         'joinedAt': Timestamp.fromDate(DateTime.now()),
         // Stamped last so it is present on a create. `merge` never removes a
@@ -1335,10 +1368,28 @@ class EventRepository {
     try {
       await batch.commit();
     } on FirebaseException catch (error) {
+      // Log the raw refusal before translating it. When this fires the
+      // translated sentence alone gives nothing to debug with; the code, the
+      // message and the exact document paths are what identify whether it is
+      // the participant row, the invitation or the event that the rules
+      // refused.
+      debugPrint(
+        '[datedawn] Accept ${invitation.id} for event ${invitation.eventId} '
+        'as $userId refused (${error.code}): ${error.message}',
+      );
       if (error.code == 'permission-denied') {
         throw const DataFailure(
             'This invitation could not be accepted. It may have been '
-            'cancelled or replaced — ask for a fresh one.');
+            'cancelled, revoked, or replaced — ask for a fresh one.');
+      }
+      if (error.code == 'not-found') {
+        throw const DataFailure(
+            'That invitation no longer exists. Ask for a new one.');
+      }
+      if (error.code == 'unavailable' ||
+          error.code == 'network-request-failed') {
+        throw const DataFailure(
+            'No connection. Check your network and accept it again.');
       }
       rethrow;
     }
@@ -1498,21 +1549,42 @@ class EventRepository {
   /// This re-reads the document, which is the only authority on whether an
   /// answer is still open.
   Future<void> _guardInvitation(Invitation invitation) async {
-    if (invitation.isExpired) {
-      throw const DataFailure('That invitation has expired.');
-    }
-    // Fast path: the caller already knows it is settled.
-    if (invitation.status != InviteStatus.pending) {
-      throw const DataFailure('That invitation has already been answered.');
-    }
-
+    // Check the LIVE document first, not the snapshot.
+    //
+    // The snapshot the card was built with says `pending` for ever, and it also
+    // carries the `expiresAt` it was read with. The live document is the only
+    // authority on whether the invitation is still open, and reading it first
+    // is what lets the four outcomes below be told apart instead of all
+    // collapsing into "already been answered".
     final doc = await _invitations.doc(invitation.id).get();
     final live = doc.data();
     if (!doc.exists || live == null) {
-      throw const DataFailure('That invitation no longer exists.');
+      throw const DataFailure(
+          'That invitation no longer exists — it was withdrawn. Ask for a new '
+          'one.');
     }
-    if (live['status'] != InviteStatus.pending.name) {
-      throw const DataFailure('That invitation has already been answered.');
+
+    final liveStatus = live['status'];
+    if (liveStatus != InviteStatus.pending.name) {
+      throw DataFailure(
+        liveStatus == InviteStatus.declined.name
+            ? 'That invitation was already declined. Ask the owner to invite '
+                'you again.'
+            : 'That invitation was already accepted or cancelled. Ask for a '
+                'fresh one.',
+      );
+    }
+
+    // Expiry from the stored document, so a clock skew on the device cannot
+    // make a live invitation look expired or a dead one look open.
+    final expiresAt = live['expiresAt'];
+    if (expiresAt is Timestamp && expiresAt.toDate().isBefore(DateTime.now())) {
+      throw const DataFailure(
+          'That invitation has expired. Ask the owner to send a new one.');
+    }
+    if (invitation.isExpired) {
+      throw const DataFailure(
+          'That invitation has expired. Ask the owner to send a new one.');
     }
   }
 
@@ -2770,14 +2842,15 @@ class EventRepository {
     // 2a. Shared countdowns: drop their participant row, so access ends and
     //     they stop appearing in the people list.
     //
-    // Read per event, not with a collection-group query. A collection-group
-    // read has to be provable for a whole collection, and the participants read
-    // rule (`isParticipant(eventId)` / an owner `get()` of the parent event)
-    // cannot be evaluated that way — Firestore refuses the query outright with
-    // `permission-denied`, so this step used to do nothing at all on every
-    // device. Listing the caller's own countdowns first, then reading the one
-    // participant document per event, is a read the rules *can* answer: it is
-    // exactly the same shape the event screen already uses.
+    //     **Best-effort, and this is deliberate.** The participant delete rule
+    //     only lets the event owner, an admin of it, or the row's own owner
+    //     cancel. Someone who is merely a *member* of a shared countdown -- an
+    //     editor or viewer -- cannot delete another person's row, and Firestore
+    //     refuses it. That refusal must never reach the user: their block is
+    //     already saved, and surfacing it made blocking look like "you do not
+    //     have permission to do that" when the block itself had succeeded.
+    //     `removeBlockedParticipant` swallows and logs; the whole loop is also
+    //     wrapped so one refused countdown cannot stop the rest.
     try {
       final mine = await _events.where('createdBy', isEqualTo: userId).get();
       final sharedWithMe = await _events
@@ -2788,14 +2861,22 @@ class EventRepository {
         for (final doc in sharedWithMe.docs) doc.id: doc.reference,
       };
       for (final eventRef in eventRefs.values) {
-        await removeBlockedParticipant(eventRef, targetUid);
+        await removeBlockedParticipant(eventRef, targetUid, actorId: userId);
       }
     } catch (error) {
       debugPrint('[datedawn] Block: could not list the caller\'s countdowns: '
           '$error');
     }
 
-    // 2b. Pending invitations between the two of you, both directions. Sent
+    // 2b. The caller's own participant row is NOT deleted, and must not be.
+    //
+    //     `removeBlockedParticipant` can only act on countdowns the caller
+    //     owns or administers; everywhere else the delete is refused and
+    //     swallowed. That is the correct outcome -- the block is a personal
+    //     setting, not an admin action, so it must succeed without needing
+    //     any authority over the shared countdown.
+
+    // 2c. Pending invitations between the two of you, both directions. Sent
     //     ones would otherwise keep arriving in their inbox; received ones would
     //     keep asking this user to let the person back in.
     try {
@@ -2872,8 +2953,38 @@ class EventRepository {
   @visibleForTesting
   Future<void> removeBlockedParticipant(
     DocumentReference<Map<String, dynamic>> eventRef,
-    String targetUid,
-  ) async {
+    String targetUid, {
+    String? actorId,
+  }) async {
+    // Only attempt the deletes the rules will actually grant: the event's
+    // creator, or an admin of it. Anyone else -- an editor or viewer who merely
+    // shares the countdown -- has no authority over another person's row, and
+    // firing the delete anyway produced a logged `permission-denied` on every
+    // countdown the blocker could see but not administer.
+    //
+    // Skipping it is not a hole: the block row still stands, and the countdown
+    // already hides the blocked person from this user through `watchEvents` and
+    // the notes/participants filters. What the skip buys is the removal from
+    // the countdowns the caller DOES own, which is the visible half of the
+    // block.
+    if (actorId != null && actorId.isNotEmpty) {
+      try {
+        final event = await eventRef.get();
+        final createdBy = event.data()?['createdBy'];
+        var allowed = createdBy == actorId;
+        if (!allowed) {
+          final actorRow =
+              await eventRef.collection('participants').doc(actorId).get();
+          allowed = actorRow.data()?['role'] == 'admin';
+        }
+        if (!allowed) return;
+      } catch (error) {
+        // If the check itself cannot run, fall through and let the write be
+        // attempted -- the catch below still keeps the block safe.
+        debugPrint('[datedawn] Block: could not check authority on '
+            '${eventRef.id}: $error');
+      }
+    }
     try {
       await eventRef.collection('participants').doc(targetUid).delete();
     } catch (error) {

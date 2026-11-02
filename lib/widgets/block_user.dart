@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
+import '../router.dart';
 import '../services/event_repository.dart';
 
 /// Blocking another person, from the people list on a countdown.
@@ -105,7 +106,18 @@ class _BlockUserSheetState extends ConsumerState<_BlockUserSheet> {
     final me = ref.read(currentUserProvider);
     if (me == null) return;
     setState(() => _busy = true);
-    final messenger = ScaffoldMessenger.of(context);
+    // Resolve the messenger from the ROOT context, before the sheet is popped.
+    //
+    // The sheet is a modal route; `ScaffoldMessenger.of(context)` captured from
+    // its builder is a messenger that dies with the route. Popping first and
+    // then showing the success snackbar on it dropped the success toast while
+    // still letting a later failure toast through -- which is how a block that
+    // worked could look like "nothing happened" or, worse, end with a stray
+    // permission message. Resolving it from the app's root messenger keeps it
+    // alive across the pop.
+    final messenger = ScaffoldMessenger.of(
+      rootNavigatorKey.currentContext ?? context,
+    );
     try {
       await ref.read(eventRepositoryProvider).blockUser(
             userId: me.id,
@@ -114,52 +126,63 @@ class _BlockUserSheetState extends ConsumerState<_BlockUserSheet> {
             targetDisplayName: widget.participant.displayName,
             targetPhotoUrl: widget.participant.photoUrl,
           );
-      if (!mounted) return;
-      // The block succeeded. Re-read the blocked list now, so Settings → Blocked
-      // people shows this person the moment it is opened, and invalidate the
-      // same feeds the block pruned (participants, invitations, notes). The
-      // writes are done; this is what makes the UI agree with them.
-      ref.invalidate(blockedUsersProvider);
-      ref.invalidate(invitationsProvider);
-      Navigator.of(context).pop(true);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('$_who is blocked.'),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () async {
-              await ref.read(eventRepositoryProvider).unblockUser(
-                    userId: me.id,
-                    targetUid: widget.participant.userId,
-                  );
-              // Unblocking changes the list too — refresh it, or Settings would
-              // keep showing someone who is no longer blocked.
-              ref.invalidate(blockedUsersProvider);
-            },
-          ),
-        ),
-      );
     } catch (error) {
-      if (!mounted) return;
-      setState(() => _busy = false);
-      // Say what actually went wrong. A bare "Could not block" left the user
-      // with no idea whether to retry, sign in, or check their connection — and
-      // it hid a permission error behind the same sentence as a network drop.
-      final message = switch (error) {
-        DataFailure(:final message) => message,
-        FirebaseException(code: 'permission-denied') =>
-          'You do not have permission to do that. Make sure you are signed in, '
-              'then try again.',
-        FirebaseException(code: 'unavailable') =>
-          'No connection. Check your network and try again.',
-        _ => 'Could not block $_who. Please try again.',
-      };
+      // Only a failure of the block itself reaches here. Every cleanup step
+      // inside `blockUser` is best-effort and never throws, so this message is
+      // about the block, not about a shared countdown the blocker could not
+      // administer.
+      if (mounted) setState(() => _busy = false);
       messenger.showSnackBar(
         SnackBar(
-          content: Text(message),
+          content: Text(_blockFailureMessage(error)),
           duration: const Duration(seconds: 6),
         ),
       );
+      return;
     }
+
+    if (!mounted) return;
+    // The block succeeded. Re-read the blocked list now, so Settings → Blocked
+    // people shows this person the moment it is opened, and invalidate the
+    // same feeds the block pruned (participants, invitations, notes). The
+    // writes are done; this is what makes the UI agree with them.
+    ref.invalidate(blockedUsersProvider);
+    ref.invalidate(invitationsProvider);
+    Navigator.of(context).pop(true);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('$_who is blocked.'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            await ref.read(eventRepositoryProvider).unblockUser(
+                  userId: me.id,
+                  targetUid: widget.participant.userId,
+                );
+            // Unblocking changes the list too — refresh it, or Settings would
+            // keep showing someone who is no longer blocked.
+            ref.invalidate(blockedUsersProvider);
+          },
+        ),
+      ),
+    );
+  }
+
+  /// What to tell the user when the block write itself was refused.
+  ///
+  /// Split out so the "we could not save your block" case never gets the
+  /// generic "you do not have permission to do that" wording that used to
+  /// appear for an unrelated cleanup refusal. A permission error on the block
+  /// row means the session is not what the rules expect (a signed-out tab, an
+  /// account switch), and that is what is said.
+  String _blockFailureMessage(Object error) {
+    return switch (error) {
+      DataFailure(:final message) => message,
+      FirebaseException(code: 'permission-denied') =>
+        'Your block could not be saved. Sign in again and retry.',
+      FirebaseException(code: 'unavailable') =>
+        'No connection. Check your network and try again.',
+      _ => 'Could not block $_who. Please try again.',
+    };
   }
 }

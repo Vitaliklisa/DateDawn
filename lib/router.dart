@@ -25,7 +25,14 @@ import 'widgets/app_navigation_shell.dart';
 /// screen without creating a cycle.
 export 'core/routes.dart';
 
-final _rootKey = GlobalKey<NavigatorState>();
+/// The app's root navigator key.
+///
+/// Public so a surface that dismisses itself (a modal bottom sheet) can show a
+/// snackbar on the ROOT `ScaffoldMessenger` after its own route is gone. Using
+/// the sheet's own context for that shows the message on a messenger that dies
+/// with the route, which silently drops it.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+final _rootKey = rootNavigatorKey;
 
 /// Routes reachable without a session.
 ///
