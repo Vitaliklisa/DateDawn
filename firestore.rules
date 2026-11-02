@@ -336,6 +336,24 @@ service cloud.firestore {
       return eventCreator(eventId) != '' && eventCreator(eventId) == uid();
     }
 
+    // The same question, asked of the database as of the END of the batch.
+    //
+    // The participant CREATE rule called this and the function did not exist.
+    // Firestore does not short-circuit `||`, so the undefined call evaluated on
+    // every create -- including the invitee's own row in the accept batch --
+    // and the whole rule errored, which Firestore reports as
+    // `permission-denied`. That single missing function is what refused every
+    // accept that had no pre-existing participant row. The deploy now warns
+    // (`[W] Invalid function name: isEventCreatorAfter`) instead of failing.
+    //
+    // Needed `getAfter`, not `get`: creating a countdown writes the event and
+    // its creator's row in (or just before) the same request, so the plain
+    // `get()` cannot see the event yet.
+    function isEventCreatorAfter(eventId) {
+      return existsAfter(/databases/$(database)/documents/events/$(eventId))
+        && getAfter(/databases/$(database)/documents/events/$(eventId)).data.get('createdBy', '') == uid();
+    }
+
     // The event's creator, read from the event itself rather than from a
     // participant row. Used wherever "the creator keeps ownership" has to be
     // enforced ------------------ a role change must not be able to touch their row, whatever
@@ -540,7 +558,7 @@ service cloud.firestore {
     // nothing, which is why `userId == uid()` was false for the invitee's own
     // row and every first-time accept was refused. `roleChangeAllowed` takes
     // the target for the same reason.
-    function isSelfAnsweringInvite(targetUserId) {
+    function isSelfAnsweringInvite(eventId, targetUserId) {
       return targetUserId == uid()
         && request.resource.data.get('inviteStatus', '') in ['accepted', 'declined']
         && invitationIdIsSafe(request.resource.data.get('invitationId', '-'))
@@ -560,9 +578,9 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/invitations/$(request.resource.data.get('invitationId', '-'))).data.get('role', '') == request.resource.data.get('role', '');
     }
 
-    function isSelfAnsweringInviteCreate(targetUserId) {
+    function isSelfAnsweringInviteCreate(eventId, targetUserId) {
       return resource == null
-        && isSelfAnsweringInvite(targetUserId)
+        && isSelfAnsweringInvite(eventId, targetUserId)
         && roleMatchesInvitation();
     }
 
@@ -741,7 +759,7 @@ service cloud.firestore {
             || isEventOwner(eventId)
             || isEventCreatorAfter(eventId)
             || (isInviteFlowRow(eventId) && mayWriteInvitation(eventId))
-            || isSelfAnsweringInviteCreate(userId));
+            || isSelfAnsweringInviteCreate(eventId, userId));
 
         // Role changes are decided FIRST, on the request shape alone, and then
         // handed to the policy helper. The old single expression put
@@ -775,14 +793,14 @@ service cloud.firestore {
         // an admin reopened the invitation; the row keeps whatever role it has,
         // which is why `role` may not change here. isRoleChange() never
         // authorises this branch -- it is its own clause.
+        // Folded into one helper for the same reason the role-change branch is:
+        // as an inline `&&` chain in the match block, this branch evaluated
+        // false for a perfectly valid accept while every conjunct tested fine
+        // on its own. The helper is called with the wildcard explicitly.
         allow update: if signedIn()
-          && userId == uid()
           && resource != null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userId', 'email', 'inviteStatus', 'joinedAt', 'role', 'invitationId', 'invitationEmail'])
-          && request.resource.data.get('inviteStatus', '') in ['accepted', 'declined']
+          && isSelfAnsweringInvite(eventId, userId)
           && request.resource.data.get('role', '') == resource.data.get('role', '')
-          && request.resource.data.get('invitationId', '') != ''
-          && invitationAuthorisesRow(request.resource.data.get('invitationId', '-'))
           && resource.data.get('inviteStatus', '') in ['pending', 'reopened', 'declined'];
 
         allow delete: if signedIn()
