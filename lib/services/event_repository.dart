@@ -1765,18 +1765,40 @@ class EventRepository {
   /// Reads the stored document rather than the caller's snapshot, for the same
   /// reason as [_guardInvitation]: a snapshot captured at build time always
   /// says `pending`, so it cannot detect that the invitation has moved on.
-  Future<void> _guardCircleInvitation(CircleInvitation invitation) async {
-    if (invitation.status != InviteStatus.pending) {
-      throw const DataFailure('That invitation has already been answered.');
-    }
+  Future<bool> _guardCircleInvitation(
+    CircleInvitation invitation, {
+    String? acceptingUserId,
+    String? acceptingEmail,
+  }) async {
     final doc = await _circleInvitations.doc(invitation.id).get();
     final live = doc.data();
     if (!doc.exists || live == null) {
       throw const DataFailure('That invitation no longer exists.');
     }
+    if (live['status'] == InviteStatus.accepted.name) {
+      final emailMatches = acceptingEmail != null &&
+          (live['inviteeEmail'] as String? ?? '').toLowerCase() ==
+              acceptingEmail.trim().toLowerCase();
+      if (acceptingUserId != null && emailMatches) {
+        final member = await _circles
+            .doc(invitation.circleId)
+            .collection('members')
+            .doc(acceptingUserId)
+            .get();
+        final circle = await _circles.doc(invitation.circleId).get();
+        final memberIds = circle.data()?['memberIds'];
+        if (member.exists &&
+            memberIds is List &&
+            memberIds.contains(acceptingUserId)) {
+          return true;
+        }
+      }
+      throw const DataFailure('That invitation has already been answered.');
+    }
     if (live['status'] != InviteStatus.pending.name) {
       throw const DataFailure('That invitation has already been answered.');
     }
+    return false;
   }
 
   /// Every member uid of every circle in [circleIds].
@@ -2599,21 +2621,28 @@ class EventRepository {
   /// `memberIds` (so security rules can check membership in one read), and
   /// flips the invitation to accepted. All three in one batch: a partial write
   /// would leave someone invited but not a member.
-  Future<void> acceptCircleInvitation({
+  /// Returns `true` when the invitee is already a member; `false` when this
+  /// call joined them for the first time.
+  Future<bool> acceptCircleInvitation({
     required CircleInvitation invitation,
     required String userId,
     required String email,
     String? displayName,
     String? photoUrl,
   }) async {
-    if (invitation.isExpired) {
-      throw const DataFailure('That invitation has expired.');
-    }
     // Same live-document check as the countdown invitation: the object the
     // caller holds is a build-time snapshot that always reads `pending`, so
     // only the stored document can say whether an answer is still open. Without
     // this, a settled circle invitation was re-committed on every rebuild.
-    await _guardCircleInvitation(invitation);
+    final alreadyAccepted = await _guardCircleInvitation(
+      invitation,
+      acceptingUserId: userId,
+      acceptingEmail: email,
+    );
+    if (alreadyAccepted) return true;
+    if (invitation.isExpired) {
+      throw const DataFailure('That invitation has expired.');
+    }
 
     final batch = _db.batch();
     batch.set(
@@ -2632,7 +2661,35 @@ class EventRepository {
     });
     batch.update(_circleInvitations.doc(invitation.id),
         {'status': InviteStatus.accepted.name});
-    await batch.commit();
+    try {
+      await batch.commit();
+    } on FirebaseException catch (error) {
+      debugPrint(
+        '[datedawn] Accept circle invitation ${invitation.id} for '
+        '${invitation.circleId} as $userId refused '
+        '(${error.code}): ${error.message}',
+      );
+      if (error.code == 'permission-denied') {
+        throw const DataFailure(
+          'This circle invitation could not be accepted. Confirm you are '
+          'signed in with the invited account, then retry or ask the owner '
+          'for help.',
+        );
+      }
+      if (error.code == 'not-found') {
+        throw const DataFailure(
+          'That circle or invitation no longer exists. Ask the owner to send '
+          'a new invitation.',
+        );
+      }
+      if (error.code == 'unavailable' ||
+          error.code == 'network-request-failed') {
+        throw const DataFailure(
+          'No connection. Check your network and accept it again.',
+        );
+      }
+      rethrow;
+    }
 
     // Deliberately NO resync here.
     //
@@ -2663,6 +2720,7 @@ class EventRepository {
         kind: NotificationKind.circle,
       );
     }
+    return false;
   }
 
   /// Declines a circle invitation and tells the inviter.

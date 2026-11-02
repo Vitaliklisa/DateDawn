@@ -414,24 +414,38 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
       if (mounted) setState(() => _busy = false);
       return;
     }
+    final claimKey = _claimKey;
+    final container = ProviderScope.containerOf(context, listen: false);
+    final repository = container.read(eventRepositoryProvider);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    var alreadyMember = false;
     final failure = await runAction(
       context,
-      () => ref.read(eventRepositoryProvider).acceptCircleInvitation(
-            invitation: widget.invite,
-            userId: user.id,
-            email: user.email,
-            displayName: user.displayName,
-            photoUrl: user.photoUrl,
-          ),
-      successMessage: widget.invite.isCouple
-          ? 'You were added to “${widget.invite.circleName}”.'
-          : 'You joined “${widget.invite.circleName}”.',
+      () async {
+        alreadyMember = await repository.acceptCircleInvitation(
+          invitation: widget.invite,
+          userId: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          photoUrl: user.photoUrl,
+        );
+      },
     );
-    if (failure != null) {
-      _release();
-    } else {
-      ref.invalidate(eventsProvider);
-      ref.invalidate(circlesProvider);
+    container.read(invitationSubmissionProvider.notifier).release(claimKey);
+    if (failure == null) {
+      container.invalidate(eventsProvider);
+      container.invalidate(circlesProvider);
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(
+            alreadyMember
+                ? 'You are already a member of “${widget.invite.circleName}”.'
+                : widget.invite.isCouple
+                    ? 'You were added to “${widget.invite.circleName}”.'
+                    : 'You joined “${widget.invite.circleName}”.',
+          ),
+        ),
+      );
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -479,8 +493,9 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
               'circle will show up in your list.',
       acceptLabel: invite.isCouple ? 'Become partners' : 'Join circle',
       busy: _busy,
-      automaticStatus:
-          invite.isCouple ? 'Automatic join could not be completed.' : null,
+      automaticStatus: invite.isCouple
+          ? invite.joinError ?? 'Automatic join could not be completed.'
+          : null,
       onRetry: invite.isCouple ? _accept : null,
       onAccept: invite.isCouple ? null : _accept,
       onDecline: invite.isCouple ? null : _decline,

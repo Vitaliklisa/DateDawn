@@ -171,6 +171,7 @@ class CircleInvitation {
     this.invitedByName,
     this.status = InviteStatus.pending,
     this.isCouple = false,
+    this.joinError,
   });
   final String id;
   final String circleId;
@@ -182,6 +183,7 @@ class CircleInvitation {
   final InviteStatus status;
   final DateTime createdAt;
   final DateTime expiresAt;
+  final String? joinError;
 
   bool get isExpired => expiresAt.isBefore(DateTime.now());
 
@@ -198,6 +200,20 @@ class CircleInvitation {
         createdAt: _date(map['createdAt']) ?? DateTime.now(),
         expiresAt: _date(map['expiresAt']) ??
             DateTime.now().add(const Duration(days: 30)),
+      );
+
+  CircleInvitation copyWith({String? joinError}) => CircleInvitation(
+        id: id,
+        circleId: circleId,
+        invitedBy: invitedBy,
+        inviteeEmail: inviteeEmail,
+        createdAt: createdAt,
+        expiresAt: expiresAt,
+        circleName: circleName,
+        invitedByName: invitedByName,
+        status: status,
+        isCouple: isCouple,
+        joinError: joinError,
       );
 
   Map<String, dynamic> toMap() => {

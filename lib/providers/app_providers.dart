@@ -194,15 +194,25 @@ final circleInvitationsProvider = StreamProvider<List<CircleInvitation>>((ref) {
         // without waiting for the next unrelated rebuild.
         ref.invalidate(circlesProvider);
         ref.invalidate(eventsProvider);
-      } catch (error) {
+        claims.release(claimKey);
+      } catch (error, stackTrace) {
         debugPrint(
           '[datedawn] Could not auto-join couple circle '
           '${invitation.circleId} (${invitation.id}): $error',
         );
-        // Released so the card's retry action can genuinely retry; the card is
-        // shown only when the join did not happen.
+        debugPrintStack(stackTrace: stackTrace);
         claims.release(claimKey);
-        visible.add(invitation);
+        visible.add(invitation.copyWith(
+            joinError: switch (error) {
+          DataFailure(:final message) => message,
+          FirebaseException(code: 'permission-denied') =>
+            'This couple invitation could not be accepted. Check that you are '
+                'signed in with the invited account, then retry.',
+          FirebaseException(code: 'unavailable') =>
+            'No connection. Check your network and retry the couple join.',
+          _ => 'Could not join this couple circle. Retry or ask the owner for '
+              'a new invitation.',
+        }));
       }
     }
     return visible;
