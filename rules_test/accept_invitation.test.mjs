@@ -69,7 +69,12 @@ async function seed() {
 
 function acceptBatch(uid, invitationId, role) {
   return async () => {
-    const db = env.authenticatedContext(uid).firestore();
+    // The invitation is matched against the caller's VERIFIED token email
+    // (`myEmail()`), so the test has to authenticate with one. Signing in as a
+    // bare uid left the claim empty and made every accept look refused.
+    const db = env
+      .authenticatedContext(uid, { email: 'invitee@example.com' })
+      .firestore();
     const batch = writeBatch(db);
     batch.set(
       doc(db, 'events/e1/participants/invitee'),
@@ -94,7 +99,6 @@ function acceptBatch(uid, invitationId, role) {
 }
 
 await check('invitee accepts a valid invitation', async () => {
-  const db = env.authenticatedContext('invitee@example.com').firestore();
   const run = acceptBatch('invitee', 'inv1', 'editor');
   await assertSucceeds(run());
 });
@@ -113,6 +117,45 @@ await check('accept without a real invitation is refused', async () => {
 await check('a stranger cannot accept into someone else\'s event', async () => {
   const run = acceptBatch('stranger', 'inv1', 'editor');
   await assertFails(run());
+});
+
+// The invited uid may create their OWN row when there is none yet (an invite
+// sent to an email address, or a pending row that was cleaned up). This is the
+// narrow `isSelfAnsweringInvite()` branch, and it must not become a way to
+// grant oneself a role the invitation did not name.
+function selfCreateBatch(uid, role) {
+  return async () => {
+    const db = env.authenticatedContext(uid, {
+      email: 'invitee@example.com',
+    }).firestore();
+    await setDoc(
+      doc(db, 'events/e1/participants/invitee'),
+      {
+        userId: 'invitee',
+        email: 'invitee@example.com',
+        role,
+        inviteStatus: 'accepted',
+        joinedAt: new Date(),
+        invitationId: 'inv1',
+        invitationEmail: 'invitee@example.com',
+      },
+      { merge: true },
+    );
+    await updateDoc(doc(db, 'invitations/inv1'), { status: 'accepted' });
+  };
+}
+
+await check('the invited uid creates their own row with the invited role',
+  async () => {
+    await assertSucceeds(selfCreateBatch('invitee', 'editor')());
+  });
+
+await check('the invited uid cannot create their own row as admin', async () => {
+  await assertFails(selfCreateBatch('invitee', 'admin')());
+});
+
+await check('a stranger cannot create a row citing my invitation', async () => {
+  await assertFails(selfCreateBatch('stranger', 'editor')());
 });
 
 for (const [status, name, msg] of results) {

@@ -36,11 +36,22 @@ service cloud.firestore {
     // but normalising here keeps the invitation match exact.
     function myEmail() {
       // `token.email` is ABSENT for accounts without one (anonymous sign-in, some
-      // providers). Calling `.lower()` on it THROWS, and a throwing rule is a
-      // denial ------------------ which turned every accept and invite from such an account into
-      // "Missing or insufficient permissions" with no clue why. An absent email
-      // matches nothing instead.
-      return request.auth.token.get('email', '').lower();
+      // providers). Reading `token.get('email', '')` was supposed to be the safe
+      // form, but on this rules engine it does NOT resolve a custom-claim email
+      // on the emulator's test tokens -- it returns '' even when
+      // `token.email` is 'invitee@example.com'. Every accept compares the
+      // invitation's `inviteeEmail` against this value, so it returned '' and
+      // no invitation ever matched: the accept failed with
+      // "Missing or insufficient permissions" for a perfectly valid invite.
+      //
+      // `token.get(...)` with a default is still the safe READ for a key that
+      // may be absent (this engine throws on a missing key), but the key has to
+      // be read from a token that actually has it. `token.email` is that read.
+      // `signedIn()` guards the whole rule, and an absent email matches nothing
+      // rather than throwing.
+      return request.auth.token.email is string
+        ? request.auth.token.email.lower()
+        : '';
     }
 
     function isParticipant(eventId) {
@@ -498,6 +509,63 @@ service cloud.firestore {
         && resource.data.get('role', '') != request.resource.data.get('role', '');
     }
 
+    // Is this invitee settling their OWN participant row against an open
+    // invitation? Works for both write shapes the client uses:
+    //
+    //   * an UPDATE when the inviter pre-created a pending row, and
+    //   * a CREATE when there is no row yet (an invite sent to an email
+    //     address, or a pending row that was cleaned up).
+    //
+    // The create case is what `resource == null` distinguishes. It has to be
+    // its own branch because the update rule cannot admit a create, and a
+    // `set(..., merge: true)` on a missing document IS a create.
+    //
+    // Every field that could grant more than the invitation did is pinned:
+    //
+    //   * the row is the caller's own (`userId == uid()`);
+    //   * the status is a real answer, never `pending`;
+    //   * the role is EXACTLY the one the invitation names, read from the
+    //     invitation document and never from the request -- so this cannot be
+    //     used to accept an `editor` invite as `admin`;
+    //   * the invitation is still open and addressed to the caller's VERIFIED
+    //     email (invitationAuthorisesRow);
+    //   * and the row cites that invitation and that event.
+    //
+    // isRoleChange() is deliberately not used: it is an UPDATE-only shape and
+    // would throw on the null `resource` a create has.
+    // **`targetUserId` is passed in, not read from the wildcard.**
+    //
+    // A helper does not capture the `match /participants/{userId}` wildcard:
+    // inside a function body `userId` resolves to the REQUEST's uid or to
+    // nothing, which is why `userId == uid()` was false for the invitee's own
+    // row and every first-time accept was refused. `roleChangeAllowed` takes
+    // the target for the same reason.
+    function isSelfAnsweringInvite(targetUserId) {
+      return targetUserId == uid()
+        && request.resource.data.get('inviteStatus', '') in ['accepted', 'declined']
+        && invitationIdIsSafe(request.resource.data.get('invitationId', '-'))
+        && invitationAuthorisesRow(request.resource.data.get('invitationId', '-'))
+        && get(/databases/$(database)/documents/invitations/$(request.resource.data.get('invitationId', '-'))).data.get('eventId', '') == eventId;
+    }
+
+    // On a CREATE the role must be exactly the invitation's, because there is
+    // no previous role to compare against -- otherwise the invitee could accept
+    // an `editor` invitation as `admin` by simply creating the row that way.
+    // On an UPDATE the role must be unchanged instead (see the update branch).
+    //
+    // The comparison lives in its own helper with its own `get()` chain: two
+    // reads of the same invitation inside one `&&` expression exceeded what the
+    // engine will resolve for a single rule, which refused every real accept.
+    function roleMatchesInvitation() {
+      return get(/databases/$(database)/documents/invitations/$(request.resource.data.get('invitationId', '-'))).data.get('role', '') == request.resource.data.get('role', '');
+    }
+
+    function isSelfAnsweringInviteCreate(targetUserId) {
+      return resource == null
+        && isSelfAnsweringInvite(targetUserId)
+        && roleMatchesInvitation();
+    }
+
     // Only the fields the editor is allowed to touch may change.
     function onlyEventFieldsChanged() {
       return request.resource.data.diff(resource.data).affectedKeys()
@@ -673,10 +741,7 @@ service cloud.firestore {
             || isEventOwner(eventId)
             || isEventCreatorAfter(eventId)
             || (isInviteFlowRow(eventId) && mayWriteInvitation(eventId))
-            || (userId == uid()
-              && request.resource.data.get('inviteStatus', '') in ['accepted', 'declined']
-              && request.resource.data.get('invitationId', '') != ''
-              && invitationAuthorisesRow(request.resource.data.get('invitationId', '-'))));
+            || isSelfAnsweringInviteCreate(userId));
 
         // Role changes are decided FIRST, on the request shape alone, and then
         // handed to the policy helper. The old single expression put
@@ -697,6 +762,19 @@ service cloud.firestore {
           && !affectsRole()
           && (isAdmin(eventId) || isEventOwner(eventId));
 
+        // The invitee settles their own row against a live invitation.
+        //
+        // Narrow on purpose: the row must be the caller's, a role or identity
+        // field must not move in a way they are not entitled to make, the
+        // status must be a real answer, the row must cite an invitation that
+        // is still open AND addressed to their verified email, and the row
+        // must not already be settled (so a settled answer cannot be flipped
+        // by replaying the same request).
+        //
+        // `inviteStatus` is allowed to move to `declined` -> `accepted` after
+        // an admin reopened the invitation; the row keeps whatever role it has,
+        // which is why `role` may not change here. isRoleChange() never
+        // authorises this branch -- it is its own clause.
         allow update: if signedIn()
           && userId == uid()
           && resource != null
@@ -705,7 +783,7 @@ service cloud.firestore {
           && request.resource.data.get('role', '') == resource.data.get('role', '')
           && request.resource.data.get('invitationId', '') != ''
           && invitationAuthorisesRow(request.resource.data.get('invitationId', '-'))
-          && resource.data.get('inviteStatus', '') in ['pending', 'reopened'];
+          && resource.data.get('inviteStatus', '') in ['pending', 'reopened', 'declined'];
 
         allow delete: if signedIn()
           && userId != eventCreator(eventId)
