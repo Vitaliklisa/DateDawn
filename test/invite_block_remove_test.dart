@@ -354,10 +354,9 @@ void main() {
       // per-user and private, so it must still land — the cleanup is a
       // best-effort courtesy, not a precondition.
       await seedEvent();
-      await db
-          .collection('events')
-          .doc('e1')
-          .update({'sharedWithMemberIds': ['me']});
+      await db.collection('events').doc('e1').update({
+        'sharedWithMemberIds': ['me']
+      });
       await seedParticipant('them', status: 'accepted');
       final guarded = _RefusingCleanupRepository(db);
 
