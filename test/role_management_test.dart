@@ -24,16 +24,17 @@ import 'package:mocktail/mocktail.dart';
 
 class _MockFirestore extends Mock implements FirebaseFirestore {}
 
-class _MockCollectionReference
-    extends Mock
+// Mocktail needs implements-based doubles for these sealed SDK interfaces.
+// ignore: subtype_of_sealed_class
+class _MockCollectionReference extends Mock
     implements CollectionReference<Map<String, dynamic>> {}
 
-class _MockDocumentReference
-    extends Mock
+// ignore: subtype_of_sealed_class
+class _MockDocumentReference extends Mock
     implements DocumentReference<Map<String, dynamic>> {}
 
-class _MockDocumentSnapshot
-    extends Mock
+// ignore: subtype_of_sealed_class
+class _MockDocumentSnapshot extends Mock
     implements DocumentSnapshot<Map<String, dynamic>> {}
 
 Participant _person(
