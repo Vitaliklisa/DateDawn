@@ -1210,7 +1210,9 @@ class EventRepository {
   /// invitation status are written in one batch, and the notification to the
   /// inviter is a separate document so a failure to notify never costs the user
   /// their join.
-  Future<void> acceptInvitation({
+  /// Returns `true` when the caller was already a member; `false` when this
+  /// call joined them for the first time.
+  Future<bool> acceptInvitation({
     required Invitation invitation,
     required String userId,
     required String email,
@@ -1222,7 +1224,7 @@ class EventRepository {
       acceptingUserId: userId,
       acceptingEmail: email,
     );
-    if (alreadyAccepted) return;
+    if (alreadyAccepted) return true;
 
     // Blocking is a standing refusal, so an invite from someone this user has
     // blocked cannot be accepted even if it was already on screen when the
@@ -1290,7 +1292,7 @@ class EventRepository {
         } catch (error) {
           debugPrint('[datedawn] Could not settle the invitation: $error');
         }
-        return;
+        return true;
       }
     }
 
@@ -1378,7 +1380,7 @@ class EventRepository {
           userId: userId,
           email: email,
         );
-        if (settled) return;
+        if (settled) return true;
       }
       if (error.code == 'permission-denied') {
         throw const DataFailure(
@@ -1407,6 +1409,7 @@ class EventRepository {
       responderName: displayName,
       accepted: true,
     );
+    return false;
   }
 
   Future<void> rejectInvitation(

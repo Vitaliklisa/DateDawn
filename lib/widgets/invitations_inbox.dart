@@ -309,23 +309,35 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
       return;
     }
 
+    final claimKey = _claimKey;
+    final container = ProviderScope.containerOf(context, listen: false);
+    final repository = container.read(eventRepositoryProvider);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    var alreadyMember = false;
     final failure = await runAction(
       context,
-      () => ref.read(eventRepositoryProvider).acceptInvitation(
-            invitation: widget.invite,
-            userId: user.id,
-            email: user.email,
-            displayName: user.displayName,
-            photoUrl: user.photoUrl,
-          ),
-      successMessage: 'You joined “${widget.invite.eventTitle}”.',
+      () async {
+        alreadyMember = await repository.acceptInvitation(
+          invitation: widget.invite,
+          userId: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          photoUrl: user.photoUrl,
+        );
+      },
     );
-    // A refusal is the one case where a second attempt should be possible:
-    // the first never changed anything, so the invitation is still open.
-    if (failure != null) {
-      _release();
-    } else {
-      ref.invalidate(eventsProvider);
+    container.read(invitationSubmissionProvider.notifier).release(claimKey);
+    if (failure == null) {
+      container.invalidate(eventsProvider);
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(
+            alreadyMember
+                ? 'You are already a member of “${widget.invite.eventTitle}”.'
+                : 'You joined “${widget.invite.eventTitle}”.',
+          ),
+        ),
+      );
     }
     if (mounted) setState(() => _busy = false);
   }
