@@ -373,7 +373,7 @@ class BlockedUsers extends AsyncNotifier<List<BlockedUser>> {
     final generation = ++_generation;
     final completer = Completer<List<BlockedUser>>();
 
-    void finish(FutureOr<List<BlockedUser>> result, {Object? error}) {
+    void finish(FutureOr<List<BlockedUser>>? result, {Object? error}) {
       if (completer.isCompleted) return;
       if (error != null) {
         completer.completeError(error);
@@ -394,7 +394,14 @@ class BlockedUsers extends AsyncNotifier<List<BlockedUser>> {
     // read cannot resurrect a state that has already settled.
     ref.read(eventRepositoryProvider).watchBlockedUsers(user.id).listen(
           (people) => finish(people),
-          onError: (Object error) => finish(const [], error: error),
+          // A refused read is an error, never an empty list.
+          //
+          // This used to be `finish(const [], error: error)`; the empty list
+          // was pointless (the error wins), but the same anti-pattern sat in
+          // the watchdog below, and between them a permission problem could
+          // settle as `data: []` -- "you blocked nobody" -- instead of the
+          // error screen with Retry.
+          onError: (Object error) => finish(null, error: error),
         );
     ref.onDispose(() {
       _generation++;
@@ -417,9 +424,12 @@ class BlockedUsers extends AsyncNotifier<List<BlockedUser>> {
     _watchdog = Timer(ref.read(blockedUsersLoadTimeoutProvider), () {
       if (completer.isCompleted) return;
       if (generation != _generation) {
-        // A newer read took over; this one is no longer the answer, and must
-        // not report an error for a request nobody is waiting on any more.
-        completer.complete(const []);
+        // A newer read took over. This one is no longer the answer, and it must
+        // not report an error for a request nobody is waiting on any more --
+        // but it must not report an EMPTY LIST either. Completing `[]` here
+        // made a torn-down read look like "you blocked nobody", which is the
+        // same silent conversion of a failure into data the error path had.
+        // The newer generation owns the state; this one simply goes quiet.
         return;
       }
       completer.completeError(
