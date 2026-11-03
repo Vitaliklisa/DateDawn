@@ -23,25 +23,11 @@ Future<void> showEventActionsSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Colors.transparent,
     showDragHandle: true,
-    builder: (sheetContext) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Material(
-            color: sheetContext.colors.surface,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: _EventActionsSheet(
-              event: event,
-              onDeleted: onDeleted,
-            ),
-          ),
-        ],
+    builder: (context) => SingleChildScrollView(
+      child: _EventActionsSheet(
+        event: event,
+        onDeleted: onDeleted,
       ),
     ),
   );
@@ -58,122 +44,133 @@ class _EventActionsSheet extends ConsumerWidget {
     final colors = context.colors;
     final user = ref.watch(currentUserProvider);
     final canEdit = event.canEdit(user?.id);
-    final canManage = user != null &&
-        (event.createdBy == user.id || event.canManage(user.id));
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600),
                   ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  event.isPast ? 'Passed' : 'Counting down',
-                  style: TextStyle(fontSize: 12, color: colors.subtle),
-                ),
-              ],
+                  const SizedBox(height: 3),
+                  Text(
+                    event.isPast ? 'Passed' : 'Counting down',
+                    style: TextStyle(fontSize: 12, color: colors.subtle),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Divider(color: colors.border, height: 1),
-          const SizedBox(height: 8),
-          _Action(
-            icon: Icons.open_in_new_rounded,
-            label: 'Open',
-            onTap: () {
-              Navigator.of(context).pop();
-              context.push('/event/${event.id}');
-            },
-          ),
-          if (canEdit)
+            Divider(color: colors.border, height: 1),
+            const SizedBox(height: 8),
             _Action(
-              icon: Icons.edit_outlined,
-              label: 'Edit',
+              icon: Icons.open_in_new_rounded,
+              label: 'Open',
               onTap: () {
                 Navigator.of(context).pop();
-                context.push('/event/${event.id}/edit', extra: event);
+                context.push('/event/${event.id}');
               },
             ),
-          _Action(
-            icon: Icons.ios_share_rounded,
-            label: 'Share',
-            onTap: () {
-              Navigator.of(context).pop();
-              shareEvent(context, event);
-            },
-          ),
-          if (user != null)
+            if (canEdit)
+              _Action(
+                icon: Icons.edit_outlined,
+                label: 'Edit',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  context.push('/event/${event.id}/edit', extra: event);
+                },
+              ),
             _Action(
-              icon: Icons.content_copy_rounded,
-              label: 'Duplicate a year later',
-              onTap: () async {
+              icon: Icons.ios_share_rounded,
+              label: 'Share',
+              onTap: () {
                 Navigator.of(context).pop();
-                await runAction(
-                  context,
-                  () => ref.read(eventRepositoryProvider).duplicateEvent(
-                        event: event,
-                        userId: user.id,
-                        email: user.email,
-                        displayName: user.displayName,
-                        photoUrl: user.photoUrl,
-                      ),
-                  successMessage: 'Duplicated — open it to adjust the date.',
-                );
+                shareEvent(context, event);
               },
             ),
-          if (canManage) ...[
-            const SizedBox(height: 6),
-            Divider(color: colors.border, height: 1),
-            const SizedBox(height: 6),
-            _Action(
-              icon: Icons.delete_outline_rounded,
-              label: 'Delete countdown',
-              destructive: true,
-              onTap: () async {
-                final navigator = Navigator.of(context);
-                final messenger = ScaffoldMessenger.of(context);
-                final confirmed = await _confirmDelete(context);
-                if (!confirmed) return;
-                navigator.pop();
+            if (user != null)
+              _Action(
+                icon: Icons.content_copy_rounded,
+                label: 'Duplicate a year later',
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await runAction(
+                    context,
+                    () => ref.read(eventRepositoryProvider).duplicateEvent(
+                          event: event,
+                          userId: user.id,
+                          email: user.email,
+                          displayName: user.displayName,
+                          photoUrl: user.photoUrl,
+                        ),
+                    successMessage: 'Duplicated — open it to adjust the date.',
+                  );
+                },
+              ),
+            if (user != null &&
+                (event.createdBy == user.id || event.canManage(user.id))) ...[
+              const SizedBox(height: 6),
+              Divider(color: colors.border, height: 1),
+              const SizedBox(height: 6),
+              _Action(
+                icon: Icons.delete_outline_rounded,
+                label: 'Delete',
+                destructive: true,
+                onTap: () async {
+                  // Capture what survives the sheet before closing it: once the
+                  // sheet is popped this widget is gone from the tree and its
+                  // `context` is unsafe to read from.
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
 
-                try {
-                  await ref.read(eventRepositoryProvider).deleteEvent(
-                        event: event,
-                        userId: user.id,
-                      );
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Countdown deleted.')),
-                  );
-                  ref.invalidate(eventsProvider);
-                  ref.read(selectedEventIdProvider.notifier).set(null);
-                  onDeleted?.call();
-                } on DataFailure catch (e) {
-                  messenger.showSnackBar(SnackBar(content: Text(e.message)));
-                } catch (_) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Could not delete. Try again.'),
-                    ),
-                  );
-                }
-              },
-            ),
+                  // Confirm first, then close. Closing the sheet first used to
+                  // race the dialog against the deactivated sheet context.
+                  final confirmed = await _confirmDelete(context);
+                  if (!confirmed) return;
+                  navigator.pop();
+
+                  try {
+                    await ref.read(eventRepositoryProvider).deleteEvent(
+                          event: event,
+                          userId: user.id,
+                        );
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Countdown deleted.')),
+                    );
+                    // Drop the deleted countdown out of the feed and let go of
+                    // any pin on it, so the home screen is already up to date
+                    // when the sheet closes instead of waiting for the Firestore
+                    // listener to re-emit — or, worse, needing a manual reload.
+                    // The `selectedEventIdProvider` clear is what stops the hero
+                    // falling back to a countdown that no longer exists when the
+                    // app is sitting on `/home/:id`.
+                    ref.invalidate(eventsProvider);
+                    ref.read(selectedEventIdProvider.notifier).set(null);
+                    onDeleted?.call();
+                  } on DataFailure catch (e) {
+                    messenger.showSnackBar(SnackBar(content: Text(e.message)));
+                  } catch (_) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                          content: Text('Could not delete. Try again.')),
+                    );
+                  }
+                },
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

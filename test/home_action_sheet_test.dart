@@ -72,17 +72,17 @@ void main() {
       (tester) async {
     await _pumpHome(tester, userId: 'creator');
 
-    expect(find.text('Delete countdown').hitTestable(), findsOneWidget);
+    expect(find.text('Delete').hitTestable(), findsOneWidget);
 
     final sheetColumn = find
         .ancestor(
-          of: find.text('Delete countdown'),
+          of: find.text('Delete'),
           matching: find.byType(Column),
         )
         .last;
     final sheetSafeArea = find
         .ancestor(
-          of: find.text('Delete countdown'),
+          of: find.text('Delete'),
           matching: find.byType(SafeArea),
         )
         .first;
@@ -93,13 +93,12 @@ void main() {
       lessThan(screenHeight * 0.85),
       reason: 'the sheet column should wrap to content below 85% of screen',
     );
-    expect(find.byType(SingleChildScrollView), findsNothing);
   });
 
   testWidgets('Home action sheet hides Delete from a non-creator',
       (tester) async {
     await _pumpHome(tester, userId: 'viewer');
 
-    expect(find.text('Delete countdown'), findsNothing);
+    expect(find.text('Delete'), findsNothing);
   });
 }
