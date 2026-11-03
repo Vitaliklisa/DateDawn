@@ -44,7 +44,9 @@ class _EventActionsSheet extends ConsumerWidget {
     final colors = context.colors;
     final user = ref.watch(currentUserProvider);
     final canEdit = event.canEdit(user?.id);
-
+    debugPrint(
+      'SHEET DATA: event.createdBy=${event.createdBy}, user.id=${user?.id}',
+    );
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),

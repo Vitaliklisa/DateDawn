@@ -35,6 +35,7 @@ void main() {
     expect(events, hasLength(1));
     expect(events.single.id, 'e1');
     expect(events.single.title, 'Anniversary');
+    expect(events.single.createdBy, 'creator');
     expect(events.single.participants.map((row) => row.userId),
         containsAll(['creator', 'partner']));
   });

@@ -116,6 +116,7 @@ void main() {
       });
 
       expect(event.title, 'Trip home');
+      expect(event.createdBy, 'owner');
       expect(event.participants.length, 1);
       expect(event.participants.first.role, ParticipantRole.admin);
       expect(event.notes.length, 1);
