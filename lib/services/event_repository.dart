@@ -130,47 +130,19 @@ class EventRepository {
   CollectionReference<Map<String, dynamic>> _blocked(String userId) =>
       _db.collection('users').doc(userId).collection('blocked');
 
-  /// Live stream of every event the user created, was invited to, or can see
-  /// through a circle they belong to.
-  ///
-  /// Firestore has no server-side OR, so three feeds are merged here:
-  ///
-  /// 1. `createdBy == me` — ordered and filtered by the query itself.
-  /// 2. participant rows carrying my uid — a collection-group query that yields
-  ///    event ids, which are then fetched in a second pass.
-  /// 3. `sharedWithCircleIds` containing any of my circles — also id-only, for
-  ///    the same reason (a `array-contains-any` query cannot also be ordered by
-  ///    `at` without a composite index per circle count).
-  /// Live stream of every event the user created, was invited to, or can see
-  /// through a circle they belong to.
-  ///
-  /// Merges owned events, participant shares, and circle shares.
-  /// Sorting and soft-delete filtering are handled in memory so no manual
-  /// composite index configuration is required in Cloud Firestore.
+  /// Live stream of events the user created or can see through a participant
+  /// or circle share. Firestore rules authorize the shared query by checking
+  /// `sharedWithMemberIds` directly on each event, without cross-document reads.
+  /// Participant rows are hydrated with direct per-event reads after discovery.
   Stream<List<CountdownEvent>> watchEvents(String userId) {
-    debugPrint(
-        '[datedawn] Home page query: watchEvents called with userId: $userId (querying createdBy and participants collectionGroup)');
     final created =
         _events.where('createdBy', isEqualTo: userId).limit(100).snapshots();
-
-    final shared = _db
-        .collectionGroup('participants')
-        .where('userId', isEqualTo: userId)
-        .snapshots();
-
-    final circleSharedEvents =
+    final shared =
         _events.where('sharedWithMemberIds', arrayContains: userId).snapshots();
-
-    // The circle ids this user belongs to, live. Feeds query 3 and re-runs it
-    // when the user joins or leaves a circle.
-    final myCircles =
-        _circles.where('memberIds', arrayContains: userId).snapshots();
 
     final controller = StreamController<List<CountdownEvent>>();
 
     List<CountdownEvent> latestOwned = const [];
-    Set<String> latestSharedIds = const {};
-    Set<String> latestCircleIds = const {};
     Map<String, CountdownEvent> fetchedShared = const {};
     bool disposed = false;
 
@@ -178,7 +150,7 @@ class EventRepository {
     // their first use in Dart.
     //
     // The first emission is held back when it would be empty: the owned-events
-    // listener fires before the shared/circle feeds have answered, so emitting
+    // listener fires before the shared-event query has answered, so emitting
     // `[]` there made the home screen flash its "nothing here" state on every
     // load. Once *any* feed has produced data (or the caller has received one
     // real list), emissions pass through unchanged.
@@ -242,111 +214,6 @@ class EventRepository {
       }
     }
 
-    /// Runs direct document reads for whatever ids are missing from
-    /// `fetchedShared`. Both the participant feed and the circle feed write into
-    /// `latestSharedIds`, so one collect-and-fetch pass covers both.
-    ///
-    /// Fetches each document individually (`_events.doc(id).get()`) so Firestore
-    /// security rules can evaluate per-document participant permissions
-    /// (`isParticipant`/`inviteStatus`). Collection queries like `whereIn` cannot
-    /// evaluate subcollection `get()` in rules and fail with `permission-denied`
-    /// for non-owner participants.
-    bool fetching = false;
-    bool fetchAgain = false;
-    Future<void> fetchShared({bool force = false}) async {
-      if (fetching) {
-        // A fetch is already in flight; run one more afterwards so ids that
-        // arrived meanwhile are not missed.
-        fetchAgain = true;
-        return;
-      }
-      fetching = true;
-      try {
-        do {
-          fetchAgain = false;
-          final wanted = force
-              ? latestSharedIds.toList()
-              : latestSharedIds
-                  .where((id) => !fetchedShared.containsKey(id))
-                  .toList();
-          if (wanted.isEmpty) break;
-
-          final docs = await Future.wait(
-            wanted.map(
-              (id) async {
-                try {
-                  final snap = await _events.doc(id).get();
-                  if (snap.exists && snap.data()?['deletedAt'] == null) {
-                    return snap;
-                  }
-                  return null;
-                } catch (e) {
-                  debugPrint('[datedawn] Could not fetch shared event $id: $e');
-                  return null;
-                }
-              },
-            ),
-          );
-          if (disposed) return;
-
-          final fetched = <String, CountdownEvent>{};
-          for (final doc in docs) {
-            if (doc != null) {
-              fetched[doc.id] = _fromDoc(doc);
-            }
-          }
-          fetchedShared = {...fetchedShared, ...fetched};
-          unawaited(hydrateParticipants());
-          emit();
-        } while (fetchAgain);
-      } finally {
-        fetching = false;
-      }
-    }
-
-    /// Queries every event shared with any circle the user belongs to.
-    ///
-    /// Queries `sharedWithMemberIds` — a plain array on the event — rather than
-    /// `sharedWithCircleIds`. Both identify the same events, but only this one
-    /// can be authorised: the rule for the former is `uid() in
-    /// data.sharedWithMemberIds`, a field check Firestore can prove for a
-    /// collection query, whereas the latter required looking the circle up with
-    /// a cross-collection `get()` that a query cannot evaluate.
-    ///
-    /// **The failure is logged, not swallowed.** This used to be `catch (_) {}`,
-    /// which is why a refused query looked identical to "there is nothing
-    /// shared": the countdown existed, was shared, and the only read that could
-    /// have shown it was rejected in silence. A `permission-denied` here is a
-    /// rules problem, not an empty account, and the two must not look the same
-    /// in the console.
-    Future<void> fetchCircleShared() async {
-      if (latestCircleIds.isEmpty) return;
-      try {
-        final snap = await _events
-            .where('sharedWithMemberIds', arrayContains: userId)
-            .get();
-        if (disposed) return;
-        final ids = <String>{...latestSharedIds};
-        for (final doc in snap.docs) {
-          if (doc.data()['deletedAt'] != null) continue;
-          // Owned events are already in `latestOwned`; skip re-fetching them.
-          if (latestOwned.any((e) => e.id == doc.id)) continue;
-          ids.add(doc.id);
-        }
-        latestSharedIds = ids;
-        await fetchShared(force: true);
-      } on FirebaseException catch (error) {
-        debugPrint(
-          '[datedawn] Circle-share query failed (${error.code}). If this is '
-          'permission-denied, the firestore.rules fix has not been deployed: '
-          'firebase deploy --only firestore:rules,firestore:indexes',
-        );
-      } catch (error) {
-        // Offline: keep whatever is already on screen.
-        debugPrint('[datedawn] Circle-share query failed: $error');
-      }
-    }
-
     final subOwned = created.listen((snap) {
       latestOwned = snap.docs
           .where((doc) => doc.data()['deletedAt'] == null)
@@ -356,7 +223,7 @@ class EventRepository {
       emit();
       // If this first owned snapshot is empty, the held-back emission above
       // would leave the UI on its spinner forever for a genuinely empty
-      // account. Give the shared and circle feeds a moment to answer, then
+      // account. Give the shared-event query a moment to answer, then
       // force a settle so "no countdowns" is shown rather than "still loading".
       if (!emittedAnything) {
         unawaited(Future<void>.delayed(const Duration(milliseconds: 1500), () {
@@ -366,31 +233,13 @@ class EventRepository {
     }, onError: controller.addError);
 
     final subShared = shared.listen((snap) {
-      final ids = <String>{
-        for (final doc in snap.docs)
-          if (doc.reference.parent.parent != null)
-            doc.reference.parent.parent!.id,
-      };
-      // Union with anything the circle feed already discovered. Replacing the
-      // set here used to drop circle-shared ids whenever the participant feed
-      // re-emitted, which made a shared countdown flicker out of the list.
-      latestSharedIds = {...latestSharedIds, ...ids};
-      unawaited(fetchShared(force: true));
-    }, onError: controller.addError);
-
-    final subCircles = myCircles.listen((snap) {
-      latestCircleIds = snap.docs.map((d) => d.id).toSet();
-      unawaited(fetchCircleShared());
-    }, onError: controller.addError);
-
-    final subCircleShared = circleSharedEvents.listen((snap) {
       final fetched = <String, CountdownEvent>{};
       for (final doc in snap.docs) {
         if (doc.data()['deletedAt'] == null) {
           fetched[doc.id] = _fromDoc(doc);
         }
       }
-      fetchedShared = {...fetchedShared, ...fetched};
+      fetchedShared = fetched;
       unawaited(hydrateParticipants());
       emit();
     }, onError: controller.addError);
@@ -399,8 +248,6 @@ class EventRepository {
       disposed = true;
       await subOwned.cancel();
       await subShared.cancel();
-      await subCircles.cancel();
-      await subCircleShared.cancel();
     };
 
     return controller.stream;
@@ -599,14 +446,9 @@ class EventRepository {
         'sharedWithMemberIds': sharedMemberIds.toList(),
     });
     batch.set(_events.doc(id).collection('participants').doc(userId), {
-      // `userId` is duplicated onto the document body on purpose.
-      //
-      // `watchEvents` discovers shared countdowns with a collection-group query
-      // on this field: `.where('userId', isEqualTo: userId)`. The document id is
-      // *not* queryable that way, so a row written without it is invisible to
-      // the only feed that could surface it — which is exactly why a
-      // first-time accept (and a couple auto-share) "succeeded" while the
-      // countdown never appeared for the person it was shared with.
+      // `userId` is duplicated onto the document body for participant identity.
+      // Feed discovery uses `sharedWithMemberIds` on the event itself so the
+      // event query can be authorized without a collection-group read.
       'userId': userId,
       'email': email.toLowerCase(),
       'role': ParticipantRole.admin.name,
@@ -1456,10 +1298,8 @@ class EventRepository {
     batch.set(
       _events.doc(invitation.eventId).collection('participants').doc(userId),
       {
-        // The field `watchEvents` queries to discover a shared countdown. A row
-        // written without it is unreachable by the invitee's feed, which is why
-        // a first-time accept reported success while the countdown never
-        // appeared in their list.
+        // Keep the uid on the participant for row identity. The event visibility
+        // array is updated in this same batch so the feed can discover it.
         'userId': userId,
         'email': email.toLowerCase(),
         // **Do not rewrite `role` on a row that already exists.**
@@ -2088,9 +1928,8 @@ class EventRepository {
       batch.set(
         _events.doc(eventId).collection('participants').doc(member.userId),
         {
-          // The field `watchEvents` queries to discover a shared countdown.
-          // Without it the partner's feed never matched this row, so the
-          // countdown existed but never appeared for them.
+          // Keep the uid on the participant for row identity. `watchEvents`
+          // discovers the countdown through the event's visibility array.
           'userId': member.userId,
           'email': identity.email.trim().toLowerCase(),
           'role': ParticipantRole.editor.name,

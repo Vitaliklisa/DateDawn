@@ -153,8 +153,7 @@ service cloud.firestore {
     // can prove for a query, so the same read becomes allowed.
     function isSharedWithMe(data) {
       return signedIn()
-        && data.sharedWithMemberIds != null
-        && uid() in data.sharedWithMemberIds;
+        && uid() in data.get('sharedWithMemberIds', []);
     }
 
     // Creator, accepted participant, or someone the event was shared with
@@ -739,7 +738,13 @@ service cloud.firestore {
 
     // ---------- events ----------
     match /events/{eventId} {
-      allow read: if canRead(eventId, resource.data);
+      // Single-document reads can use participant lookups. Collection queries
+      // must be provable from the event fields themselves, so the feed's list
+      // query is limited to the creator and explicit visibility array.
+      allow get: if canRead(eventId, resource.data);
+      allow list: if signedIn()
+        && (resource.data.createdBy == uid()
+          || isSharedWithMe(resource.data));
       // Creating is unrestricted for a signed-in user, provided they name
       // themselves as the creator.
       allow create: if signedIn() && validEventPayload();
