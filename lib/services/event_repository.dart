@@ -591,10 +591,6 @@ class EventRepository {
       if (photoUrl != null) 'photoUrl': photoUrl,
     });
 
-    // Uids the couple auto-share has already put on this countdown. Only used to
-    // keep a member from being both an auto-participant and an invitee.
-    final invitedUserIds = <String>{};
-
     // Couple members are written *after* the commit, not in the batch below.
     //
     // This is the same trap § 9.1/§ 10 recorded for invitations. The batch is
@@ -611,6 +607,7 @@ class EventRepository {
     // degrades to "created, but the partner was not added", which is
     // recoverable, instead of losing the countdown entirely.
     final autoShareMembers = <CircleMember>[];
+    final autoSharedMemberIds = <String>{};
     for (final circleId in validCircleIds) {
       final circle = circles.firstWhere((c) => c.id == circleId);
       final circleType = circle.isCouple ? 'couple' : 'standard';
@@ -684,7 +681,7 @@ class EventRepository {
       }
       for (final member in members) {
         if (member.userId == userId) continue;
-        invitedUserIds.add(member.userId);
+        autoSharedMemberIds.add(member.userId);
         autoShareMembers.add(member);
       }
     }
@@ -722,7 +719,7 @@ class EventRepository {
     // visible even when their participant row is not yet there: they still get
     // the countdown in their feed, and the row can be added later.
     final coupleMemberIds = <String>{
-      ...autoShareMembers.map((m) => m.userId),
+      ...autoSharedMemberIds,
       ...autoParticipants.map((p) => p.userId),
     };
     await _addToSharedWithMemberIds(
@@ -733,8 +730,11 @@ class EventRepository {
       eventId: id,
       eventTitle: title.trim(),
       inviterId: userId,
-      recipients: invitationRecipients,
-      invitedUserIds: invitedUserIds,
+      recipients: invitationRecipients
+          .where((recipient) => !autoSharedMemberIds.contains(recipient.userId))
+          .toList(),
+      invitedUserIds:
+          invitedUserIds.where((id) => !autoSharedMemberIds.contains(id)),
       now: now,
     );
 
