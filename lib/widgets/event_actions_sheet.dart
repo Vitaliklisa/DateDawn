@@ -11,8 +11,8 @@ import '../widgets/share_event.dart';
 /// The long-press / "Options" sheet for a countdown: open, edit, duplicate,
 /// share, delete.
 ///
-/// Actions the signed-in user has no permission for are hidden rather than
-/// shown-and-disabled, so the sheet never offers something that will fail.
+/// Delete remains visible for layout consistency, but authorization is checked
+/// before confirmation and again by the repository before any write.
 Future<void> showEventActionsSheet(
   BuildContext context,
   WidgetRef ref, {
@@ -23,8 +23,12 @@ Future<void> showEventActionsSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    showDragHandle: true,
-    builder: (context) => SingleChildScrollView(
+    backgroundColor: Colors.transparent,
+    builder: (context) => Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       child: _EventActionsSheet(
         event: event,
         onDeleted: onDeleted,
@@ -59,6 +63,17 @@ class _EventActionsSheet extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: colors.subtle.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
                   Text(
                     event.title,
                     maxLines: 1,
@@ -120,57 +135,54 @@ class _EventActionsSheet extends ConsumerWidget {
                   );
                 },
               ),
-            if (user != null &&
-                (event.createdBy == user.id || event.canManage(user.id))) ...[
-              const SizedBox(height: 6),
-              Divider(color: colors.border, height: 1),
-              const SizedBox(height: 6),
-              _Action(
-                icon: Icons.delete_outline_rounded,
-                label: 'Delete',
-                destructive: true,
-                onTap: () async {
-                  // Capture what survives the sheet before closing it: once the
-                  // sheet is popped this widget is gone from the tree and its
-                  // `context` is unsafe to read from.
-                  final navigator = Navigator.of(context);
-                  final messenger = ScaffoldMessenger.of(context);
+            const SizedBox(height: 6),
+            Divider(color: colors.border, height: 1),
+            const SizedBox(height: 6),
+            _Action(
+              icon: Icons.delete_outline_rounded,
+              label: 'Delete countdown',
+              destructive: true,
+              onTap: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                if (user == null ||
+                    (event.createdBy != user.id && !event.canManage(user.id))) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Only the owner can delete this countdown.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
 
-                  // Confirm first, then close. Closing the sheet first used to
-                  // race the dialog against the deactivated sheet context.
-                  final confirmed = await _confirmDelete(context);
-                  if (!confirmed) return;
-                  navigator.pop();
+                final navigator = Navigator.of(context);
+                final confirmed = await _confirmDelete(context);
+                if (!confirmed) return;
+                navigator.pop();
 
-                  try {
-                    await ref.read(eventRepositoryProvider).deleteEvent(
-                          event: event,
-                          userId: user.id,
-                        );
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('Countdown deleted.')),
-                    );
-                    // Drop the deleted countdown out of the feed and let go of
-                    // any pin on it, so the home screen is already up to date
-                    // when the sheet closes instead of waiting for the Firestore
-                    // listener to re-emit — or, worse, needing a manual reload.
-                    // The `selectedEventIdProvider` clear is what stops the hero
-                    // falling back to a countdown that no longer exists when the
-                    // app is sitting on `/home/:id`.
-                    ref.invalidate(eventsProvider);
-                    ref.read(selectedEventIdProvider.notifier).set(null);
-                    onDeleted?.call();
-                  } on DataFailure catch (e) {
-                    messenger.showSnackBar(SnackBar(content: Text(e.message)));
-                  } catch (_) {
-                    messenger.showSnackBar(
-                      const SnackBar(
-                          content: Text('Could not delete. Try again.')),
-                    );
-                  }
-                },
-              ),
-            ],
+                try {
+                  await ref.read(eventRepositoryProvider).deleteEvent(
+                        event: event,
+                        userId: user.id,
+                      );
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Countdown deleted.')),
+                  );
+                  ref.invalidate(eventsProvider);
+                  ref.read(selectedEventIdProvider.notifier).set(null);
+                  onDeleted?.call();
+                } on DataFailure catch (e) {
+                  messenger.showSnackBar(SnackBar(content: Text(e.message)));
+                } catch (_) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Could not delete. Try again.'),
+                    ),
+                  );
+                }
+              },
+            ),
           ],
         ),
       ),
