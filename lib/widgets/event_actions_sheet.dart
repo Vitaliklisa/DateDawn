@@ -24,30 +24,21 @@ Future<void> showEventActionsSheet(
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
-    showDragHandle: true,
-    builder: (sheetContext) {
-      final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
-      return ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxHeight),
-        child: ListView(
-          shrinkWrap: true,
-          padding: EdgeInsets.zero,
-          children: [
-            Material(
-              color: sheetContext.colors.surface,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: _EventActionsSheet(
-                event: event,
-                onDeleted: onDeleted,
-              ),
-            ),
-          ],
+    builder: (context) => Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
+      child: SingleChildScrollView(
+        child: _EventActionsSheet(
+          event: event,
+          onDeleted: onDeleted,
         ),
-      );
-    },
+      ),
+    ),
   );
 }
 
@@ -65,119 +56,144 @@ class _EventActionsSheet extends ConsumerWidget {
     final canManage = user != null &&
         (event.createdBy == user.id || event.canManage(user.id));
 
+    final children = <Widget>[
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+        child: Column(
+          children: [
+            Container(
+              width: 32,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.subtle.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    event.isPast ? 'Passed' : 'Counting down',
+                    style: TextStyle(fontSize: 12, color: colors.subtle),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      Divider(color: colors.border, height: 1),
+      const SizedBox(height: 8),
+      _Action(
+        icon: Icons.open_in_new_rounded,
+        label: 'Open',
+        onTap: () {
+          Navigator.of(context).pop();
+          context.push('/event/${event.id}');
+        },
+      ),
+      if (canEdit)
+        _Action(
+          icon: Icons.edit_outlined,
+          label: 'Edit',
+          onTap: () {
+            Navigator.of(context).pop();
+            context.push('/event/${event.id}/edit', extra: event);
+          },
+        ),
+      _Action(
+        icon: Icons.ios_share_rounded,
+        label: 'Share',
+        onTap: () {
+          Navigator.of(context).pop();
+          shareEvent(context, event);
+        },
+      ),
+      if (user != null)
+        _Action(
+          icon: Icons.content_copy_rounded,
+          label: 'Duplicate a year later',
+          onTap: () async {
+            Navigator.of(context).pop();
+            await runAction(
+              context,
+              () => ref.read(eventRepositoryProvider).duplicateEvent(
+                    event: event,
+                    userId: user.id,
+                    email: user.email,
+                    displayName: user.displayName,
+                    photoUrl: user.photoUrl,
+                  ),
+              successMessage: 'Duplicated — open it to adjust the date.',
+            );
+          },
+        ),
+    ];
+
+    debugPrint(
+      'Sheet check: event.createdBy=${event.createdBy}, '
+      'user.id=${user?.id}, canManage=$canManage',
+    );
+    if (canManage) {
+      children.addAll([
+        const SizedBox(height: 6),
+        Divider(color: colors.border, height: 1),
+        const SizedBox(height: 6),
+        _Action(
+          icon: Icons.delete_outline_rounded,
+          label: 'Delete countdown',
+          destructive: true,
+          onTap: () async {
+            final navigator = Navigator.of(context);
+            final messenger = ScaffoldMessenger.of(context);
+            final confirmed = await _confirmDelete(context);
+            if (!confirmed) return;
+            navigator.pop();
+
+            try {
+              await ref.read(eventRepositoryProvider).deleteEvent(
+                    event: event,
+                    userId: user.id,
+                  );
+              messenger.showSnackBar(
+                const SnackBar(content: Text('Countdown deleted.')),
+              );
+              ref.invalidate(eventsProvider);
+              ref.read(selectedEventIdProvider.notifier).set(null);
+              onDeleted?.call();
+            } on DataFailure catch (e) {
+              messenger.showSnackBar(SnackBar(content: Text(e.message)));
+            } catch (_) {
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Could not delete. Try again.'),
+                ),
+              );
+            }
+          },
+        ),
+      ]);
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  event.isPast ? 'Passed' : 'Counting down',
-                  style: TextStyle(fontSize: 12, color: colors.subtle),
-                ),
-              ],
-            ),
-          ),
-          Divider(color: colors.border, height: 1),
-          const SizedBox(height: 8),
-          _Action(
-            icon: Icons.open_in_new_rounded,
-            label: 'Open',
-            onTap: () {
-              Navigator.of(context).pop();
-              context.push('/event/${event.id}');
-            },
-          ),
-          if (canEdit)
-            _Action(
-              icon: Icons.edit_outlined,
-              label: 'Edit',
-              onTap: () {
-                Navigator.of(context).pop();
-                context.push('/event/${event.id}/edit', extra: event);
-              },
-            ),
-          _Action(
-            icon: Icons.ios_share_rounded,
-            label: 'Share',
-            onTap: () {
-              Navigator.of(context).pop();
-              shareEvent(context, event);
-            },
-          ),
-          if (user != null)
-            _Action(
-              icon: Icons.content_copy_rounded,
-              label: 'Duplicate a year later',
-              onTap: () async {
-                Navigator.of(context).pop();
-                await runAction(
-                  context,
-                  () => ref.read(eventRepositoryProvider).duplicateEvent(
-                        event: event,
-                        userId: user.id,
-                        email: user.email,
-                        displayName: user.displayName,
-                        photoUrl: user.photoUrl,
-                      ),
-                  successMessage: 'Duplicated — open it to adjust the date.',
-                );
-              },
-            ),
-          if (canManage) ...[
-            const SizedBox(height: 6),
-            Divider(color: colors.border, height: 1),
-            const SizedBox(height: 6),
-            _Action(
-              icon: Icons.delete_outline_rounded,
-              label: 'Delete countdown',
-              destructive: true,
-              onTap: () async {
-                final navigator = Navigator.of(context);
-                final messenger = ScaffoldMessenger.of(context);
-                final confirmed = await _confirmDelete(context);
-                if (!confirmed) return;
-                navigator.pop();
-
-                try {
-                  await ref.read(eventRepositoryProvider).deleteEvent(
-                        event: event,
-                        userId: user.id,
-                      );
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Countdown deleted.')),
-                  );
-                  ref.invalidate(eventsProvider);
-                  ref.read(selectedEventIdProvider.notifier).set(null);
-                  onDeleted?.call();
-                } on DataFailure catch (e) {
-                  messenger.showSnackBar(SnackBar(content: Text(e.message)));
-                } catch (_) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Could not delete. Try again.'),
-                    ),
-                  );
-                }
-              },
-            ),
-          ],
-        ],
+        children: children,
       ),
     );
   }

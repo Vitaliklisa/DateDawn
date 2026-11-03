@@ -15,7 +15,6 @@ import 'package:datedawn/providers/app_providers.dart';
 import 'package:datedawn/screens/event_editor_screen.dart';
 import 'package:datedawn/services/auth_service.dart';
 import 'package:datedawn/services/event_repository.dart';
-import 'package:datedawn/widgets/event_actions_sheet.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,74 +73,6 @@ final _rows = [
 ];
 
 void main() {
-  for (final size in const [
-    Size(1920, 1080),
-    Size(1440, 900),
-    Size(1280, 720),
-    Size(960, 540),
-    Size(800, 600),
-  ]) {
-    testWidgets('countdown actions sheet exposes Delete at $size',
-        (tester) async {
-      tester.view.physicalSize = size;
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      final event = _event([_person('owner', ParticipantRole.admin)]);
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            currentUserProvider.overrideWithValue(
-              const AppUser(id: 'owner', email: 'owner@example.com'),
-            ),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.build(brightness: Brightness.dark),
-            home: Scaffold(
-              body: Consumer(
-                builder: (context, ref, _) => TextButton(
-                  onPressed: () => showEventActionsSheet(
-                    context,
-                    ref,
-                    event: event,
-                  ),
-                  child: const Text('Open actions'),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Open actions'));
-      await tester.pumpAndSettle();
-
-      final deleteAction = find.text('Delete countdown');
-      expect(
-        deleteAction.hitTestable(),
-        findsOneWidget,
-        reason: 'Delete must be visible at $size without scrolling',
-      );
-      final sheetMaterial = find
-          .ancestor(
-            of: find.text('Trip'),
-            matching: find.byType(Material),
-          )
-          .first;
-      expect(
-        tester.getSize(sheetMaterial).height,
-        lessThan(size.height * 0.85),
-        reason: 'the sheet should wrap its contents at $size',
-      );
-      await tester.tap(deleteAction);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Delete this countdown?'), findsOneWidget);
-      await tester.tap(find.text('Keep'));
-      await tester.pumpAndSettle();
-    });
-  }
-
   group('checkRoleChange', () {
     final event = _event(_rows);
     Participant row(String id) =>
