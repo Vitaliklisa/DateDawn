@@ -15,6 +15,7 @@ import 'package:datedawn/providers/app_providers.dart';
 import 'package:datedawn/screens/event_editor_screen.dart';
 import 'package:datedawn/services/auth_service.dart';
 import 'package:datedawn/services/event_repository.dart';
+import 'package:datedawn/widgets/event_actions_sheet.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -73,6 +74,52 @@ final _rows = [
 ];
 
 void main() {
+  testWidgets('countdown actions sheet exposes Delete at 960x540',
+      (tester) async {
+    tester.view.physicalSize = const Size(960, 540);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final event = _event([_person('owner', ParticipantRole.admin)]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWithValue(
+            const AppUser(id: 'owner', email: 'owner@example.com'),
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.build(brightness: Brightness.dark),
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) => TextButton(
+                onPressed: () => showEventActionsSheet(
+                  context,
+                  ref,
+                  event: event,
+                ),
+                child: const Text('Open actions'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open actions'));
+    await tester.pumpAndSettle();
+
+    final deleteAction = find.text('Delete');
+    expect(deleteAction, findsOneWidget);
+    await tester.ensureVisible(deleteAction);
+    await tester.tap(deleteAction);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete this countdown?'), findsOneWidget);
+    await tester.tap(find.text('Keep'));
+    await tester.pumpAndSettle();
+  });
+
   group('checkRoleChange', () {
     final event = _event(_rows);
     Participant row(String id) =>
