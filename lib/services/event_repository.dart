@@ -21,6 +21,20 @@ class DataFailure implements Exception {
   String toString() => message;
 }
 
+class CreateEventResult {
+  const CreateEventResult({
+    required this.event,
+    this.autoShared = const [],
+    this.autoShareError,
+    this.partnerName,
+  });
+
+  final CountdownEvent event;
+  final List<String> autoShared;
+  final String? autoShareError;
+  final String? partnerName;
+}
+
 /// The message shown when someone tries to invite their own address or account.
 ///
 /// One constant so the countdown and circle flows word it identically.
@@ -59,11 +73,20 @@ class EventRepository {
     FirebaseFirestore? firestore,
     Uuid? uuid,
     this.notificationSink,
+    @visibleForTesting this.coupleMemberWriter,
   })  : _db = firestore ?? FirebaseFirestore.instance,
         _uuid = uuid ?? const Uuid();
 
   final FirebaseFirestore _db;
   final Uuid _uuid;
+
+  @visibleForTesting
+  final Future<List<String>> Function({
+    required String eventId,
+    required String inviterId,
+    required List<CircleMember> members,
+    required DateTime now,
+  })? coupleMemberWriter;
 
   /// Delivers an in-app notification to a recipient, best-effort.
   ///
@@ -518,7 +541,7 @@ class EventRepository {
   /// caller resolved itself) are added to the same batch as pending participants
   /// with a matching `invitations` document. Without them a countdown shared to
   /// a circle was visible to the group but nobody was ever asked to join it.
-  Future<CountdownEvent> createEvent({
+  Future<CreateEventResult> createEvent({
     required String userId,
     required String email,
     required String title,
@@ -553,9 +576,11 @@ class EventRepository {
     // event so the visibility rule is a plain array check on the event itself.
     // A rule that had to look the circle up could not back the client's query,
     // which is why circle-shared countdowns never reached the other person.
+    final autoShareErrors = <String>[];
     final sharedMemberIds = await _circleMemberIds(
       circleIds: validCircleIds,
       circles: circles,
+      errors: autoShareErrors,
     );
 
     batch.set(_events.doc(id), {
@@ -699,12 +724,19 @@ class EventRepository {
     // Now add the couple members, then invite, best-effort, one person at a
     // time. By this point the event and the creator's admin row are committed,
     // so `isAdmin()` sees them and both follow-ups are authorised on their own.
-    final autoParticipants = await _addCoupleMembers(
-      eventId: id,
-      inviterId: userId,
-      members: autoShareMembers,
-      now: now,
-    );
+    var autoShared = <String>[];
+    try {
+      autoShared = await _addCoupleMembers(
+        eventId: id,
+        inviterId: userId,
+        members: autoShareMembers,
+        now: now,
+      );
+    } on FirebaseException catch (error) {
+      autoShareErrors.add(error.code);
+    } catch (error) {
+      autoShareErrors.add(error.toString());
+    }
     // The partner's participant row alone is not enough. The feed and the read
     // rule both go through `sharedWithMemberIds` on the event, so a partner who
     // is not in that array has a row they can never query their way to — the
@@ -720,12 +752,21 @@ class EventRepository {
     // the countdown in their feed, and the row can be added later.
     final coupleMemberIds = <String>{
       ...autoSharedMemberIds,
-      ...autoParticipants.map((p) => p.userId),
+      ...autoShared,
     };
-    await _addToSharedWithMemberIds(
-      eventId: id,
-      memberIds: coupleMemberIds.toList(),
-    );
+    var visibilityUpdated = true;
+    try {
+      visibilityUpdated = await _addToSharedWithMemberIds(
+        eventId: id,
+        memberIds: coupleMemberIds.toList(),
+      );
+    } on FirebaseException catch (error) {
+      autoShareErrors.add(error.code);
+      visibilityUpdated = false;
+    } catch (error) {
+      autoShareErrors.add(error.toString());
+      visibilityUpdated = false;
+    }
     await _inviteAll(
       eventId: id,
       eventTitle: title.trim(),
@@ -738,7 +779,41 @@ class EventRepository {
       now: now,
     );
 
-    return CountdownEvent(
+    final autoParticipants = autoShareMembers
+        .where((member) => autoShared.contains(member.userId))
+        .map(
+          (member) => Participant(
+            userId: member.userId,
+            email: member.email.trim().toLowerCase(),
+            role: ParticipantRole.editor,
+            inviteStatus: InviteStatus.accepted,
+            displayName: member.displayName,
+            photoUrl: member.photoUrl,
+            joinedAt: now,
+          ),
+        )
+        .toList();
+    final finalSharedMemberIds = <String>{
+      ...sharedMemberIds,
+      if (visibilityUpdated) ...coupleMemberIds,
+    };
+    final autoShareError =
+        autoShareErrors.isEmpty ? null : autoShareErrors.join(', ');
+    final coupleCircleIds = validCircleIds
+        .where((circleId) =>
+            circles.any((circle) => circle.id == circleId && circle.isCouple))
+        .toList();
+    final partner = autoShareMembers.map(_coupleMemberName).firstOrNull;
+    debugPrint(
+      '[datedawn] Couple auto-share outcome: '
+      'selectedCircleIds=$coupleCircleIds '
+      'memberIds=${coupleMemberIds.toList()} '
+      'added=$autoShared '
+      'sharedWithMemberIds=${finalSharedMemberIds.toList()} '
+      'error=${autoShareError ?? 'null'}',
+    );
+
+    final event = CountdownEvent(
       id: id,
       title: title.trim(),
       description: description.trim(),
@@ -751,8 +826,7 @@ class EventRepository {
       // included — the screen that created it reads this object back, and a
       // stale array here is what makes the new countdown look like it was not
       // shared at all until the next full reload.
-      sharedWithMemberIds:
-          <String>{...sharedMemberIds, ...coupleMemberIds}.toList(),
+      sharedWithMemberIds: finalSharedMemberIds.toList(),
       participants: [
         Participant(
           userId: userId,
@@ -765,6 +839,12 @@ class EventRepository {
         ),
         ...autoParticipants,
       ],
+    );
+    return CreateEventResult(
+      event: event,
+      autoShared: autoShared,
+      autoShareError: autoShareError,
+      partnerName: partner,
     );
     // NOTE: this returned object carries the creator's admin row so the new
     // countdown is immediately editable from the screen that created it. The
@@ -1811,6 +1891,7 @@ class EventRepository {
   Future<Set<String>> _circleMemberIds({
     required List<String> circleIds,
     required List<Circle> circles,
+    required List<String> errors,
   }) async {
     final memberIds = <String>{};
     for (final circleId in circleIds) {
@@ -1826,10 +1907,22 @@ class EventRepository {
       try {
         final snap = await _circles.doc(circleId).collection('members').get();
         memberIds.addAll(snap.docs.map((d) => d.id));
+      } on FirebaseException catch (error) {
+        errors.add(error.code);
+        debugPrint(
+          '[datedawn] Couple membership read refused: '
+          'code=${error.code} path=circles/$circleId '
+          'subcollection=members message=${error.message}',
+        );
       } catch (error) {
+        errors.add(error.toString());
         // Best-effort: a circle whose members cannot be read still shares the
         // event with the circles that could be read.
-        debugPrint('[datedawn] Could not read members of $circleId: $error');
+        debugPrint(
+          '[datedawn] Couple membership read failed: '
+          'code=unknown path=circles/$circleId subcollection=members '
+          'error=$error',
+        );
       }
     }
     return memberIds;
@@ -1936,7 +2029,15 @@ class EventRepository {
     return repaired;
   }
 
-  Future<List<Participant>> _addCoupleMembers({
+  String _coupleMemberName(CircleMember member) {
+    final name = member.displayName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    final email = member.email.trim();
+    if (email.isNotEmpty) return email.split('@').first;
+    return 'your partner';
+  }
+
+  Future<List<String>> _addCoupleMembers({
     required String eventId,
     required String inviterId,
     required List<CircleMember> members,
@@ -1944,6 +2045,35 @@ class EventRepository {
   }) async {
     if (members.isEmpty) return const [];
     final written = <Participant>[];
+    final attemptedPaths = members
+        .where(
+            (member) => member.userId.isNotEmpty && member.userId != inviterId)
+        .map((member) => 'events/$eventId/participants/${member.userId}')
+        .toList();
+    final testWriter = coupleMemberWriter;
+    if (testWriter != null) {
+      try {
+        return await testWriter(
+          eventId: eventId,
+          inviterId: inviterId,
+          members: members,
+          now: now,
+        );
+      } on FirebaseException catch (error) {
+        debugPrint(
+          '[datedawn] Couple participant write refused: '
+          'code=${error.code} paths=$attemptedPaths message=${error.message}',
+        );
+        rethrow;
+      } catch (error) {
+        debugPrint(
+          '[datedawn] Couple participant write failed: '
+          'code=unknown paths=$attemptedPaths error=$error',
+        );
+        rethrow;
+      }
+    }
+
     final batch = _db.batch();
     for (final member in members) {
       if (member.userId.isEmpty || member.userId == inviterId) continue;
@@ -1993,19 +2123,18 @@ class EventRepository {
       // is the feature not working. `permission-denied` means the deployed
       // rules do not match this client.
       debugPrint(
-        '[datedawn] Couple auto-share FAILED for event $eventId '
-        '(${error.code}). The countdown was created but the partner was NOT '
-        'added. If this is permission-denied, deploy the rules: '
-        'firebase deploy --only firestore:rules,firestore:indexes',
+        '[datedawn] Couple participant write refused: '
+        'code=${error.code} paths=$attemptedPaths message=${error.message}',
       );
-      return const [];
+      rethrow;
     } catch (error) {
-      // Offline, or a transient failure. The countdown still exists and the
-      // creator can share it from the countdown screen.
-      debugPrint('[datedawn] Could not add couple members to $eventId: $error');
-      return const [];
+      debugPrint(
+        '[datedawn] Couple participant write failed: '
+        'code=unknown paths=$attemptedPaths error=$error',
+      );
+      rethrow;
     }
-    return written;
+    return written.map((participant) => participant.userId).toList();
   }
 
   /// Unions [memberIds] into `sharedWithMemberIds` on the countdown [eventId].
@@ -2019,28 +2148,32 @@ class EventRepository {
   /// Best-effort, like the auto-share it follows: the countdown is already
   /// committed, and a failure here degrades to the partner seeing it only after
   /// they open it from a notification, not to a broken create.
-  Future<void> _addToSharedWithMemberIds({
+  Future<bool> _addToSharedWithMemberIds({
     required String eventId,
     required List<String> memberIds,
   }) async {
     final ids = memberIds.where((id) => id.isNotEmpty).toSet().toList();
-    if (ids.isEmpty) return;
+    if (ids.isEmpty) return true;
+    final eventPath = 'events/$eventId';
     try {
       await _events.doc(eventId).update({
         'sharedWithMemberIds': FieldValue.arrayUnion(ids),
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       });
+      return true;
     } on FirebaseException catch (error) {
       debugPrint(
-        '[datedawn] Could not add couple members to sharedWithMemberIds for '
-        '$eventId (${error.code}). The partner may not see the countdown until '
-        'it is re-shared. If this is permission-denied, deploy the rules: '
-        'firebase deploy --only firestore:rules',
+        '[datedawn] Couple visibility write refused: '
+        'code=${error.code} path=$eventPath '
+        'field=sharedWithMemberIds message=${error.message}',
       );
+      rethrow;
     } catch (error) {
       debugPrint(
-        '[datedawn] Could not update sharedWithMemberIds for $eventId: $error',
+        '[datedawn] Couple visibility write failed: '
+        'code=unknown path=$eventPath field=sharedWithMemberIds error=$error',
       );
+      rethrow;
     }
   }
 
@@ -3752,8 +3885,8 @@ class EventRepository {
     required String email,
     String? displayName,
     String? photoUrl,
-  }) {
-    return createEvent(
+  }) async {
+    final result = await createEvent(
       userId: userId,
       email: email,
       title: event.title,
@@ -3763,6 +3896,7 @@ class EventRepository {
       displayName: displayName,
       photoUrl: photoUrl,
     );
+    return result.event;
   }
 
   /// A short, shareable summary of a countdown.

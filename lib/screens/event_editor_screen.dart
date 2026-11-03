@@ -208,7 +208,13 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
 
     try {
       CountdownEvent? created;
+      CreateEventResult? createResult;
+      var selectedCoupleCircle = false;
       if (existing == null) {
+        final availableCircles =
+            ref.read(circlesProvider).value ?? const <Circle>[];
+        selectedCoupleCircle = availableCircles.any((circle) =>
+            circle.isCouple && _selectedCircleIds.contains(circle.id));
         // Members of every circle being shared with, minus the creator. Passing
         // these is what actually sends the invitations: attaching a countdown to
         // a non-couple circle used to make it visible to the group while never
@@ -218,7 +224,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           circleIds: _selectedCircleIds,
           excludingUserId: user.id,
         );
-        created = await repository.createEvent(
+        createResult = await repository.createEvent(
           userId: user.id,
           email: user.email,
           title: title,
@@ -232,6 +238,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           circles: ref.read(circlesProvider).value ?? const [],
           invitationRecipients: invitees,
         );
+        created = createResult.event;
       } else {
         await repository.updateEvent(
           event: existing,
@@ -250,10 +257,26 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         );
       }
       if (!mounted) return;
+      var message = existing == null ? 'Countdown created.' : 'Changes saved.';
+      var duration = const Duration(seconds: 4);
+      if (existing == null && selectedCoupleCircle && createResult != null) {
+        final result = createResult;
+        final partnerName = result.partnerName ?? 'your partner';
+        final displayPartnerName =
+            partnerName == 'your partner' ? 'Your partner' : partnerName;
+        if (result.autoShareError != null) {
+          message = 'Countdown created, but $partnerName was not added. '
+              'Invite them manually from the countdown.';
+          duration = const Duration(seconds: 8);
+        } else if (result.autoShared.isNotEmpty) {
+          message = 'Countdown created. $displayPartnerName was added.';
+        } else {
+          message = 'Countdown created, but no partner was added. '
+              'Invite them manually.';
+        }
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                existing == null ? 'Countdown created.' : 'Changes saved.')),
+        SnackBar(content: Text(message), duration: duration),
       );
       if (created != null) {
         // A brand-new countdown is pinned as the hero and the creator is taken

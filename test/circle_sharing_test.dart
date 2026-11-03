@@ -285,7 +285,7 @@ void main() {
       );
 
       final stored =
-          (await db.collection('events').doc(created.id).get()).data()!;
+          (await db.collection('events').doc(created.event.id).get()).data()!;
       expect(
         stored['sharedWithMemberIds'],
         contains('sam'),
@@ -293,14 +293,14 @@ void main() {
             'never reaches their feed',
       );
       expect(
-        created.sharedWithMemberIds,
+        created.event.sharedWithMemberIds,
         contains('sam'),
         reason: 'the returned object must match what was written',
       );
       expect(
         (await db
                 .collection('events')
-                .doc(created.id)
+                .doc(created.event.id)
                 .collection('participants')
                 .doc('sam')
                 .get())
@@ -349,7 +349,7 @@ void main() {
       );
 
       final stored =
-          (await db.collection('events').doc(created.id).get()).data()!;
+          (await db.collection('events').doc(created.event.id).get()).data()!;
       expect(
         stored['sharedWithMemberIds'],
         contains('sam'),
@@ -391,7 +391,7 @@ void main() {
 
       final row = await db
           .collection('events')
-          .doc(created.id)
+          .doc(created.event.id)
           .collection('participants')
           .doc('sam')
           .get();
