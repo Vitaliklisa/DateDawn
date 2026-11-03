@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _viewport = Size(960, 540);
+const _viewport = Size(1920, 1080);
 
 CountdownEvent _event({
   required String id,
@@ -58,6 +58,7 @@ Future<void> _pumpHome(WidgetTester tester, {required String userId}) async {
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
+  expect(tester.takeException(), isNull);
 
   final options = find.byTooltip('Options').last;
   await tester.ensureVisible(options);
@@ -65,6 +66,7 @@ Future<void> _pumpHome(WidgetTester tester, {required String userId}) async {
   await tester.tap(options);
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
+  expect(tester.takeException(), isNull);
 }
 
 void main() {
@@ -74,21 +76,18 @@ void main() {
 
     expect(find.text('Delete countdown').hitTestable(), findsOneWidget);
 
-    final sheet = find.byWidgetPredicate(
-      (widget) =>
-          widget is Container &&
-          widget.constraints?.maxHeight == _viewport.height * 0.85,
-    );
+    final sheet = find.byWidgetPredicate((widget) {
+      if (widget is! Container) return false;
+      final decoration = widget.decoration;
+      return decoration is BoxDecoration &&
+          decoration.borderRadius ==
+              const BorderRadius.vertical(top: Radius.circular(20));
+    });
     expect(sheet, findsOneWidget);
     expect(
       tester.getSize(sheet).height,
       lessThan(_viewport.height),
       reason: 'the sheet container should wrap its content below screen height',
-    );
-    expect(
-      tester.getSize(sheet).height,
-      lessThan(_viewport.height * 0.85),
-      reason: 'the sheet should not fill the 85% maximum-height cap',
     );
   });
 

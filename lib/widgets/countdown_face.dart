@@ -127,11 +127,14 @@ class _UnitTile extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  pad2(value),
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: value == 0 ? colors.subtle : colors.fg,
-                      ),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    pad2(value),
+                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                          color: value == 0 ? colors.subtle : colors.fg,
+                        ),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(

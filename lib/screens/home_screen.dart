@@ -386,26 +386,31 @@ class _HeroHome extends ConsumerWidget {
                             const SizedBox(height: 28),
                             Row(
                               children: [
-                                OutlinedButton.icon(
-                                  onPressed: () => showEventActionsSheet(
-                                    context,
-                                    ref,
-                                    event: featured,
-                                    onDeleted: () => ref
-                                        .read(selectedEventIdProvider.notifier)
-                                        .set(null),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => showEventActionsSheet(
+                                      context,
+                                      ref,
+                                      event: featured,
+                                      onDeleted: () => ref
+                                          .read(
+                                              selectedEventIdProvider.notifier)
+                                          .set(null),
+                                    ),
+                                    icon: const Icon(Icons.more_horiz_rounded,
+                                        size: 18),
+                                    label: const Text('Options'),
                                   ),
-                                  icon: const Icon(Icons.more_horiz_rounded,
-                                      size: 18),
-                                  label: const Text('Options'),
                                 ),
                                 const SizedBox(width: 12),
-                                FilledButton.icon(
-                                  onPressed: () => context.push(
-                                      '${Routes.eventDetail}/${featured.id}'),
-                                  icon:
-                                      const Icon(Icons.tune_rounded, size: 18),
-                                  label: const Text('Open countdown'),
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: () => context.push(
+                                        '${Routes.eventDetail}/${featured.id}'),
+                                    icon: const Icon(Icons.tune_rounded,
+                                        size: 18),
+                                    label: const Text('Open countdown'),
+                                  ),
                                 ),
                               ],
                             ),

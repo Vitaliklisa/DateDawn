@@ -24,20 +24,22 @@ Future<void> showEventActionsSheet(
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      child: SingleChildScrollView(
-        child: _EventActionsSheet(
-          event: event,
-          onDeleted: onDeleted,
+    builder: (context) => Wrap(
+      children: [
+        Container(
+          width: MediaQuery.sizeOf(context).width,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SingleChildScrollView(
+            child: _EventActionsSheet(
+              event: event,
+              onDeleted: onDeleted,
+            ),
+          ),
         ),
-      ),
+      ],
     ),
   );
 }
@@ -147,7 +149,8 @@ class _EventActionsSheet extends ConsumerWidget {
       'Sheet check: event.createdBy=${event.createdBy}, '
       'user.id=${user?.id}, canManage=$canManage',
     );
-    if (canManage) {
+    if (user != null &&
+        (event.createdBy == user.id || event.canManage(user.id))) {
       children.addAll([
         const SizedBox(height: 6),
         Divider(color: colors.border, height: 1),
