@@ -23,14 +23,19 @@ Future<void> showEventActionsSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    backgroundColor: Colors.transparent,
     showDragHandle: true,
     builder: (sheetContext) {
-      final maxHeight = MediaQuery.sizeOf(sheetContext).height * 0.85;
+      final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
       return ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxHeight),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+        child: SingleChildScrollView(
+          child: Material(
+            color: sheetContext.colors.surface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(24),
+            ),
+            clipBehavior: Clip.antiAlias,
             child: _EventActionsSheet(
               event: event,
               onDeleted: onDeleted,
