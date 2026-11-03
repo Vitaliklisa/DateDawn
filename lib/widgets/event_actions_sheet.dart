@@ -29,18 +29,22 @@ Future<void> showEventActionsSheet(
       final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
       return ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxHeight),
-        child: SingleChildScrollView(
-          child: Material(
-            color: sheetContext.colors.surface,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
+        child: ListView(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          children: [
+            Material(
+              color: sheetContext.colors.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: _EventActionsSheet(
+                event: event,
+                onDeleted: onDeleted,
+              ),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: _EventActionsSheet(
-              event: event,
-              onDeleted: onDeleted,
-            ),
-          ),
+          ],
         ),
       );
     },
@@ -58,7 +62,8 @@ class _EventActionsSheet extends ConsumerWidget {
     final colors = context.colors;
     final user = ref.watch(currentUserProvider);
     final canEdit = event.canEdit(user?.id);
-    final canManage = event.canManage(user?.id);
+    final canManage = user != null &&
+        (event.createdBy == user.id || event.canManage(user.id));
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
@@ -140,13 +145,11 @@ class _EventActionsSheet extends ConsumerWidget {
             const SizedBox(height: 6),
             _Action(
               icon: Icons.delete_outline_rounded,
-              label: 'Delete',
+              label: 'Delete countdown',
               destructive: true,
               onTap: () async {
                 final navigator = Navigator.of(context);
                 final messenger = ScaffoldMessenger.of(context);
-                if (user == null) return;
-
                 final confirmed = await _confirmDelete(context);
                 if (!confirmed) return;
                 navigator.pop();

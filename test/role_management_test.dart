@@ -116,11 +116,22 @@ void main() {
       await tester.tap(find.text('Open actions'));
       await tester.pumpAndSettle();
 
-      final deleteAction = find.text('Delete');
+      final deleteAction = find.text('Delete countdown');
       expect(
         deleteAction.hitTestable(),
         findsOneWidget,
         reason: 'Delete must be visible at $size without scrolling',
+      );
+      final sheetMaterial = find
+          .ancestor(
+            of: find.text('Trip'),
+            matching: find.byType(Material),
+          )
+          .first;
+      expect(
+        tester.getSize(sheetMaterial).height,
+        lessThan(size.height * 0.85),
+        reason: 'the sheet should wrap its contents at $size',
       );
       await tester.tap(deleteAction);
       await tester.pumpAndSettle();
