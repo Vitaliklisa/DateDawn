@@ -23,23 +23,12 @@ Future<void> showEventActionsSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => Wrap(
-      children: [
-        Container(
-          width: MediaQuery.sizeOf(context).width,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: SingleChildScrollView(
-            child: _EventActionsSheet(
-              event: event,
-              onDeleted: onDeleted,
-            ),
-          ),
-        ),
-      ],
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) => _EventActionsSheet(
+      event: event,
+      onDeleted: onDeleted,
     ),
   );
 }
@@ -55,79 +44,56 @@ class _EventActionsSheet extends ConsumerWidget {
     final colors = context.colors;
     final user = ref.watch(currentUserProvider);
     final canEdit = event.canEdit(user?.id);
-    final canManage = user != null &&
-        (event.createdBy == user.id || event.canManage(user.id));
 
     final children = <Widget>[
       Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
-        child: Column(
-          children: [
-            Container(
-              width: 32,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colors.subtle.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    event.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    event.isPast ? 'Passed' : 'Counting down',
-                    style: TextStyle(fontSize: 12, color: colors.subtle),
-                  ),
-                ],
-              ),
-            ),
-          ],
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Container(
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Colors.grey,
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
       ),
-      Divider(color: colors.border, height: 1),
-      const SizedBox(height: 8),
-      _Action(
-        icon: Icons.open_in_new_rounded,
-        label: 'Open',
+      ListTile(
+        title: Text(
+          event.title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(event.isPast ? 'Passed' : 'Counting down'),
+      ),
+      const Divider(),
+      ListTile(
+        leading: const Icon(Icons.open_in_new),
+        title: const Text('Open'),
         onTap: () {
           Navigator.of(context).pop();
           context.push('/event/${event.id}');
         },
       ),
       if (canEdit)
-        _Action(
-          icon: Icons.edit_outlined,
-          label: 'Edit',
+        ListTile(
+          leading: const Icon(Icons.edit_outlined),
+          title: const Text('Edit'),
           onTap: () {
             Navigator.of(context).pop();
             context.push('/event/${event.id}/edit', extra: event);
           },
         ),
-      _Action(
-        icon: Icons.ios_share_rounded,
-        label: 'Share',
+      ListTile(
+        leading: const Icon(Icons.share_outlined),
+        title: const Text('Share'),
         onTap: () {
           Navigator.of(context).pop();
           shareEvent(context, event);
         },
       ),
       if (user != null)
-        _Action(
-          icon: Icons.content_copy_rounded,
-          label: 'Duplicate a year later',
+        ListTile(
+          leading: const Icon(Icons.copy_outlined),
+          title: const Text('Duplicate a year later'),
           onTap: () async {
             Navigator.of(context).pop();
             await runAction(
@@ -146,19 +112,18 @@ class _EventActionsSheet extends ConsumerWidget {
     ];
 
     debugPrint(
-      'Sheet check: event.createdBy=${event.createdBy}, '
-      'user.id=${user?.id}, canManage=$canManage',
+      'Delete check: event.createdBy=${event.createdBy}, user.id=${user?.id}',
     );
     if (user != null &&
         (event.createdBy == user.id || event.canManage(user.id))) {
       children.addAll([
-        const SizedBox(height: 6),
-        Divider(color: colors.border, height: 1),
-        const SizedBox(height: 6),
-        _Action(
-          icon: Icons.delete_outline_rounded,
-          label: 'Delete countdown',
-          destructive: true,
+        const Divider(),
+        ListTile(
+          leading: Icon(Icons.delete_outline, color: colors.danger),
+          title: Text(
+            'Delete countdown',
+            style: TextStyle(color: colors.danger),
+          ),
           onTap: () async {
             final navigator = Navigator.of(context);
             final messenger = ScaffoldMessenger.of(context);
@@ -191,11 +156,10 @@ class _EventActionsSheet extends ConsumerWidget {
       ]);
     }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+    children.add(const SizedBox(height: 10));
+    return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: children,
       ),
     );
@@ -224,40 +188,5 @@ class _EventActionsSheet extends ConsumerWidget {
       ),
     );
     return result ?? false;
-  }
-}
-
-class _Action extends StatelessWidget {
-  const _Action({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.destructive = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool destructive;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final tint = destructive ? colors.danger : colors.fg;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: tint),
-            const SizedBox(width: 16),
-            Text(label, style: TextStyle(fontSize: 14.5, color: tint)),
-          ],
-        ),
-      ),
-    );
   }
 }

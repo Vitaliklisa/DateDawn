@@ -61,8 +61,6 @@ Future<void> _pumpHome(WidgetTester tester, {required String userId}) async {
   expect(tester.takeException(), isNull);
 
   final options = find.byTooltip('Options').last;
-  await tester.ensureVisible(options);
-  await tester.pump();
   await tester.tap(options);
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
@@ -76,18 +74,24 @@ void main() {
 
     expect(find.text('Delete countdown').hitTestable(), findsOneWidget);
 
-    final sheet = find.byWidgetPredicate((widget) {
-      if (widget is! Container) return false;
-      final decoration = widget.decoration;
-      return decoration is BoxDecoration &&
-          decoration.borderRadius ==
-              const BorderRadius.vertical(top: Radius.circular(20));
-    });
-    expect(sheet, findsOneWidget);
+    final sheetColumn = find
+        .ancestor(
+          of: find.text('Delete countdown'),
+          matching: find.byType(Column),
+        )
+        .first;
+    final sheetSafeArea = find
+        .ancestor(
+          of: find.text('Delete countdown'),
+          matching: find.byType(SafeArea),
+        )
+        .first;
+    final screenHeight =
+        MediaQuery.sizeOf(tester.element(sheetSafeArea)).height;
     expect(
-      tester.getSize(sheet).height,
-      lessThan(_viewport.height),
-      reason: 'the sheet container should wrap its content below screen height',
+      tester.getSize(sheetColumn).height,
+      lessThan(screenHeight * 0.85),
+      reason: 'the sheet column should wrap to content below 85% of screen',
     );
   });
 
