@@ -79,7 +79,7 @@ void main() {
           of: find.text('Delete countdown'),
           matching: find.byType(Column),
         )
-        .first;
+        .last;
     final sheetSafeArea = find
         .ancestor(
           of: find.text('Delete countdown'),
@@ -93,6 +93,7 @@ void main() {
       lessThan(screenHeight * 0.85),
       reason: 'the sheet column should wrap to content below 85% of screen',
     );
+    expect(find.byType(SingleChildScrollView), findsNothing);
   });
 
   testWidgets('Home action sheet hides Delete from a non-creator',
