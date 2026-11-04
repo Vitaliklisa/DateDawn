@@ -275,6 +275,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
               'Invite them manually.';
         }
       }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), duration: duration),
       );

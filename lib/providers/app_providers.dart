@@ -11,6 +11,7 @@ import '../core/models.dart';
 import '../core/notifications.dart';
 import '../core/recent_contacts.dart';
 import '../core/time_format.dart';
+import '../router.dart';
 import '../services/auth_service.dart';
 import '../services/event_repository.dart';
 import '../services/notification_service.dart';
@@ -778,7 +779,10 @@ Future<String?> runAction(
   Future<void> Function() action, {
   String? successMessage,
 }) async {
-  final messenger = ScaffoldMessenger.maybeOf(context);
+  final rootContext = rootNavigatorKey.currentContext;
+  final messenger = ScaffoldMessenger.maybeOf(
+    (context.mounted ? context : null) ?? rootContext ?? context,
+  );
   try {
     await action();
     if (successMessage != null) {

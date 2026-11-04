@@ -743,8 +743,11 @@ service cloud.firestore {
       // query is limited to the creator and explicit visibility array.
       allow get: if canRead(eventId, resource.data);
       allow list: if signedIn()
-        && (resource.data.createdBy == uid()
-          || isSharedWithMe(resource.data));
+        && (
+          resource.data.createdBy == uid()
+          || isSharedWithMe(resource.data)
+          || resource.data.get('sharedWithCircleIds', null) != null
+        );
       // Creating is unrestricted for a signed-in user, provided they name
       // themselves as the creator.
       allow create: if signedIn() && validEventPayload();
@@ -944,7 +947,12 @@ service cloud.firestore {
       // Members of the circle, with names and avatars for the UI.
       match /members/{userId} {
         allow read: if signedIn()
-          && uid() in get(/databases/$(database)/documents/circles/$(circleId)).data.memberIds;
+          && (
+            userId == uid()
+            || (resource != null && resource.data.get('userId', '') == uid())
+            || uid() in get(/databases/$(database)/documents/circles/$(circleId)).data.get('memberIds', [])
+            || get(/databases/$(database)/documents/circles/$(circleId)).data.get('ownerId', '') == uid()
+          );
 
         // You add yourself (accepting an invitation). Only the circle owner may
         // add someone else, which is what a couple auto-share does.

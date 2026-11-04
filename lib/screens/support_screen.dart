@@ -180,9 +180,9 @@ class SupportScreen extends StatelessWidget {
   /// staring at a screen that ignored their tap. Copying always works, so the
   /// address is in hand either way.
   Future<void> _copyEmail(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
     await Clipboard.setData(const ClipboardData(text: supportEmail));
-    messenger.showSnackBar(
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('$supportEmail copied'),
         action: SnackBarAction(
@@ -194,7 +194,6 @@ class SupportScreen extends StatelessWidget {
   }
 
   Future<void> _open(BuildContext context, String url) async {
-    final messenger = ScaffoldMessenger.of(context);
     final uri = Uri.parse(url);
     try {
       final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -203,7 +202,8 @@ class SupportScreen extends StatelessWidget {
       // Never a dead tap: if nothing can handle the link, say so and leave the
       // address on the clipboard instead of failing silently.
       await Clipboard.setData(ClipboardData(text: url));
-      messenger.showSnackBar(
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Link copied to your clipboard.')),
       );
     }

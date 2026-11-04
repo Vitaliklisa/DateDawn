@@ -53,6 +53,8 @@ class AppNavigationShell extends ConsumerWidget {
     if (location != destination) context.go(destination);
   }
 
+  static const _shellChildKey = ValueKey('app_navigation_shell_child_key');
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
@@ -63,49 +65,56 @@ class AppNavigationShell extends ConsumerWidget {
     // As a layer it covers the sidebar and the bottom bar (as a policy page
     // should) and its own Back goes through `closeLegalPage`.
     final legal = ref.watch(legalDocumentProvider);
+    final isDesktop = MediaQuery.sizeOf(context).width >= 900;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final destination =
-            _buildShell(context, user, desktop: constraints.maxWidth >= 900);
-        if (legal == null) return destination;
-        // The policy sits in an `Offstage` sibling rather than a `Stack`: it is
-        // the only visible thing, and nothing underneath it stays laid out,
-        // focusable, or tappable. A SharedAxis transition slides it in and out
-        // (`pop` when closing), so opening a legal page still feels like moving
-        // forward to a page, not like something appearing over one.
-        return Stack(
-          children: [
-            Offstage(offstage: true, child: destination),
-            Positioned.fill(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                switchOutCurve: Curves.easeIn,
-                switchInCurve: Curves.easeOut,
-                transitionBuilder: (child, animation) => SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.06, 0),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: FadeTransition(opacity: animation, child: child),
-                ),
-                child: PolicyScreen(
-                  key: ValueKey(legal),
-                  isPrivacy: legal == LegalDocument.privacy,
-                ),
-              ),
+    final keyedChild = KeyedSubtree(
+      key: _shellChildKey,
+      child: child,
+    );
+
+    final destination =
+        _buildShell(context, user, desktop: isDesktop, keyedChild: keyedChild);
+    if (legal == null) return destination;
+
+    // The policy sits in an `Offstage` sibling rather than a `Stack`: it is
+    // the only visible thing, and nothing underneath it stays laid out,
+    // focusable, or tappable. A SharedAxis transition slides it in and out
+    // (`pop` when closing), so opening a legal page still feels like moving
+    // forward to a page, not like something appearing over one.
+    return Stack(
+      children: [
+        Offstage(offstage: true, child: destination),
+        Positioned.fill(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchOutCurve: Curves.easeIn,
+            switchInCurve: Curves.easeOut,
+            transitionBuilder: (child, animation) => SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.06, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: FadeTransition(opacity: animation, child: child),
             ),
-          ],
-        );
-      },
+            child: PolicyScreen(
+              key: ValueKey(legal),
+              isPrivacy: legal == LegalDocument.privacy,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildShell(BuildContext context, AppUser? user,
-      {required bool desktop}) {
+  Widget _buildShell(
+    BuildContext context,
+    AppUser? user, {
+    required bool desktop,
+    required Widget keyedChild,
+  }) {
     if (!desktop) {
       return Scaffold(
-        body: child,
+        body: keyedChild,
         bottomNavigationBar: NavigationBar(
           selectedIndex: _selectedIndex,
           onDestinationSelected: (index) => _goTo(context, index),
@@ -182,7 +191,7 @@ class AppNavigationShell extends ConsumerWidget {
               ),
             ),
           ),
-          Expanded(child: child),
+          Expanded(child: keyedChild),
         ],
       ),
     );

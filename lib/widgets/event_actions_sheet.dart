@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
+import '../router.dart';
 import '../services/event_repository.dart';
 import '../widgets/share_event.dart';
 
@@ -143,7 +144,9 @@ class _EventActionsSheet extends ConsumerWidget {
               label: 'Delete countdown',
               destructive: true,
               onTap: () async {
-                final messenger = ScaffoldMessenger.of(context);
+                final messenger = ScaffoldMessenger.of(
+                  rootNavigatorKey.currentContext ?? context,
+                );
                 if (user == null ||
                     (event.createdBy != user.id && !event.canManage(user.id))) {
                   messenger.showSnackBar(

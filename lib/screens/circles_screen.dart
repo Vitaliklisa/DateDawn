@@ -425,346 +425,380 @@ Future<bool> _confirmDeleteCircle(BuildContext context, String name) async {
 }
 
 /// Create a circle, optionally as a couple circle.
-Future<void> _openCreateSheet(BuildContext context, WidgetRef ref) async {
-  final user = ref.read(currentUserProvider);
-  if (user == null) return;
-
-  final nameController = TextEditingController();
-  var isCouple = false;
-  var busy = false;
-
-  await showModalBottomSheet<void>(
+Future<void> _openCreateSheet(BuildContext context, WidgetRef ref) {
+  return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (sheetContext) => StatefulBuilder(
-      builder: (sheetContext, setSheetState) {
-        final colors = sheetContext.colors;
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            8,
-            24,
-            24 + MediaQuery.of(sheetContext).viewInsets.bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'New circle',
-                style: Theme.of(sheetContext).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: nameController,
-                autofocus: true,
-                textCapitalization: TextCapitalization.words,
-                decoration:
-                    const InputDecoration(hintText: 'Family, Tokyo 2027, Us'),
-              ),
-              const SizedBox(height: 14),
-              // The couple toggle is the whole point of the circle feature for
-              // two people, so it is offered up front rather than buried.
-              InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: () => setSheetState(() => isCouple = !isCouple),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isCouple ? colors.accentSoft : colors.surface2,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isCouple ? colors.accent : colors.border,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Text('💞', style: TextStyle(fontSize: 18)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'This is us — a couple',
-                              style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Countdowns are shared with your partner automatically, '
-                              'with no invitation to accept.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                height: 1.35,
-                                color: colors.muted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Switch(
-                        value: isCouple,
-                        onChanged: (value) =>
-                            setSheetState(() => isCouple = value),
-                      ),
-                    ],
+    builder: (_) => const _CreateCircleSheet(),
+  );
+}
+
+class _CreateCircleSheet extends ConsumerStatefulWidget {
+  const _CreateCircleSheet();
+
+  @override
+  ConsumerState<_CreateCircleSheet> createState() => _CreateCircleSheetState();
+}
+
+class _CreateCircleSheetState extends ConsumerState<_CreateCircleSheet> {
+  late final TextEditingController _nameController;
+  bool _isCouple = false;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final user = ref.watch(currentUserProvider);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        8,
+        24,
+        24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'New circle',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _nameController,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration:
+                  const InputDecoration(hintText: 'Family, Tokyo 2027, Us'),
+            ),
+            const SizedBox(height: 14),
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => setState(() => _isCouple = !_isCouple),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _isCouple ? colors.accentSoft : colors.surface2,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _isCouple ? colors.accent : colors.border,
                   ),
                 ),
+                child: Row(
+                  children: [
+                    const Text('💞', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'This is us — a couple',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Countdowns are shared with your partner automatically, '
+                            'with no invitation to accept.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.35,
+                              color: colors.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _isCouple,
+                      onChanged: (value) => setState(() => _isCouple = value),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: busy
-                    ? null
-                    : () async {
-                        final name = nameController.text.trim();
-                        if (name.isEmpty) return;
-                        setSheetState(() => busy = true);
-                        await runAction(
-                          sheetContext,
-                          () => ref.read(eventRepositoryProvider).createCircle(
-                                ownerId: user.id,
-                                ownerEmail: user.email,
-                                name: name,
-                                ownerName: user.displayName,
-                                ownerPhotoUrl: user.photoUrl,
-                                emoji: isCouple ? '💞' : null,
-                                isCouple: isCouple,
-                              ),
-                          successMessage: isCouple
-                              ? 'Created. Invite your partner next.'
-                              : 'Circle created.',
-                        );
-                        if (sheetContext.mounted) {
-                          Navigator.of(sheetContext).pop();
-                        }
-                      },
-                child: const Text('Create'),
-              ),
-            ],
-          ),
-        );
-      },
-    ),
-  );
-
-  nameController.dispose();
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _busy || user == null
+                  ? null
+                  : () async {
+                      final name = _nameController.text.trim();
+                      if (name.isEmpty) return;
+                      setState(() => _busy = true);
+                      final navigator = Navigator.of(context);
+                      await runAction(
+                        context,
+                        () => ref.read(eventRepositoryProvider).createCircle(
+                              ownerId: user.id,
+                              ownerEmail: user.email,
+                              name: name,
+                              ownerName: user.displayName,
+                              ownerPhotoUrl: user.photoUrl,
+                              emoji: _isCouple ? '💞' : null,
+                              isCouple: _isCouple,
+                            ),
+                        successMessage: _isCouple
+                            ? 'Created. Invite your partner next.'
+                            : 'Circle created.',
+                      );
+                      if (mounted) {
+                        navigator.pop();
+                      }
+                    },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Invite someone into a circle by email.
 Future<void> _openInviteSheet(
-    BuildContext context, WidgetRef ref, Circle circle) async {
-  final user = ref.read(currentUserProvider);
-  if (user == null) return;
-
-  final emailController = TextEditingController();
-  var busy = false;
-  var query = '';
-  String? inviteError;
-
-  await showModalBottomSheet<void>(
+    BuildContext context, WidgetRef ref, Circle circle) {
+  return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (sheetContext) => StatefulBuilder(
-      builder: (sheetContext, setSheetState) {
-        final colors = sheetContext.colors;
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            8,
-            24,
-            24 + MediaQuery.of(sheetContext).viewInsets.bottom,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  circle.isCouple
-                      ? 'Invite your partner'
-                      : 'Invite to “${circle.name}”',
-                  style: Theme.of(sheetContext).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  circle.isCouple
-                      ? 'If they already have an account, they will be added '
-                          'automatically. Otherwise, they will be added when they '
-                          'sign in. Future countdowns shared with this circle '
-                          'will appear automatically.'
-                      : 'They will get an invitation to accept or decline. After they '
-                          'join, you can share countdowns with this circle in one tap.',
-                  style:
-                      TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
-                ),
-                const SizedBox(height: 18),
-                TextField(
-                  controller: emailController,
-                  autofocus: true,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration:
-                      const InputDecoration(hintText: 'them@example.com'),
-                  onChanged: (value) {
-                    setSheetState(() {
-                      query = value.trim();
-                      inviteError = null;
-                    });
-                  },
-                ),
-                Consumer(
-                  builder: (context, contactsRef, _) {
-                    final contactsAsync =
-                        contactsRef.watch(recentContactsProvider);
-                    final contacts =
-                        contactsAsync.value ?? const <RecentContact>[];
-                    final memberIds = circle.memberIds.toSet();
-                    final memberEmails = circle.members
-                        .map((member) => member.email.toLowerCase())
-                        .toSet();
-                    final seenEmails = <String>{};
-                    final suggestions = contacts
-                        .where((contact) => contact.matches(query))
-                        .where((contact) =>
-                            !memberIds.contains(contact.userId) &&
-                            !memberEmails.contains(contact.email.toLowerCase()))
-                        .where((contact) =>
-                            seenEmails.add(contact.email.toLowerCase()))
-                        .take(5)
-                        .toList();
-                    if (contactsAsync.hasError && query.isNotEmpty) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Recent contacts could not load. Check your '
-                          'connection or Firestore rules.',
-                          style:
-                              TextStyle(fontSize: 12.5, color: colors.danger),
-                        ),
-                      );
-                    }
-                    if (suggestions.isEmpty) return const SizedBox.shrink();
+    builder: (_) => _InviteCircleSheet(circle: circle),
+  );
+}
 
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: colors.surface2,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: colors.border),
-                        ),
-                        child: Column(
-                          children: [
-                            for (var i = 0; i < suggestions.length; i++) ...[
-                              if (i > 0)
-                                Divider(height: 1, color: colors.border),
-                              ListTile(
-                                dense: true,
-                                leading: UserAvatar(
-                                  initials: suggestions[i].initials,
-                                  seed: suggestions[i].userId,
-                                  photoUrl: suggestions[i].photoUrl,
-                                  size: 32,
-                                ),
-                                title: Text(
-                                  suggestions[i].label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                subtitle: Text(
-                                  suggestions[i].email,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                onTap: () {
-                                  final contact = suggestions[i];
-                                  emailController.text = contact.email;
-                                  emailController.selection =
-                                      TextSelection.collapsed(
-                                          offset: contact.email.length);
-                                  setSheetState(() {
-                                    query = contact.email;
-                                    inviteError = null;
-                                  });
-                                },
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                if (inviteError != null) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.error_outline_rounded,
-                          size: 16, color: colors.danger),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          inviteError!,
-                          style: TextStyle(fontSize: 13, color: colors.danger),
-                        ),
-                      ),
-                    ],
+class _InviteCircleSheet extends ConsumerStatefulWidget {
+  const _InviteCircleSheet({required this.circle});
+
+  final Circle circle;
+
+  @override
+  ConsumerState<_InviteCircleSheet> createState() => _InviteCircleSheetState();
+}
+
+class _InviteCircleSheetState extends ConsumerState<_InviteCircleSheet> {
+  late final TextEditingController _emailController;
+  bool _busy = false;
+  String _query = '';
+  String? _inviteError;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final user = ref.watch(currentUserProvider);
+    final circle = widget.circle;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        8,
+        24,
+        24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              circle.isCouple
+                  ? 'Invite your partner'
+                  : 'Invite to “${circle.name}”',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              circle.isCouple
+                  ? 'If they already have an account, they will be added '
+                      'automatically. Otherwise, they will be added when they '
+                      'sign in. Future countdowns shared with this circle '
+                      'will appear automatically.'
+                  : 'They will get an invitation to accept or decline. After they '
+                      'join, you can share countdowns with this circle in one tap.',
+              style: TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
+            ),
+            const SizedBox(height: 18),
+            TextField(
+              controller: _emailController,
+              autofocus: true,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(hintText: 'them@example.com'),
+              onChanged: (value) {
+                setState(() {
+                  _query = value.trim();
+                  _inviteError = null;
+                });
+              },
+            ),
+            Consumer(
+              builder: (context, contactsRef, _) {
+                final contactsAsync = contactsRef.watch(recentContactsProvider);
+                final contacts = contactsAsync.value ?? const <RecentContact>[];
+                final memberIds = circle.memberIds.toSet();
+                final memberEmails = circle.members
+                    .map((member) => member.email.toLowerCase())
+                    .toSet();
+                final seenEmails = <String>{};
+                final suggestions = contacts
+                    .where((contact) => contact.matches(_query))
+                    .where((contact) =>
+                        !memberIds.contains(contact.userId) &&
+                        !memberEmails.contains(contact.email.toLowerCase()))
+                    .where((contact) =>
+                        seenEmails.add(contact.email.toLowerCase()))
+                    .take(5)
+                    .toList();
+                if (contactsAsync.hasError && _query.isNotEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Recent contacts could not load. Check your '
+                      'connection or Firestore rules.',
+                      style: TextStyle(fontSize: 12.5, color: colors.danger),
+                    ),
+                  );
+                }
+                if (suggestions.isEmpty) return const SizedBox.shrink();
+
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: colors.surface2,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: colors.border),
+                    ),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < suggestions.length; i++) ...[
+                          if (i > 0) Divider(height: 1, color: colors.border),
+                          ListTile(
+                            dense: true,
+                            leading: UserAvatar(
+                              initials: suggestions[i].initials,
+                              seed: suggestions[i].userId,
+                              photoUrl: suggestions[i].photoUrl,
+                              size: 32,
+                            ),
+                            title: Text(
+                              suggestions[i].label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(
+                              suggestions[i].email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onTap: () {
+                              final contact = suggestions[i];
+                              _emailController.text = contact.email;
+                              _emailController.selection =
+                                  TextSelection.collapsed(
+                                      offset: contact.email.length);
+                              setState(() {
+                                _query = contact.email;
+                                _inviteError = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            if (_inviteError != null) ...[
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.error_outline_rounded,
+                      size: 16, color: colors.danger),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _inviteError!,
+                      style: TextStyle(fontSize: 13, color: colors.danger),
+                    ),
                   ),
                 ],
-                const SizedBox(height: 18),
-                FilledButton(
-                  onPressed: busy
-                      ? null
-                      : () async {
-                          final email = emailController.text.trim();
-                          if (email.isEmpty) return;
-                          setSheetState(() {
-                            busy = true;
-                            inviteError = null;
+              ),
+            ],
+            const SizedBox(height: 18),
+            FilledButton(
+              onPressed: _busy || user == null
+                  ? null
+                  : () async {
+                      final email = _emailController.text.trim();
+                      if (email.isEmpty) return;
+                      setState(() {
+                        _busy = true;
+                        _inviteError = null;
+                      });
+                      final navigator = Navigator.of(context);
+                      final failure = await runAction(
+                        context,
+                        () => ref.read(eventRepositoryProvider).inviteToCircle(
+                              circle: circle,
+                              inviterId: user.id,
+                              inviterEmail: user.email,
+                              email: email,
+                              inviterName: user.displayName,
+                            ),
+                        successMessage: circle.isCouple
+                            ? 'Your partner will be added automatically.'
+                            : 'Invitation sent to $email.',
+                      );
+                      if (failure != null) {
+                        if (mounted) {
+                          setState(() {
+                            _busy = false;
+                            _inviteError = failure;
                           });
-                          final failure = await runAction(
-                            sheetContext,
-                            () => ref
-                                .read(eventRepositoryProvider)
-                                .inviteToCircle(
-                                  circle: circle,
-                                  inviterId: user.id,
-                                  inviterEmail: user.email,
-                                  email: email,
-                                  inviterName: user.displayName,
-                                ),
-                            successMessage: circle.isCouple
-                                ? 'Your partner will be added automatically.'
-                                : 'Invitation sent to $email.',
-                          );
-                          if (failure != null) {
-                            if (sheetContext.mounted) {
-                              setSheetState(() {
-                                busy = false;
-                                inviteError = failure;
-                              });
-                            }
-                            return;
-                          }
-                          if (sheetContext.mounted) {
-                            Navigator.of(sheetContext).pop();
-                          }
-                        },
-                  child: const Text('Send invitation'),
-                ),
-              ],
+                        }
+                        return;
+                      }
+                      if (mounted) {
+                        navigator.pop();
+                      }
+                    },
+              child: const Text('Send invitation'),
             ),
-          ),
-        );
-      },
-    ),
-  );
-
-  emailController.dispose();
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _SignInPrompt extends StatelessWidget {
