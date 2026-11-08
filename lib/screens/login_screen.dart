@@ -25,6 +25,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   bool _creating = false;
   bool _busy = false;
+  bool _resettingPassword = false;
   bool _obscure = true;
 
   @override
@@ -81,6 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _forgotPassword() async {
+    if (_busy || _resettingPassword) return;
     final email = _email.text.trim();
     if (email.isEmpty || !email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -90,11 +92,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
       return;
     }
-    await runAction(
-      context,
-      () => ref.read(authServiceProvider).sendPasswordReset(email),
-      successMessage: 'Reset link sent to $email.',
-    );
+    setState(() => _resettingPassword = true);
+    try {
+      await runAction(
+        context,
+        () => ref.read(authServiceProvider).sendPasswordReset(email),
+        successMessage: 'Reset link sent to $email. Use the newest email.',
+      );
+    } finally {
+      if (mounted) setState(() => _resettingPassword = false);
+    }
   }
 
   @override
@@ -188,9 +195,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: _busy ? null : _forgotPassword,
-                          child: const Text('Forgot password?',
-                              style: TextStyle(fontSize: 13)),
+                          onPressed: _busy || _resettingPassword
+                              ? null
+                              : _forgotPassword,
+                          child: _resettingPassword
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('Forgot password?',
+                                  style: TextStyle(fontSize: 13)),
                         ),
                       )
                     else
@@ -233,14 +250,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       label: const Text('Continue with Google'),
                     ),
                     const SizedBox(height: 24),
-                    Wrap(
-                      alignment: WrapAlignment.center,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          _creating ? 'Already have an account?' : 'New here?',
-                          style: TextStyle(fontSize: 13, color: colors.muted),
+                        Flexible(
+                          child: Text(
+                            _creating
+                                ? 'Already have an account?'
+                                : 'New here?',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: TextStyle(fontSize: 13, color: colors.muted),
+                          ),
                         ),
+                        const SizedBox(width: 4),
                         TextButton(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            minimumSize: const Size(0, 40),
+                          ),
                           onPressed: _busy
                               ? null
                               : () => setState(() {

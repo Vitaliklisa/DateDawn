@@ -228,3 +228,10 @@ Authentication → Settings → Authorized domains. For iOS, add the
 `CFBundleURLTypes` in `ios/Runner/Info.plist`. Without the provider, OAuth
 client, platform fingerprints/scheme, or authorized domain, Google sign-in is
 unavailable even though the button is present.
+
+**Password reset:** Reset links are Firebase Authentication action codes, not
+Firestore documents. Firestore security rules cannot extend or repair an expired
+or already-used link. Open the newest reset email and use its link once; if a
+fresh link is rejected immediately, check Authentication → Email templates →
+Password reset and confirm the app and email action URL use the same Firebase
+project. Do not loosen Firestore rules to troubleshoot password resets.

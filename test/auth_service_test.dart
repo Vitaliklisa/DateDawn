@@ -41,4 +41,17 @@ void main() {
       );
     });
   });
+
+  test('trims the email before sending a password reset', () async {
+    final auth = _MockFirebaseAuth();
+    when(
+      () => auth.sendPasswordResetEmail(email: 'user@example.com'),
+    ).thenAnswer((_) async {});
+
+    await AuthService(auth: auth).sendPasswordReset('  user@example.com  ');
+
+    verify(
+      () => auth.sendPasswordResetEmail(email: 'user@example.com'),
+    ).called(1);
+  });
 }

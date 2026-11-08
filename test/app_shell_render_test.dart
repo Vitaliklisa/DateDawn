@@ -25,7 +25,7 @@ class _TestAuthService extends AuthService {
 void main() {
   testWidgets('signed-out app renders the login content, not a blank pane',
       (tester) async {
-    tester.view.physicalSize = const Size(944, 948);
+    tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -51,5 +51,18 @@ void main() {
     expect(find.text('Invitations'), findsNothing,
         reason:
             'the shell sidebar must not render on the top-level login route');
+
+    final promptCenter = tester.getRect(find.text('New here?')).center.dy;
+    final actionCenter = tester.getRect(find.text('Create one')).center.dy;
+    expect((promptCenter - actionCenter).abs(), lessThan(2));
+
+    await tester.tap(find.text('Create one'));
+    await tester.pumpAndSettle();
+
+    final returningPromptCenter =
+        tester.getRect(find.text('Already have an account?')).center.dy;
+    final returningActionCenter =
+        tester.getRect(find.text('Sign in')).center.dy;
+    expect((returningPromptCenter - returningActionCenter).abs(), lessThan(2));
   });
 }
