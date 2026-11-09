@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/firebase_action_code.dart';
 import '../core/routes.dart';
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
@@ -21,7 +22,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
 
-  late final String? _code = _findActionCode(widget.actionUri);
+  late final String? _code = findFirebaseActionCode(widget.actionUri);
   String? _email;
   String? _error;
   bool _loading = true;
@@ -221,23 +222,4 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
       ),
     );
   }
-}
-
-String? _findActionCode(Uri uri, [int depth = 0]) {
-  if (depth > 3) return null;
-
-  final directCode =
-      uri.queryParameters['oobCode'] ?? uri.queryParameters['oobcode'];
-  if (directCode != null && directCode.isNotEmpty) return directCode;
-
-  for (final key in const ['link', 'deep_link_id', 'continueUrl']) {
-    final nested = uri.queryParameters[key];
-    if (nested == null) continue;
-    final nestedUri = Uri.tryParse(nested);
-    if (nestedUri == null) continue;
-    final code = _findActionCode(nestedUri, depth + 1);
-    if (code != null) return code;
-  }
-
-  return null;
 }

@@ -6,6 +6,15 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../firebase_config.dart';
 
+ActionCodeSettings _actionCodeSettings(String url) => ActionCodeSettings(
+      url: url,
+      handleCodeInApp: true,
+      androidPackageName: 'com.datedawn.app',
+      androidInstallApp: true,
+      androidMinimumVersion: '12',
+      iOSBundleId: 'com.datedawn.app',
+    );
+
 /// The signed-in identity, normalised so the UI never touches Firebase types.
 @immutable
 class AppUser {
@@ -138,7 +147,9 @@ class AuthService {
         await user.updateDisplayName(name);
         await user.reload();
       }
-      await user.sendEmailVerification();
+      await user.sendEmailVerification(
+        _actionCodeSettings(emailVerificationContinueUrl),
+      );
       final current = _auth.currentUser ?? user;
       await _freshToken(current);
       return AppUser.fromFirebase(current);
@@ -153,7 +164,9 @@ class AuthService {
       throw const AuthFailure('Sign in before requesting email verification.');
     }
     try {
-      await user.sendEmailVerification();
+      await user.sendEmailVerification(
+        _actionCodeSettings(emailVerificationContinueUrl),
+      );
     } on FirebaseAuthException catch (e) {
       throw _mapException(e);
     }
@@ -219,6 +232,10 @@ class AuthService {
     } on FirebaseAuthException catch (e) {
       throw _mapException(e);
     } on GoogleSignInException catch (e) {
+      debugPrint(
+        '[datedawn] Google sign-in exception: '
+        'code=${e.code}, description=${e.description}',
+      );
       if (e.code == GoogleSignInExceptionCode.clientConfigurationError) {
         throw AuthFailure(
           'Google sign-in needs the Android web client ID and this app’s '
@@ -244,15 +261,16 @@ class AuthService {
     try {
       await _auth.sendPasswordResetEmail(
         email: email.trim(),
-        actionCodeSettings: ActionCodeSettings(
-          url: passwordResetContinueUrl,
-          handleCodeInApp: true,
-          androidPackageName: 'com.datedawn.app',
-          androidInstallApp: true,
-          androidMinimumVersion: '1',
-          iOSBundleId: 'com.datedawn.app',
-        ),
+        actionCodeSettings: _actionCodeSettings(passwordResetContinueUrl),
       );
+    } on FirebaseAuthException catch (e) {
+      throw _mapException(e);
+    }
+  }
+
+  Future<void> applyEmailVerificationCode(String code) async {
+    try {
+      await _auth.applyActionCode(code);
     } on FirebaseAuthException catch (e) {
       throw _mapException(e);
     }

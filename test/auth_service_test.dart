@@ -56,6 +56,7 @@ void main() {
     final auth = _MockFirebaseAuth();
     final credential = _MockUserCredential();
     final user = _MockUser();
+    ActionCodeSettings? sentSettings;
     when(
       () => auth.createUserWithEmailAndPassword(
         email: 'user@example.com',
@@ -73,7 +74,11 @@ void main() {
     when(() => user.providerData).thenReturn(const []);
     when(() => user.updateDisplayName('Alex Rivera')).thenAnswer((_) async {});
     when(() => user.reload()).thenAnswer((_) async {});
-    when(() => user.sendEmailVerification()).thenAnswer((_) async {});
+    when(
+      () => user.sendEmailVerification(any()),
+    ).thenAnswer((invocation) async {
+      sentSettings = invocation.positionalArguments.first as ActionCodeSettings;
+    });
     when(() => user.getIdToken(true)).thenAnswer((_) async => 'token');
 
     final registered = await AuthService(auth: auth).registerWithEmail(
@@ -86,8 +91,32 @@ void main() {
     verifyInOrder([
       () => user.updateDisplayName('Alex Rivera'),
       () => user.reload(),
-      () => user.sendEmailVerification(),
+      () => user.sendEmailVerification(any()),
     ]);
+    expect(sentSettings!.url, 'https://datedawn.vercel.app/verify-email');
+    expect(sentSettings!.handleCodeInApp, isTrue);
+    expect(sentSettings!.androidPackageName, 'com.datedawn.app');
+    expect(sentSettings!.androidInstallApp, isTrue);
+    expect(sentSettings!.androidMinimumVersion, '12');
+  });
+
+  test('resends verification with Android app action settings', () async {
+    final auth = _MockFirebaseAuth();
+    final user = _MockUser();
+    ActionCodeSettings? sentSettings;
+    when(() => auth.currentUser).thenReturn(user);
+    when(
+      () => user.sendEmailVerification(any()),
+    ).thenAnswer((invocation) async {
+      sentSettings = invocation.positionalArguments.first as ActionCodeSettings;
+    });
+
+    await AuthService(auth: auth).sendEmailVerification();
+
+    expect(sentSettings!.url, 'https://datedawn.vercel.app/verify-email');
+    expect(sentSettings!.androidPackageName, 'com.datedawn.app');
+    expect(sentSettings!.androidInstallApp, isTrue);
+    expect(sentSettings!.androidMinimumVersion, '12');
   });
 
   test('duplicate email has a clear sign-in instruction', () async {
@@ -142,7 +171,7 @@ void main() {
     expect(sentSettings!.handleCodeInApp, isTrue);
     expect(sentSettings!.androidPackageName, 'com.datedawn.app');
     expect(sentSettings!.androidInstallApp, isTrue);
-    expect(sentSettings!.androidMinimumVersion, '1');
+    expect(sentSettings!.androidMinimumVersion, '12');
     expect(sentSettings!.iOSBundleId, 'com.datedawn.app');
   });
 

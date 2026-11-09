@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/firebase_action_code.dart';
 import 'core/models.dart';
 import 'core/routes.dart';
 import 'providers/app_providers.dart';
@@ -57,6 +58,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootKey,
     initialLocation: Routes.home,
     redirect: (context, state) {
+      if (state.matchedLocation == Routes.verifyEmail &&
+          findFirebaseActionCode(state.uri) != null) {
+        return null;
+      }
+
       final auth = ref.read(activeAuthStateProvider);
       final goingToLogin = state.matchedLocation == Routes.login;
       final goingToEmailVerification =
@@ -109,7 +115,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.verifyEmail,
         name: 'verifyEmail',
-        builder: (context, state) => const VerifyEmailScreen(),
+        builder: (context, state) => VerifyEmailScreen(actionUri: state.uri),
       ),
       GoRoute(
         path: Routes.passwordReset,
@@ -119,7 +125,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.firebaseAuthAction,
         name: 'firebaseAuthAction',
-        builder: (context, state) => PasswordResetScreen(actionUri: state.uri),
+        builder: (context, state) {
+          if (state.uri.queryParameters['mode'] == 'verifyEmail') {
+            return VerifyEmailScreen(actionUri: state.uri);
+          }
+          return PasswordResetScreen(actionUri: state.uri);
+        },
       ),
       ShellRoute(
         builder: (context, state, child) => AppNavigationShell(

@@ -218,16 +218,23 @@ loads app configuration; it does not enable Firebase Authentication providers.
 Authentication → Sign-in method. Android also needs a Web OAuth client ID. The
 downloaded `google-services.json` should contain a Web OAuth client (`client_type`
 `3`); if it does not, finish enabling Google in the Firebase project and
-download the updated file. If the Web client ID is not included in
-`google-services.json`, pass it as
-`--dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>` when building. Add both
-the debug and release signing SHA-1/SHA-256 fingerprints to the Firebase Android
-app (Project settings → Your apps). A Play Store build is signed with the
-**Play App Signing certificate**, not the local upload key: in Google Play
-Console open **Test and release → Setup → App integrity → App signing**, copy
-the App signing key certificate's SHA-1 and SHA-256 into the Firebase Android
-app, then download a fresh `google-services.json` and replace
-`android/app/google-services.json`. Also check that the Google OAuth consent
+download the updated file. `lib/firebase_config.dart` defaults to this Web
+client ID; never use either Android (`client_type: 1`) client ID as the
+`serverClientId`. To confirm every local signing fingerprint, run this from
+the `android` directory:
+
+```powershell
+.\gradlew signingReport
+```
+
+Add **all SHA-1 fingerprints** reported for the debug and release variants to
+the Android app under Firebase Console → Project settings → Your apps →
+Add fingerprint. Also add the Play App Signing SHA-1 from Google Play Console
+→ **Test and release → Setup → App integrity → App signing**; Play-distributed
+installs use Google's app-signing certificate, not the local upload key. Add
+the corresponding SHA-256 fingerprints as well, then download a fresh
+`google-services.json` and replace `android/app/google-services.json`. Also
+check that the Google OAuth consent
 screen is in **Production**, not Testing, if accounts outside the tester list
 need to sign in. For web, add `datedawn.vercel.app` to Authentication →
 Settings → Authorized domains. For iOS, add the
@@ -236,10 +243,11 @@ Settings → Authorized domains. For iOS, add the
 client, platform fingerprints/scheme, or authorized domain, Google sign-in is
 unavailable even though the button is present.
 
-**Password reset:** The app sends Firebase Auth reset links with an
-`ActionCodeSettings` continue URL and handles the `oobCode` on the public
-`/reset-password` route (or Firebase's `/__/auth/action` route). Android
-intent filters receive those links. `datedawn.vercel.app` must be an
+**Email verification and password reset:** The app sends Firebase Auth action
+links with an `ActionCodeSettings` continue URL and handles `oobCode` codes on
+the public `/verify-email` or `/reset-password` route, as well as Firebase's
+`/__/auth/action` route. Android intent filters receive links from both
+`datedawn.firebaseapp.com` and `datedawn.vercel.app`. `datedawn.vercel.app` must be an
 Authentication authorized domain. Verified Android App Links additionally
 require a Digital Asset Links association using the **Play App Signing**
 SHA-256 at the link host; the certificate is available from the Play Console

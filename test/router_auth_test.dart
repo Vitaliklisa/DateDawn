@@ -36,6 +36,7 @@ class _TestAuthService extends AuthService {
   final Stream<AppUser?> _authState;
   final VoidCallback? onReload;
   String? verifiedResetCode;
+  String? appliedVerificationCode;
   AppUser? reloadedUser;
   int verificationEmailsSent = 0;
   int reloadCount = 0;
@@ -47,6 +48,11 @@ class _TestAuthService extends AuthService {
   Future<String> verifyPasswordResetCode(String code) async {
     verifiedResetCode = code;
     return 'user@example.com';
+  }
+
+  @override
+  Future<void> applyEmailVerificationCode(String code) async {
+    appliedVerificationCode = code;
   }
 
   @override
@@ -123,6 +129,31 @@ void main() {
 
     expect(auth.verifiedResetCode, 'router-code');
     expect(find.text('Choose a new password'), findsOneWidget);
+  });
+
+  testWidgets('Firebase email verification links apply the action code',
+      (tester) async {
+    final auth = _TestAuthService(Stream.value(null));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authServiceProvider.overrideWithValue(auth)],
+        child: Consumer(
+          builder: (context, ref, _) => MaterialApp.router(
+            routerConfig: ref.watch(routerProvider),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(MaterialApp));
+    ProviderScope.containerOf(context, listen: false)
+        .read(routerProvider)
+        .go('/__/auth/action?mode=verifyEmail&oobCode=verify-code');
+    await tester.pumpAndSettle();
+
+    expect(auth.appliedVerificationCode, 'verify-code');
+    expect(find.text('Verify your email'), findsOneWidget);
   });
 
   testWidgets('unverified email accounts are redirected to verification',
