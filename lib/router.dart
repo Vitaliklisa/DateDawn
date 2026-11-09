@@ -13,6 +13,7 @@ import 'screens/home_screen.dart';
 import 'screens/invitations_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/password_reset_screen.dart';
 import 'screens/policy_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/support_screen.dart';
@@ -40,6 +41,8 @@ final _rootKey = rootNavigatorKey;
 /// first has no help page. Everything else is behind the redirect.
 bool _isPublic(String location) {
   if (location == Routes.login ||
+      location == Routes.passwordReset ||
+      location == Routes.firebaseAuthAction ||
       location == Routes.privacy ||
       location == Routes.terms) {
     return true;
@@ -92,6 +95,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.login,
         name: 'login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: Routes.passwordReset,
+        name: 'passwordReset',
+        builder: (context, state) => PasswordResetScreen(actionUri: state.uri),
+      ),
+      GoRoute(
+        path: Routes.firebaseAuthAction,
+        name: 'firebaseAuthAction',
+        builder: (context, state) => PasswordResetScreen(actionUri: state.uri),
       ),
       ShellRoute(
         builder: (context, state, child) => AppNavigationShell(

@@ -192,8 +192,9 @@ class AuthService {
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.clientConfigurationError) {
         throw AuthFailure(
-          'Google sign-in needs an Android web client ID. Set '
-          'GOOGLE_SERVER_CLIENT_ID and add this app’s signing SHA-1 to Firebase.',
+          'Google sign-in needs the Android web client ID and this app’s '
+          'signing fingerprints in Firebase. For the Play Store version, add '
+          'the Play App Signing SHA-1 and SHA-256 from Play Console.',
           code: e.code.name,
         );
       }
@@ -212,7 +213,36 @@ class AuthService {
 
   Future<void> sendPasswordReset(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
+      await _auth.sendPasswordResetEmail(
+        email: email.trim(),
+        actionCodeSettings: ActionCodeSettings(
+          url: passwordResetContinueUrl,
+          handleCodeInApp: true,
+          androidPackageName: 'com.datedawn.app',
+          androidInstallApp: true,
+          androidMinimumVersion: '1',
+          iOSBundleId: 'com.datedawn.app',
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      throw _mapException(e);
+    }
+  }
+
+  Future<String> verifyPasswordResetCode(String code) async {
+    try {
+      return await _auth.verifyPasswordResetCode(code);
+    } on FirebaseAuthException catch (e) {
+      throw _mapException(e);
+    }
+  }
+
+  Future<void> confirmPasswordReset({
+    required String code,
+    required String newPassword,
+  }) async {
+    try {
+      await _auth.confirmPasswordReset(code: code, newPassword: newPassword);
     } on FirebaseAuthException catch (e) {
       throw _mapException(e);
     }
@@ -271,6 +301,12 @@ class AuthService {
         return const AuthFailure(
           'Please choose a password of at least 6 characters.',
           code: 'weak-password',
+        );
+      case 'expired-action-code':
+      case 'invalid-action-code':
+        return const AuthFailure(
+          'This reset link has expired or was already used. Request a new one.',
+          code: 'invalid-action-code',
         );
       case 'operation-not-allowed':
         return const AuthFailure(

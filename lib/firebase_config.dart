@@ -4,6 +4,7 @@ import 'firebase_options.dart';
 
 const firebaseProjectId = 'datedawn';
 const googleServerClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+const passwordResetContinueUrl = 'https://datedawn.vercel.app/reset-password';
 
 bool get hasWebFirebaseConfig =>
     DefaultFirebaseOptions.web.apiKey.isNotEmpty &&

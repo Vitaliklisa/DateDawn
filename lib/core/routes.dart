@@ -28,6 +28,8 @@ class Routes {
 
   static const home = '/';
   static const login = '/login';
+  static const passwordReset = '/reset-password';
+  static const firebaseAuthAction = '/__/auth/action';
   static const settings = '/settings';
   static const newEvent = '/event/new';
   static const eventDetail = '/event';

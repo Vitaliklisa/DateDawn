@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,13 +28,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _busy = false;
   bool _resettingPassword = false;
   bool _obscure = true;
+  late final TapGestureRecognizer _authModeRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _authModeRecognizer = TapGestureRecognizer()..onTap = _toggleAuthMode;
+  }
 
   @override
   void dispose() {
+    _authModeRecognizer.dispose();
     _email.dispose();
     _password.dispose();
     _name.dispose();
     super.dispose();
+  }
+
+  void _toggleAuthMode() {
+    if (_busy) return;
+    setState(() {
+      _creating = !_creating;
+      _formKey.currentState?.reset();
+    });
   }
 
   Future<void> _submit() async {
@@ -170,6 +187,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       label: 'Password',
                       hint: '••••••••',
                       obscure: _obscure,
+                      keyboardType: TextInputType.visiblePassword,
+                      enableSuggestions: false,
+                      autocorrect: false,
                       textInputAction: TextInputAction.done,
                       autofillHints: const [AutofillHints.password],
                       onSubmitted: (_) => _submit(),
@@ -250,43 +270,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       label: const Text('Continue with Google'),
                     ),
                     const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            _creating
-                                ? 'Already have an account?'
-                                : 'New here?',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.end,
+                    SizedBox(
+                      width: double.infinity,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text.rich(
+                          key: const ValueKey('auth-mode-switch'),
+                          TextSpan(
+                            text: _creating
+                                ? 'Already have an account? '
+                                : 'New here? ',
                             style: TextStyle(fontSize: 13, color: colors.muted),
+                            children: [
+                              TextSpan(
+                                text: _creating ? 'Sign in' : 'Create one',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: colors.accent,
+                                ),
+                                recognizer: _authModeRecognizer,
+                              ),
+                            ],
                           ),
+                          textAlign: TextAlign.center,
+                          softWrap: false,
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
                         ),
-                        const SizedBox(width: 4),
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            minimumSize: const Size(0, 40),
-                          ),
-                          onPressed: _busy
-                              ? null
-                              : () => setState(() {
-                                    _creating = !_creating;
-                                    _formKey.currentState?.reset();
-                                  }),
-                          child: Text(
-                            _creating ? 'Sign in' : 'Create one',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: colors.accent,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 6),
                     // The one place this link matters most. Somebody stuck on
@@ -320,6 +331,8 @@ class _Field extends StatelessWidget {
     this.obscure = false,
     this.suffix,
     this.keyboardType,
+    this.enableSuggestions = true,
+    this.autocorrect = true,
     this.textInputAction,
     this.autofillHints,
     this.validator,
@@ -332,6 +345,8 @@ class _Field extends StatelessWidget {
   final bool obscure;
   final Widget? suffix;
   final TextInputType? keyboardType;
+  final bool enableSuggestions;
+  final bool autocorrect;
   final TextInputAction? textInputAction;
   final Iterable<String>? autofillHints;
   final String? Function(String?)? validator;
@@ -357,6 +372,8 @@ class _Field extends StatelessWidget {
           controller: controller,
           obscureText: obscure,
           keyboardType: keyboardType,
+          enableSuggestions: enableSuggestions,
+          autocorrect: autocorrect,
           textInputAction: textInputAction,
           autofillHints: autofillHints,
           validator: validator,

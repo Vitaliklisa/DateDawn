@@ -52,17 +52,46 @@ void main() {
         reason:
             'the shell sidebar must not render on the top-level login route');
 
-    final promptCenter = tester.getRect(find.text('New here?')).center.dy;
-    final actionCenter = tester.getRect(find.text('Create one')).center.dy;
-    expect((promptCenter - actionCenter).abs(), lessThan(2));
+    final passwordFinder = find.byType(TextFormField).at(1);
+    final passwordField = tester.widget<TextField>(
+      find.descendant(
+        of: passwordFinder,
+        matching: find.byType(TextField),
+      ),
+    );
+    expect(passwordField.obscureText, isTrue);
+    expect(passwordField.keyboardType, TextInputType.visiblePassword);
+    expect(passwordField.enableSuggestions, isFalse);
+    expect(passwordField.autocorrect, isFalse);
+    await tester.enterText(passwordFinder, 'test-password');
+    await tester.tap(find.byIcon(Icons.visibility_outlined).first);
+    await tester.pumpAndSettle();
+    final visiblePasswordField = tester.widget<TextField>(
+      find.descendant(
+        of: find.byType(TextFormField).at(1),
+        matching: find.byType(TextField),
+      ),
+    );
+    expect(visiblePasswordField.obscureText, isFalse);
+    expect(visiblePasswordField.controller!.text, 'test-password');
 
-    await tester.tap(find.text('Create one'));
+    final modeSwitch = find.byKey(const ValueKey('auth-mode-switch'));
+    final loginText = tester.widget<Text>(modeSwitch);
+    final loginSpan = loginText.textSpan!;
+    expect(loginSpan.toPlainText(), 'New here? Create one');
+    expect(loginText.maxLines, 1);
+    expect(loginText.softWrap, isFalse);
+
+    final loginBounds = tester.getRect(modeSwitch);
+    await tester.tapAt(
+      Offset(loginBounds.right - 4, loginBounds.center.dy),
+    );
     await tester.pumpAndSettle();
 
-    final returningPromptCenter =
-        tester.getRect(find.text('Already have an account?')).center.dy;
-    final returningActionCenter =
-        tester.getRect(find.text('Sign in')).center.dy;
-    expect((returningPromptCenter - returningActionCenter).abs(), lessThan(2));
+    final signupText = tester.widget<Text>(modeSwitch);
+    final signupSpan = signupText.textSpan!;
+    expect(signupSpan.toPlainText(), 'Already have an account? Sign in');
+    expect(signupText.maxLines, 1);
+    expect(signupText.softWrap, isFalse);
   });
 }

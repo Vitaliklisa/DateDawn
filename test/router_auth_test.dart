@@ -14,9 +14,16 @@ class _TestAuthService extends AuthService {
         super(auth: _FakeFirebaseAuth());
 
   final Stream<AppUser?> _authState;
+  String? verifiedResetCode;
 
   @override
   Stream<AppUser?> authStateChanges() => _authState;
+
+  @override
+  Future<String> verifyPasswordResetCode(String code) async {
+    verifiedResetCode = code;
+    return 'user@example.com';
+  }
 }
 
 void main() {
@@ -55,5 +62,30 @@ void main() {
         isAnonymous: true,
       ),
     );
+  });
+
+  testWidgets('Firebase password action links reach the public reset route',
+      (tester) async {
+    final auth = _TestAuthService(Stream.value(null));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authServiceProvider.overrideWithValue(auth)],
+        child: Consumer(
+          builder: (context, ref, _) => MaterialApp.router(
+            routerConfig: ref.watch(routerProvider),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(MaterialApp));
+    ProviderScope.containerOf(context, listen: false)
+        .read(routerProvider)
+        .go('/__/auth/action?mode=resetPassword&oobCode=router-code');
+    await tester.pumpAndSettle();
+
+    expect(auth.verifiedResetCode, 'router-code');
+    expect(find.text('Choose a new password'), findsOneWidget);
   });
 }

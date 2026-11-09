@@ -222,16 +222,29 @@ download the updated file. If the Web client ID is not included in
 `google-services.json`, pass it as
 `--dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>` when building. Add both
 the debug and release signing SHA-1/SHA-256 fingerprints to the Firebase Android
-app (Project settings → Your apps). For web, add `datedawn.vercel.app` to
-Authentication → Settings → Authorized domains. For iOS, add the
+app (Project settings → Your apps). A Play Store build is signed with the
+**Play App Signing certificate**, not the local upload key: in Google Play
+Console open **Test and release → Setup → App integrity → App signing**, copy
+the App signing key certificate's SHA-1 and SHA-256 into the Firebase Android
+app, then download a fresh `google-services.json` and replace
+`android/app/google-services.json`. Also check that the Google OAuth consent
+screen is in **Production**, not Testing, if accounts outside the tester list
+need to sign in. For web, add `datedawn.vercel.app` to Authentication →
+Settings → Authorized domains. For iOS, add the
 `REVERSED_CLIENT_ID` from `GoogleService-Info.plist` as a URL scheme under
 `CFBundleURLTypes` in `ios/Runner/Info.plist`. Without the provider, OAuth
 client, platform fingerprints/scheme, or authorized domain, Google sign-in is
 unavailable even though the button is present.
 
-**Password reset:** Reset links are Firebase Authentication action codes, not
-Firestore documents. Firestore security rules cannot extend or repair an expired
-or already-used link. Open the newest reset email and use its link once; if a
-fresh link is rejected immediately, check Authentication → Email templates →
-Password reset and confirm the app and email action URL use the same Firebase
-project. Do not loosen Firestore rules to troubleshoot password resets.
+**Password reset:** The app sends Firebase Auth reset links with an
+`ActionCodeSettings` continue URL and handles the `oobCode` on the public
+`/reset-password` route (or Firebase's `/__/auth/action` route). Android
+intent filters receive those links. `datedawn.vercel.app` must be an
+Authentication authorized domain. Verified Android App Links additionally
+require a Digital Asset Links association using the **Play App Signing**
+SHA-256 at the link host; the certificate is available from the Play Console
+steps above. On the reset screen, enter the new password and submit it once.
+Firebase action codes are single-use and expire; changing Firestore rules does
+not extend them. If a freshly requested link still fails, use the newest email
+and check Authentication → Email templates → Password reset and the Firebase
+project's action URL configuration.
