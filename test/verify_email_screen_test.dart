@@ -54,16 +54,34 @@ void main() {
     await tester.pump();
 
     expect(find.textContaining('user@example.com'), findsOneWidget);
-    expect(find.text('Resend email in 60s'), findsOneWidget);
-    expect(tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
-        isNull);
-
-    await tester.pump(const Duration(seconds: 60));
+    expect(
+      find.textContaining('check your Spam or Junk folder'),
+      findsOneWidget,
+    );
     expect(find.text('Resend email'), findsOneWidget);
+    expect(
+      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      isNotNull,
+    );
+
     await tester.tap(find.text('Resend email'));
     await tester.pump();
     expect(auth.verificationEmailsSent, 1);
-    expect(find.text('Resend email in 60s'), findsOneWidget);
+    expect(
+      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      isNull,
+    );
+    expect(
+      find.text('Please wait 60 seconds before requesting another email.'),
+      findsOneWidget,
+    );
+
+    await tester.pump(const Duration(seconds: 60));
+    expect(find.text('Resend email'), findsOneWidget);
+    expect(
+      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      isNotNull,
+    );
 
     ScaffoldMessenger.of(tester.element(find.byType(VerifyEmailScreen)))
         .hideCurrentSnackBar();

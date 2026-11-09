@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,34 +14,12 @@ class VerifyEmailScreen extends ConsumerStatefulWidget {
 }
 
 class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
-  static const _resendCooldown = 60;
-
-  Timer? _timer;
-  int _secondsRemaining = _resendCooldown;
   bool _checking = false;
   bool _resending = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _startCooldown();
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  void _startCooldown() {
-    _timer?.cancel();
-    _timer = Timer(const Duration(seconds: _resendCooldown), () {
-      if (mounted) setState(() => _secondsRemaining = 0);
-    });
-  }
+  bool _cooldownActive = false;
 
   Future<void> _resend() async {
-    if (_resending || _secondsRemaining > 0) return;
+    if (_resending || _cooldownActive) return;
     setState(() => _resending = true);
     try {
       await ref.read(authServiceProvider).sendEmailVerification();
@@ -52,10 +28,11 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
         const SnackBar(content: Text('Verification email sent.')),
       );
       setState(() {
-        _secondsRemaining = _resendCooldown;
         _resending = false;
+        _cooldownActive = true;
       });
-      _startCooldown();
+      await Future<void>.delayed(const Duration(seconds: 60));
+      if (mounted) setState(() => _cooldownActive = false);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,6 +100,16 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(height: 1.5, color: colors.muted),
                   ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "Can't find the email? Please check your Spam or Junk folder.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      height: 1.5,
+                      color: colors.muted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 28),
                   FilledButton(
                     onPressed: _checking ? null : _checkVerification,
@@ -136,16 +123,19 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                   ),
                   const SizedBox(height: 10),
                   OutlinedButton(
-                    onPressed:
-                        _resending || _secondsRemaining > 0 ? null : _resend,
+                    onPressed: _resending || _cooldownActive ? null : _resend,
                     child: Text(
-                      _resending
-                          ? 'Sending…'
-                          : _secondsRemaining > 0
-                              ? 'Resend email in ${_secondsRemaining}s'
-                              : 'Resend email',
+                      _resending ? 'Sending…' : 'Resend email',
                     ),
                   ),
+                  if (_cooldownActive) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Please wait 60 seconds before requesting another email.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: colors.muted),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: () async {
