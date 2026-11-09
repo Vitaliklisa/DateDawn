@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../core/routes.dart';
 import '../core/theme.dart';
 import '../providers/app_providers.dart';
+import '../services/auth_service.dart';
 
 /// Sign in / create account across Android, iOS and web with Firebase Auth.
 ///
@@ -57,26 +58,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _busy = true);
     try {
-      final error = await runAction(
-        context,
-        () async {
-          final auth = ref.read(authServiceProvider);
-          if (_creating) {
-            await auth.registerWithEmail(
-              email: _email.text,
-              password: _password.text,
-              displayName: _name.text,
-            );
-          } else {
-            await auth.signInWithEmail(
-                email: _email.text, password: _password.text);
-          }
-        },
-        successMessage: _creating ? 'Account created.' : 'Welcome back.',
-      );
-      if (error == null && mounted) {
+      final auth = ref.read(authServiceProvider);
+      if (_creating) {
+        await auth.registerWithEmail(
+          email: _email.text,
+          password: _password.text,
+          displayName: _name.text,
+        );
+      } else {
+        await auth.signInWithEmail(
+          email: _email.text,
+          password: _password.text,
+        );
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_creating ? 'Account created.' : 'Welcome back.'),
+          ),
+        );
         context.go(Routes.home);
       }
+    } on AuthFailure catch (error) {
+      if (!mounted) return;
+      final isDuplicateSignup =
+          _creating && error.code == 'email-already-in-use';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message),
+          action: isDuplicateSignup
+              ? SnackBarAction(
+                  label: 'Sign in',
+                  onPressed: _toggleAuthMode,
+                )
+              : null,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not complete sign in. Please try again.'),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }

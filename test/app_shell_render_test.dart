@@ -22,6 +22,22 @@ class _TestAuthService extends AuthService {
   Stream<AppUser?> authStateChanges() => _authState;
 }
 
+class _DuplicateEmailAuthService extends _TestAuthService {
+  _DuplicateEmailAuthService() : super(Stream.value(null));
+
+  @override
+  Future<AppUser> registerWithEmail({
+    required String email,
+    required String password,
+    String? displayName,
+  }) async {
+    throw const AuthFailure(
+      'An account already exists for this email. Please sign in instead.',
+      code: 'email-already-in-use',
+    );
+  }
+}
+
 void main() {
   testWidgets('signed-out app renders the login content, not a blank pane',
       (tester) async {
@@ -93,5 +109,51 @@ void main() {
     expect(signupSpan.toPlainText(), 'Already have an account? Sign in');
     expect(signupText.maxLines, 1);
     expect(signupText.softWrap, isFalse);
+  });
+
+  testWidgets('duplicate signup offers a direct switch to sign in',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authServiceProvider.overrideWithValue(_DuplicateEmailAuthService()),
+        ],
+        child: const DateDawnApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final modeSwitch = find.byKey(const ValueKey('auth-mode-switch'));
+    await tester.tapAt(
+      Offset(tester.getRect(modeSwitch).right - 4,
+          tester.getRect(modeSwitch).center.dy),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(0), 'Alex Rivera');
+    await tester.enterText(
+        find.byType(TextFormField).at(1), 'user@example.com');
+    await tester.enterText(find.byType(TextFormField).at(2), 'password');
+    await tester.ensureVisible(find.text('Create account'));
+    await tester.tap(find.text('Create account'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'An account already exists for this email. Please sign in instead.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(SnackBarAction), findsOneWidget);
+
+    await tester.tap(find.text('Sign in').last);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(modeSwitch).textSpan!.toPlainText(),
+      'New here? Create one',
+    );
   });
 }

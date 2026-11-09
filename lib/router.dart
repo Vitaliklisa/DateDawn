@@ -17,6 +17,7 @@ import 'screens/password_reset_screen.dart';
 import 'screens/policy_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/support_screen.dart';
+import 'screens/verify_email_screen.dart';
 import 'widgets/app_navigation_shell.dart';
 
 /// Route names, kept in one place so navigation calls never use raw strings.
@@ -35,13 +36,13 @@ export 'core/routes.dart';
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 final _rootKey = rootNavigatorKey;
 
-/// Routes reachable without a session.
+/// Routes that do not require a signed-in user.
 ///
-/// Login obviously, and support: an app whose help page demands you sign in
-/// first has no help page. Everything else is behind the redirect.
+/// Password resets, action-code handling, policies, and support remain
+/// reachable while signed out. Login is handled by the redirect below so an
+/// already-signed-in user can be sent to their destination or email gate.
 bool _isPublic(String location) {
-  if (location == Routes.login ||
-      location == Routes.passwordReset ||
+  if (location == Routes.passwordReset ||
       location == Routes.firebaseAuthAction ||
       location == Routes.privacy ||
       location == Routes.terms) {
@@ -58,6 +59,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final auth = ref.read(activeAuthStateProvider);
       final goingToLogin = state.matchedLocation == Routes.login;
+      final goingToEmailVerification =
+          state.matchedLocation == Routes.verifyEmail;
 
       // Support must stay reachable when signed out. Somebody who cannot get
       // into their account — or a store reviewer checking that the support URL
@@ -76,8 +79,15 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final user = auth.value;
       final signedIn = user != null && !user.isAnonymous;
+      final needsEmailVerification =
+          signedIn && !user.emailVerified && !user.isGoogleUser;
 
+      if (goingToEmailVerification) {
+        if (!signedIn) return _loginLocation(state.uri);
+        return needsEmailVerification ? null : Routes.home;
+      }
       if (!signedIn && !goingToLogin) return _loginLocation(state.uri);
+      if (needsEmailVerification) return Routes.verifyEmail;
       if (signedIn && goingToLogin) {
         final destination = state.uri.queryParameters['from'];
         if (destination != null &&
@@ -95,6 +105,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.login,
         name: 'login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: Routes.verifyEmail,
+        name: 'verifyEmail',
+        builder: (context, state) => const VerifyEmailScreen(),
       ),
       GoRoute(
         path: Routes.passwordReset,

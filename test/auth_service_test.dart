@@ -5,6 +5,10 @@ import 'package:datedawn/services/auth_service.dart';
 
 class _MockFirebaseAuth extends Mock implements FirebaseAuth {}
 
+class _MockUserCredential extends Mock implements UserCredential {}
+
+class _MockUser extends Mock implements User {}
+
 class _FakeActionCodeSettings extends Fake implements ActionCodeSettings {}
 
 void main() {
@@ -46,6 +50,71 @@ void main() {
         ),
       );
     });
+  });
+
+  test('signup saves the display name and sends verification email', () async {
+    final auth = _MockFirebaseAuth();
+    final credential = _MockUserCredential();
+    final user = _MockUser();
+    when(
+      () => auth.createUserWithEmailAndPassword(
+        email: 'user@example.com',
+        password: 'password',
+      ),
+    ).thenAnswer((_) async => credential);
+    when(() => credential.user).thenReturn(user);
+    when(() => auth.currentUser).thenReturn(user);
+    when(() => user.email).thenReturn('user@example.com');
+    when(() => user.uid).thenReturn('user-id');
+    when(() => user.displayName).thenReturn('Alex Rivera');
+    when(() => user.photoURL).thenReturn(null);
+    when(() => user.isAnonymous).thenReturn(false);
+    when(() => user.emailVerified).thenReturn(false);
+    when(() => user.providerData).thenReturn(const []);
+    when(() => user.updateDisplayName('Alex Rivera')).thenAnswer((_) async {});
+    when(() => user.reload()).thenAnswer((_) async {});
+    when(() => user.sendEmailVerification()).thenAnswer((_) async {});
+    when(() => user.getIdToken(true)).thenAnswer((_) async => 'token');
+
+    final registered = await AuthService(auth: auth).registerWithEmail(
+      email: ' user@example.com ',
+      password: 'password',
+      displayName: '  Alex Rivera  ',
+    );
+
+    expect(registered.displayName, 'Alex Rivera');
+    verifyInOrder([
+      () => user.updateDisplayName('Alex Rivera'),
+      () => user.reload(),
+      () => user.sendEmailVerification(),
+    ]);
+  });
+
+  test('duplicate email has a clear sign-in instruction', () async {
+    final auth = _MockFirebaseAuth();
+    when(
+      () => auth.createUserWithEmailAndPassword(
+        email: 'user@example.com',
+        password: 'password',
+      ),
+    ).thenThrow(FirebaseAuthException(code: 'email-already-in-use'));
+
+    await expectLater(
+      AuthService(auth: auth).registerWithEmail(
+        email: 'user@example.com',
+        password: 'password',
+        displayName: 'Alex',
+      ),
+      throwsA(
+        isA<AuthFailure>()
+            .having((error) => error.code, 'code', 'email-already-in-use')
+            .having(
+              (error) => error.message,
+              'message',
+              'An account already exists for this email. Please sign in instead.',
+            ),
+      ),
+    );
   });
 
   test('trims the email before sending a password reset', () async {

@@ -15,6 +15,8 @@ class AppUser {
     this.displayName,
     this.photoUrl,
     this.isAnonymous = false,
+    this.emailVerified = false,
+    this.isGoogleUser = false,
   });
 
   final String id;
@@ -22,6 +24,8 @@ class AppUser {
   final String? displayName;
   final String? photoUrl;
   final bool isAnonymous;
+  final bool emailVerified;
+  final bool isGoogleUser;
 
   factory AppUser.fromFirebase(User user) => AppUser(
         id: user.uid,
@@ -29,6 +33,9 @@ class AppUser {
         displayName: user.displayName,
         photoUrl: user.photoURL,
         isAnonymous: user.isAnonymous,
+        emailVerified: user.emailVerified,
+        isGoogleUser: user.providerData
+            .any((provider) => provider.providerId == 'google.com'),
       );
 
   /// See `CircleMember.initials`: slicing the untrimmed label produced a tile
@@ -89,9 +96,9 @@ class AuthService {
   final GoogleSignIn _googleSignIn;
   Future<void>? _googleSignInInitialization;
 
-  /// Fires on every sign-in/sign-out. `null` means signed out.
+  /// Fires when the user signs in/out or their profile is reloaded or updated.
   Stream<AppUser?> authStateChanges() => _auth
-      .authStateChanges()
+      .userChanges()
       .map((user) => user == null ? null : AppUser.fromFirebase(user));
 
   AppUser? get currentUser {
@@ -131,12 +138,34 @@ class AuthService {
         await user.updateDisplayName(name);
         await user.reload();
       }
-      // Send the verification mail, but never block the sign-in on it — the app
-      // is fully usable before the address is confirmed.
-      unawaited(user.sendEmailVerification().catchError((_) {}));
+      await user.sendEmailVerification();
       final current = _auth.currentUser ?? user;
       await _freshToken(current);
       return AppUser.fromFirebase(current);
+    } on FirebaseAuthException catch (e) {
+      throw _mapException(e);
+    }
+  }
+
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw const AuthFailure('Sign in before requesting email verification.');
+    }
+    try {
+      await user.sendEmailVerification();
+    } on FirebaseAuthException catch (e) {
+      throw _mapException(e);
+    }
+  }
+
+  Future<AppUser?> reloadCurrentUser() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    try {
+      await user.reload();
+      final refreshed = _auth.currentUser;
+      return refreshed == null ? null : AppUser.fromFirebase(refreshed);
     } on FirebaseAuthException catch (e) {
       throw _mapException(e);
     }
@@ -294,7 +323,7 @@ class AuthService {
         );
       case 'email-already-in-use':
         return const AuthFailure(
-          'An account already exists for that email. Try signing in.',
+          'An account already exists for this email. Please sign in instead.',
           code: 'email-already-in-use',
         );
       case 'weak-password':

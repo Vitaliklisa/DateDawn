@@ -51,8 +51,8 @@ class SettingsScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user.displayName?.isNotEmpty == true
-                              ? user.displayName!
+                          user.displayName?.trim().isNotEmpty == true
+                              ? user.displayName!.trim()
                               : 'Date Dawn user',
                           style: const TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w600),

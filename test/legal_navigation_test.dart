@@ -50,6 +50,7 @@ const _signedIn = AppUser(
   id: 'u1',
   email: 'ann@example.com',
   displayName: 'Ann',
+  emailVerified: true,
 );
 
 void main() {
@@ -70,6 +71,7 @@ void main() {
           authServiceProvider
               .overrideWithValue(_TestAuthService(Stream.value(_signedIn))),
           eventRepositoryProvider.overrideWithValue(_TestRepository()),
+          clockProvider.overrideWith((ref) => Stream.value(DateTime.now())),
         ],
         child: Consumer(
           builder: (context, ref, _) {
