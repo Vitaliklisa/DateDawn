@@ -236,11 +236,13 @@ class AuthService {
         '[datedawn] Google sign-in exception: '
         'code=${e.code}, description=${e.description}',
       );
-      if (e.code == GoogleSignInExceptionCode.clientConfigurationError) {
+      if (e.code == GoogleSignInExceptionCode.clientConfigurationError ||
+          (e.description != null &&
+              (e.description!.contains('16') ||
+                  e.description!.toLowerCase().contains('reauth')))) {
         throw AuthFailure(
-          'Google sign-in needs the Android web client ID and this app’s '
-          'signing fingerprints in Firebase. For the Play Store version, add '
-          'the Play App Signing SHA-1 and SHA-256 from Play Console.',
+          'Google sign-in requires this app’s SHA-1 and SHA-256 fingerprints in Firebase Console. '
+          'Please ensure the SHA-1 (0B:A5:C0:B1...) and SHA-256 (69:66:12:6C...) are added to Firebase Project Settings.',
           code: e.code.name,
         );
       }
