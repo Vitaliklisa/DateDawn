@@ -1,62 +1,52 @@
-# Project-specific R8 / ProGuard rules.
-#
+# ==============================================================================
+# DateDawn — Optimized R8 / ProGuard Configuration
+# ==============================================================================
 # Applied from android/app/build.gradle.kts:
 #   proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"),
 #                 "proguard-rules.pro")
-#
-# The rules below are the ones R8 needs so that enabling shrinking does not
-# break reflection-based code at runtime. Firebase, play-services and the
-# plugins all reach their classes by name, so a class R8 decides is "unused" is
-# still needed at runtime — dropping it shows up as a crash on first sign-in or
-# a silent Auth failure, never as a build error.
+# ==============================================================================
 
-# --- Firebase / Google Play Services ---
-# The `com.google.firebase.provider.FirebaseInitProvider` and the
-# `-keep` rules that ship inside each Firebase AAR cover most of the graph;
-# these are the top-level safety nets for classes R8 cannot see referenced.
--keep class com.google.firebase.** { *; }
--keep class com.google.android.gms.** { *; }
--dontwarn com.google.firebase.**
--dontwarn com.google.android.gms.**
-
-# Firestore's transport is a mix of generic-heavy, reflective code paths; the
-# default optimize pass otherwise rewrites them into something that fails at
-# runtime with a ClassCastException inside the Firestore pipeline.
+# ------------------------------------------------------------------------------
+# 1. Essential Attributes for Flutter & Firebase Reflection/Serialization
+# ------------------------------------------------------------------------------
+# Preserves generic type signatures required by Firestore deserialization,
+# runtime annotations, and inner class references.
 -keepattributes Signature
 -keepattributes *Annotation*
 -keepattributes InnerClasses,EnclosingMethod
 
-# --- Google Sign-In ---
-# Credential Manager / play-services-auth resolve account data reflectively.
--keep class com.google.android.gms.auth.** { *; }
--keep class com.google.android.gms.common.** { *; }
-
-# --- flutter_local_notifications ---
-# Serialises scheduled notifications to shared preferences and re-reads them by
-# class name after a reboot (see the plugin's ScheduledNotificationReceiver).
--keep class com.dexterous.flutterlocalnotifications.** { *; }
--keep class com.dexterous.flutterlocalnotifications.models.** { *; }
--dontwarn com.dexterous.flutterlocalnotifications.**
-
-# --- share_plus / shared_preferences ---
-# These expose plugin channels via reflection-free generated registration, but
-# their `*Plugin` entry points and Pigeon-generated classes are still looked up
-# by name by the Flutter engine.
--keep class io.flutter.plugins.** { *; }
-
-# Keep line numbers so a Play Console stack trace is actually readable. Without
-# this the crash report names only obfuscated frames (`a.b.c`), which makes a
-# field crash impossible to diagnose. Omit the -renamesourcefileattribute line
-# to keep the real file name in traces — the size cost is negligible.
+# Retain line numbers and source file names for readable Play Console stack traces.
 -keepattributes SourceFile,LineNumberTable
 
-# Suppress warnings for optional Firebase transitive deps that the app does not
-# include (e.g. the desktop/server SDKs), which would otherwise fail the build.
+# ------------------------------------------------------------------------------
+# 2. Flutter Engine Core
+# ------------------------------------------------------------------------------
+# Keep JNI entry points and generated plugin registrar interfaces.
+-keep class io.flutter.app.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-keep class io.flutter.util.** { *; }
+-keep class io.flutter.view.** { *; }
+-keep class io.flutter.embedding.** { *; }
+
+# ------------------------------------------------------------------------------
+# 3. Firebase & Google Play Services (Targeted Rules)
+# ------------------------------------------------------------------------------
+# Firebase SDKs ship their own R8 consumer rules inside their AARs (META-INF/com.android.tools/r8/).
+# Do NOT use broad wildcard rules like "-keep class com.google.firebase.** { *; }"
+# as they disable shrinking for the entire Firebase graph.
+
+# Suppress harmless missing dependency warnings for transitive library paths.
 -dontwarn com.google.errorprone.annotations.**
 -dontwarn javax.annotation.**
 -dontwarn kotlinx.**
+-dontwarn com.google.protobuf.**
+-dontwarn com.google.android.play.core.**
 
-# If you use WebView with a JS interface, uncomment and name the class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ------------------------------------------------------------------------------
+# 4. App Plugins (Targeted Keep Rules)
+# ------------------------------------------------------------------------------
+# flutter_local_notifications: keep models serialized into SharedPreferences
+-keep class com.dexterous.flutterlocalnotifications.models.** { *; }
+-keep class com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver { *; }
+-keep class com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver { *; }
+-dontwarn com.dexterous.flutterlocalnotifications.**
