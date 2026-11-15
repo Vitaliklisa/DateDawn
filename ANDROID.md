@@ -236,7 +236,7 @@ the corresponding SHA-256 fingerprints as well, then download a fresh
 `google-services.json` and replace `android/app/google-services.json`. Also
 check that the Google OAuth consent
 screen is in **Production**, not Testing, if accounts outside the tester list
-need to sign in. For web, add `datedawn.vercel.app` to Authentication →
+need to sign in. For web, add `date-dawn.vercel.app` to Authentication →
 Settings → Authorized domains. For iOS, add the
 `REVERSED_CLIENT_ID` from `GoogleService-Info.plist` as a URL scheme under
 `CFBundleURLTypes` in `ios/Runner/Info.plist`. Without the provider, OAuth
@@ -244,15 +244,28 @@ client, platform fingerprints/scheme, or authorized domain, Google sign-in is
 unavailable even though the button is present.
 
 **Email verification and password reset:** The app sends Firebase Auth action
-links with an `ActionCodeSettings` continue URL and handles `oobCode` codes on
-the public `/verify-email` or `/reset-password` route, as well as Firebase's
-`/__/auth/action` route. Android intent filters receive links from both
-`datedawn.firebaseapp.com` and `datedawn.vercel.app`. `datedawn.vercel.app` must be an
-Authentication authorized domain. Verified Android App Links additionally
-require a Digital Asset Links association using the **Play App Signing**
-SHA-256 at the link host; the certificate is available from the Play Console
-steps above. On the reset screen, enter the new password and submit it once.
-Firebase action codes are single-use and expire; changing Firestore rules does
-not extend them. If a freshly requested link still fails, use the newest email
-and check Authentication → Email templates → Password reset and the Firebase
+links with an `ActionCodeSettings` continue URL on `date-dawn.vercel.app` and
+handles `oobCode` codes on the public `/verify-email` or `/reset-password`
+route, as well as Firebase's `/__/auth/action` route. Android intent filters
+receive links from both `date-dawn.vercel.app` and `datedawn.firebaseapp.com`.
+The Vercel domain must be an Authentication authorized domain.
+
+Android App Links on Vercel require a Digital Asset Links association at
+`web/.well-known/assetlinks.json`. Replace
+`REPLACE_WITH_YOUR_PLAY_STORE_SHA256_FINGERPRINT` in that file with the
+**SHA-256 certificate fingerprint** from Google Play Console → Release → Setup
+→ App integrity → App signing. Deploy the site and verify that
+`https://date-dawn.vercel.app/.well-known/assetlinks.json` returns the JSON.
+In Firebase Console → Authentication → Templates, use **Customize action URL**
+to set the action URL domain to `https://date-dawn.vercel.app`.
+
+If Firebase action links on `datedawn.firebaseapp.com` are still in use, also
+add the Play App Signing SHA-256 fingerprint in Firebase Console → Project
+settings → Your apps → Android app. Firebase Hosting serves the corresponding
+asset links association automatically.
+
+On the reset screen, enter the new password and submit it once. Firebase
+action codes are single-use and expire; changing Firestore rules does not
+extend them. If a freshly requested link still fails, use the newest email and
+check Authentication → Email templates → Password reset and the Firebase
 project's action URL configuration.

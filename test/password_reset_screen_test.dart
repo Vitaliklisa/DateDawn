@@ -87,7 +87,7 @@ void main() {
           home: PasswordResetScreen(
             actionUri: Uri(
               scheme: 'https',
-              host: 'datedawn.vercel.app',
+              host: 'date-dawn.vercel.app',
               path: '/reset-password',
               queryParameters: {'link': nestedLink.toString()},
             ),
