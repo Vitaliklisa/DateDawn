@@ -28,7 +28,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="datedawn.firebaseapp.com"
+                    android:host="date-dawn.firebaseapp.com"
                     android:pathPrefix="/__/auth/action" />
             </intent-filter>
             <!-- For Vercel -->
