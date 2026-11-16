@@ -9,7 +9,8 @@ const googleServerClientId = String.fromEnvironment(
       '255395342604-9t644is93ebqv147t791e1k4d5i4dcb1.apps.googleusercontent.com',
 );
 const passwordResetContinueUrl = 'https://date-dawn.vercel.app/reset-password';
-const emailVerificationContinueUrl = 'https://date-dawn.vercel.app/verify-email';
+const emailVerificationContinueUrl =
+    'https://date-dawn.vercel.app/verify-email';
 
 bool get hasWebFirebaseConfig =>
     DefaultFirebaseOptions.web.apiKey.isNotEmpty &&

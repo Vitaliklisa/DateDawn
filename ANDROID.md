@@ -252,7 +252,7 @@ The Vercel domain must be an Authentication authorized domain.
 
 Android App Links on Vercel require a Digital Asset Links association at
 `web/.well-known/assetlinks.json`. Replace
-`REPLACE_WITH_YOUR_PLAY_STORE_SHA256_FINGERPRINT` in that file with the
+`REPLACE_WITH_PLAY_STORE_SHA256` in that file with the
 **SHA-256 certificate fingerprint** from Google Play Console → Release → Setup
 → App integrity → App signing. Deploy the site and verify that
 `https://date-dawn.vercel.app/.well-known/assetlinks.json` returns the JSON.
