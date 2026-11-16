@@ -1,11 +1,16 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.datedawn.app",
       "sha256_cert_fingerprints": [
-        "A6:C5:A7:C1:33:2E:C6:62:64:A4:04:E4:67:D9:7A:BC:AC:B8:74:9F:FA:1D:C4:16:CC:70:1E:38:9C:BE:B0:24"
+        "A6:C5:A7:C1:33:2E:C6:62:64:A4:04:E4:67:D9:7A:BC:AC:B8:74:9F:FA:1D:C4:16:CC:70:1E:38:9C:BE:B0:24",
+        "1A:E6:AA:65:24:B4:DF:33:C0:08:CB:A3:FF:6B:9B:54:D6:E2:A4:5B:09:9C:BC:61:A9:E1:D3:02:EB:29:12:34",
+        "39:6A:B2:B5:9A:04:3C:8F:4F:D8:23:98:B6:27:C7:A4:87:00:AC:DA:3F:31:1E:B6:6A:B0:0E:6E:06:AF:E0:0F"
       ]
     }
   }
