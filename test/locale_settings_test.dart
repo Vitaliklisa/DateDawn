@@ -54,7 +54,7 @@ void main() {
         deviceLocale: const Locale('en'),
       );
       final deviceLanguage = resolveLocalePreference(
-        savedLanguageCode: 'de',
+        savedLanguageCode: 'pt',
         deviceLocale: const Locale('uk', 'UA'),
       );
 
@@ -64,14 +64,30 @@ void main() {
       expect(deviceLanguage.selectedLocale, isNull);
     });
 
+    test('supports German as a saved and device language', () {
+      final savedLanguage = resolveLocalePreference(
+        savedLanguageCode: 'de',
+        deviceLocale: const Locale('en'),
+      );
+      final deviceLanguage = resolveLocalePreference(
+        savedLanguageCode: 'pt',
+        deviceLocale: const Locale('de', 'DE'),
+      );
+
+      expect(savedLanguage.activeLocale, const Locale('de'));
+      expect(savedLanguage.selectedLocale, const Locale('de'));
+      expect(deviceLanguage.activeLocale, const Locale('de'));
+      expect(deviceLanguage.selectedLocale, isNull);
+    });
+
     test('falls through unsupported saved language to device then English', () {
       final deviceLanguage = resolveLocalePreference(
-        savedLanguageCode: 'de',
+        savedLanguageCode: 'pt',
         deviceLocale: const Locale('fr', 'CA'),
       );
       final englishFallback = resolveLocalePreference(
-        savedLanguageCode: 'de',
-        deviceLocale: const Locale('de'),
+        savedLanguageCode: 'pt',
+        deviceLocale: const Locale('pt'),
       );
 
       expect(deviceLanguage.activeLocale, const Locale('fr'));
@@ -287,5 +303,88 @@ void main() {
         expect(find.text(label), findsOneWidget);
       }
     }
+  });
+
+  testWidgets('German can be selected and updates app screen translations',
+      (tester) async {
+    final initialPreference = resolveLocalePreference(
+      savedLanguageCode: null,
+      deviceLocale: const Locale('en'),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          localePreferenceProvider.overrideWith(
+            () => LocalePreferenceController(
+              initialPreference: initialPreference,
+            ),
+          ),
+          currentUserProvider.overrideWith((ref) => null),
+          eventsProvider.overrideWith((ref) => Stream.value(const [])),
+        ],
+        child: const _SettingsTestApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('language-selector')));
+    await tester.pumpAndSettle();
+    expect(find.text('Deutsch'), findsOneWidget);
+    final germanOption = find.byKey(const ValueKey('locale-option-de'));
+    await tester.ensureVisible(germanOption);
+    await tester.pumpAndSettle();
+    await tester.tap(germanOption);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Einstellungen'), findsOneWidget);
+    expect(find.text('Sprache'), findsOneWidget);
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getString(localePreferenceKey), 'de');
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        locale: Locale('de'),
+        supportedLocales: supportedAppLocales,
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: PolicyScreen(isPrivacy: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Datenschutzrichtlinie'), findsOneWidget);
+    expect(find.text('1. Einleitung & Verantwortlicher'), findsOneWidget);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('de'),
+        supportedLocales: supportedAppLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 340,
+              child: CountdownFace(
+                target: DateTime(2027, 1, 1),
+                now: DateTime(2026, 1, 1),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('JAHRE'), findsOneWidget);
+    expect(find.text('MONATE'), findsOneWidget);
+    expect(find.text('TAGE'), findsOneWidget);
+    expect(find.text('STUNDEN'), findsOneWidget);
   });
 }

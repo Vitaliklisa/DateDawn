@@ -8,6 +8,7 @@ const supportedAppLocales = <Locale>[
   Locale('fr'),
   Locale('es'),
   Locale('uk'),
+  Locale('de'),
 ];
 
 class LocalePreference {

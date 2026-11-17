@@ -36,6 +36,10 @@
   "@languageUkrainian": {
     "description": "Nom ukrainien affiché dans le sélecteur."
   },
+  "languageGerman": "Deutsch",
+  "@languageGerman": {
+    "description": "Nom allemand affiché dans le sélecteur."
+  },
   "settings": "Réglages",
   "@settings": {
     "description": "Titre de l’écran des réglages."

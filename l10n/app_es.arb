@@ -18,6 +18,8 @@
   "@languageSpanish": { "description": "Nombre español mostrado en el selector." },
   "languageUkrainian": "Українська",
   "@languageUkrainian": { "description": "Nombre ucraniano mostrado en el selector." },
+  "languageGerman": "Deutsch",
+  "@languageGerman": { "description": "Nombre alemán mostrado en el selector." },
   "settings": "Ajustes",
   "@settings": { "description": "Título de la pantalla de ajustes." },
   "dateDawnUser": "Usuario de Date Dawn",

@@ -1,0 +1,1747 @@
+{
+  "@@locale": "de",
+  "appTitle": "Date Dawn",
+  "@appTitle": {
+    "description": "The app's display name."
+  },
+  "language": "Sprache",
+  "@language": {
+    "description": "Settings label for choosing the app language."
+  },
+  "followSystemLanguage": "Sprache des Systems verwenden",
+  "@followSystemLanguage": {
+    "description": "Choice that follows the device language and clears a saved language preference."
+  },
+  "languageChanged": "Sprache geändert.",
+  "@languageChanged": {
+    "description": "Confirmation after the user changes the app language."
+  },
+  "languageSaveFailed": "Ihre Spracheinstellung konnte nicht gespeichert werden.",
+  "@languageSaveFailed": {
+    "description": "Error shown when saving the selected language fails."
+  },
+  "languageEnglish": "Englisch",
+  "@languageEnglish": {
+    "description": "Display name of English in the language picker."
+  },
+  "languageFrench": "Französisch",
+  "@languageFrench": {
+    "description": "Display name of French in the language picker."
+  },
+  "languageSpanish": "Spanisch",
+  "@languageSpanish": {
+    "description": "Display name of Spanish in the language picker."
+  },
+  "languageUkrainian": "Ukrainisch",
+  "@languageUkrainian": {
+    "description": "Display name of Ukrainian in the language picker."
+  },
+  "languageGerman": "Deutsch",
+  "@languageGerman": {
+    "description": "Display name of German in the language picker."
+  },
+  "settings": "Einstellungen",
+  "@settings": {
+    "description": "Settings screen title."
+  },
+  "dateDawnUser": "Date-Dawn-Nutzer",
+  "@dateDawnUser": {
+    "description": "Fallback display name for an account with no name."
+  },
+  "guestAccount": "Gastkonto",
+  "@guestAccount": {
+    "description": "Account type label for a guest."
+  },
+  "notSignedIn": "Sie sind nicht angemeldet",
+  "@notSignedIn": {
+    "description": "Message shown in Settings to signed-out users."
+  },
+  "syncAndShareDescription": "Melden Sie sich an, um Ihre Countdowns auf allen Geräten zu synchronisieren und mit anderen zu teilen.",
+  "@syncAndShareDescription": {
+    "description": "Explains the benefits of signing in."
+  },
+  "signIn": "Anmelden",
+  "@signIn": {
+    "description": "Action and label to sign into an account."
+  },
+  "appearance": "DARSTELLUNG",
+  "@appearance": {
+    "description": "Settings section heading for theme preferences."
+  },
+  "darkTheme": "Dunkel",
+  "@darkTheme": {
+    "description": "Dark theme option."
+  },
+  "lightTheme": "Hell",
+  "@lightTheme": {
+    "description": "Light theme option."
+  },
+  "systemTheme": "System",
+  "@systemTheme": {
+    "description": "Theme option that follows the device."
+  },
+  "time": "ZEIT",
+  "@time": {
+    "description": "Settings section heading for clock display."
+  },
+  "timeFormatDescription": "So werden Uhrzeiten dargestellt. Ihre Countdowns werden so oder so als genaue Zeitpunkte gespeichert — dies ändert lediglich die Anzeige.",
+  "@timeFormatDescription": {
+    "description": "Explains the time format preference."
+  },
+  "twelveHourTime": "12-Stunden-Anzeige (AM/PM)",
+  "@twelveHourTime": {
+    "description": "Twelve-hour clock display option."
+  },
+  "twentyFourHourTime": "24-Stunden-Anzeige",
+  "@twentyFourHourTime": {
+    "description": "Twenty-four-hour clock display option."
+  },
+  "about": "ÜBER DIE APP",
+  "@about": {
+    "description": "Settings section heading for app information."
+  },
+  "version": "Version",
+  "@version": {
+    "description": "Label for the app version."
+  },
+  "sync": "Synchronisierung",
+  "@sync": {
+    "description": "Label for synchronization service."
+  },
+  "safety": "SICHERHEIT",
+  "@safety": {
+    "description": "Settings section heading for safety controls."
+  },
+  "blockedPeople": "Blockierte Personen",
+  "@blockedPeople": {
+    "description": "Link to the list of blocked people."
+  },
+  "legal": "RECHTLICHES",
+  "@legal": {
+    "description": "Settings section heading for legal documents."
+  },
+  "privacyPolicy": "Datenschutzrichtlinie",
+  "@privacyPolicy": {
+    "description": "Link to the privacy policy."
+  },
+  "termsOfService": "Nutzungsbedingungen",
+  "@termsOfService": {
+    "description": "Link to the terms of service."
+  },
+  "helpAndSupport": "Hilfe & Support",
+  "@helpAndSupport": {
+    "description": "Link to help and support."
+  },
+  "signOut": "Abmelden",
+  "@signOut": {
+    "description": "Action to sign out."
+  },
+  "signedOut": "Abgemeldet.",
+  "@signedOut": {
+    "description": "Confirmation after signing out."
+  },
+  "countdownsCount": "{count, plural, one{{count} Countdown} other{{count} Countdowns}}",
+  "@countdownsCount": {
+    "description": "Number of countdowns associated with the account.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "welcomeToDateDawn": "Willkommen bei Date Dawn",
+  "@welcomeToDateDawn": {
+    "description": "Login headline."
+  },
+  "createYourAccount": "Konto erstellen",
+  "@createYourAccount": {
+    "description": "Registration headline."
+  },
+  "countdownsSyncDescription": "Ihre Countdowns werden auf allen Geräten synchronisiert, auf denen Sie angemeldet sind.",
+  "@countdownsSyncDescription": {
+    "description": "Registration description."
+  },
+  "welcomeDescription": "Zählen Sie bis zu den Momenten, die zählen — auf Smartphone, Tablet und im Web.",
+  "@welcomeDescription": {
+    "description": "Login description."
+  },
+  "name": "Name",
+  "@name": {
+    "description": "Name field label."
+  },
+  "nameHint": "Alex Rivera",
+  "@nameHint": {
+    "description": "Example name in the registration field."
+  },
+  "nameRequired": "Nennen Sie uns Ihren Namen.",
+  "@nameRequired": {
+    "description": "Validation shown when a name is missing."
+  },
+  "email": "E-Mail",
+  "@email": {
+    "description": "Email address field label."
+  },
+  "emailHint": "you@example.com",
+  "@emailHint": {
+    "description": "Example email address in the email field."
+  },
+  "emailRequired": "Geben Sie Ihre E-Mail-Adresse ein.",
+  "@emailRequired": {
+    "description": "Validation shown when email is missing."
+  },
+  "emailInvalid": "Das sieht nicht nach einer E-Mail-Adresse aus.",
+  "@emailInvalid": {
+    "description": "Validation shown when email is malformed."
+  },
+  "password": "Passwort",
+  "@password": {
+    "description": "Password field label."
+  },
+  "passwordRequired": "Geben Sie Ihr Passwort ein.",
+  "@passwordRequired": {
+    "description": "Validation shown when password is missing."
+  },
+  "passwordTooShort": "Verwenden Sie mindestens 6 Zeichen.",
+  "@passwordTooShort": {
+    "description": "Validation shown when password is too short."
+  },
+  "forgotPassword": "Passwort vergessen?",
+  "@forgotPassword": {
+    "description": "Action to request a password reset."
+  },
+  "forgotPasswordPrompt": "Geben Sie zuerst Ihre E-Mail-Adresse ein und tippen Sie dann auf ?Passwort vergessen?.",
+  "@forgotPasswordPrompt": {
+    "description": "Prompt shown when password reset is tapped without an email."
+  },
+  "signInConnectionError": "Der Anmeldedienst konnte nicht erreicht werden. Prüfen Sie Ihre Verbindung.",
+  "@signInConnectionError": {
+    "description": "Message shown when authentication cannot be reached."
+  },
+  "createAccount": "Konto erstellen",
+  "@createAccount": {
+    "description": "Action that creates a new account."
+  },
+  "or": "ODER",
+  "@or": {
+    "description": "Divider between sign-in methods."
+  },
+  "continueWithGoogle": "Mit Google fortfahren",
+  "@continueWithGoogle": {
+    "description": "Google sign-in action."
+  },
+  "alreadyHaveAccount": "Sie haben bereits ein Konto? ",
+  "@alreadyHaveAccount": {
+    "description": "Prefix for switching from registration to sign-in."
+  },
+  "newHere": "Neu hier? ",
+  "@newHere": {
+    "description": "Prefix for switching from sign-in to registration."
+  },
+  "createOne": "Konto erstellen",
+  "@createOne": {
+    "description": "Action to switch from sign-in to registration."
+  },
+  "troubleSigningIn": "Probleme bei der Anmeldung? Hilfe erhalten",
+  "@troubleSigningIn": {
+    "description": "Link to support from the sign-in screen."
+  },
+  "accountCreated": "Konto erstellt.",
+  "@accountCreated": {
+    "description": "Confirmation after account creation."
+  },
+  "welcomeBack": "Willkommen zurück.",
+  "@welcomeBack": {
+    "description": "Confirmation after signing in."
+  },
+  "signInFailed": "Die Anmeldung konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut.",
+  "@signInFailed": {
+    "description": "Generic sign-in failure message."
+  },
+  "signedInWithGoogle": "Mit Google angemeldet.",
+  "@signedInWithGoogle": {
+    "description": "Confirmation after Google sign-in."
+  },
+  "home": "Startseite",
+  "@home": {
+    "description": "Home navigation destination."
+  },
+  "invitations": "Einladungen",
+  "@invitations": {
+    "description": "Invitations navigation destination."
+  },
+  "circles": "Kreise",
+  "@circles": {
+    "description": "Circles navigation destination."
+  },
+  "notifications": "Benachrichtigungen",
+  "@notifications": {
+    "description": "Notifications navigation destination."
+  },
+  "support": "Support",
+  "@support": {
+    "description": "Support navigation destination."
+  },
+  "homeEmptyTitle": "Benennen Sie einen Tag.",
+  "@homeEmptyTitle": {
+    "description": "Empty home screen headline."
+  },
+  "homeEmptyDescription": "Wählen Sie einen zukünftigen Moment — eine Hochzeit, eine Produkteinführung, eine Heimreise. Date Dawn zählt die verbleibenden Jahre, Monate, Tage und Stunden und feiert, wenn der Moment da ist.",
+  "@homeEmptyDescription": {
+    "description": "Empty home screen introduction."
+  },
+  "homeLoadError": "Ihre Countdowns konnten nicht geladen werden. Ziehen Sie nach unten, um es erneut zu versuchen.",
+  "@homeLoadError": {
+    "description": "Error when the home countdown list cannot be loaded."
+  },
+  "getStarted": "Loslegen",
+  "@getStarted": {
+    "description": "Action for a signed-out user to begin creating a countdown."
+  },
+  "homeSyncTitle": "Überall dabei",
+  "@homeSyncTitle": {
+    "description": "Home screen title for countdown syncing."
+  },
+  "homeSyncDescription": "Melden Sie sich an, um Ihre Countdowns auf Smartphone, Tablet und im Web zu synchronisieren — und um sie mit den Personen zu teilen, die mit Ihnen herunterzählen.",
+  "@homeSyncDescription": {
+    "description": "Home screen explanation of syncing and sharing."
+  },
+  "otherCountdowns": "WEITERE COUNTDOWNS",
+  "@otherCountdowns": {
+    "description": "Heading for the secondary countdown list."
+  },
+  "arrived": "ERREICHT",
+  "@arrived": {
+    "description": "Status shown when a countdown moment has arrived."
+  },
+  "countingDown": "COUNTDOWN LÄUFT",
+  "@countingDown": {
+    "description": "Status shown while a countdown is active."
+  },
+  "options": "Optionen",
+  "@options": {
+    "description": "Button and tooltip for more countdown actions."
+  },
+  "open": "öffnen",
+  "@open": {
+    "description": "Action to open a countdown."
+  },
+  "openCountdown": "Countdown öffnen",
+  "@openCountdown": {
+    "description": "Action to open a countdown detail page."
+  },
+  "newCountdown": "Neuer Countdown",
+  "@newCountdown": {
+    "description": "Title for the new countdown screen."
+  },
+  "editCountdown": "Countdown bearbeiten",
+  "@editCountdown": {
+    "description": "Title for editing a countdown."
+  },
+  "countdownTitleLabel": "Titel",
+  "@countdownTitleLabel": {
+    "description": "Countdown title field label."
+  },
+  "countdownDescriptionLabel": "Beschreibung",
+  "@countdownDescriptionLabel": {
+    "description": "Countdown description field label."
+  },
+  "whenLabel": "Wann",
+  "@whenLabel": {
+    "description": "Heading for the countdown date and time."
+  },
+  "titleExampleHint": "Hochzeit, Produkteinführung, Wiedersehen",
+  "@titleExampleHint": {
+    "description": "Example countdown title shown in the title field."
+  },
+  "descriptionExampleHint": "Eine kurze Notiz zu diesem Tag",
+  "@descriptionExampleHint": {
+    "description": "Hint for the optional countdown description."
+  },
+  "dateLabel": "Datum",
+  "@dateLabel": {
+    "description": "Date picker label."
+  },
+  "timeLabel": "Uhrzeit",
+  "@timeLabel": {
+    "description": "Time picker label."
+  },
+  "presetWeek": "+1 Woche",
+  "@presetWeek": {
+    "description": "Quick date preset for one week from now."
+  },
+  "presetMonth": "+1 Monat",
+  "@presetMonth": {
+    "description": "Quick date preset for one month from now."
+  },
+  "presetYear": "+1 Jahr",
+  "@presetYear": {
+    "description": "Quick date preset for one year from now."
+  },
+  "presetFiveYears": "+5 Jahre",
+  "@presetFiveYears": {
+    "description": "Quick date preset for five years from now."
+  },
+  "createCountdown": "Countdown erstellen",
+  "@createCountdown": {
+    "description": "Action to create a countdown."
+  },
+  "saveChanges": "Änderungen speichern",
+  "@saveChanges": {
+    "description": "Action to save edits to a countdown."
+  },
+  "deleteCountdown": "Countdown löschen",
+  "@deleteCountdown": {
+    "description": "Action to delete a countdown."
+  },
+  "countdownActions": "Countdown-Aktionen",
+  "@countdownActions": {
+    "description": "Tooltip for the countdown action menu."
+  },
+  "deleteCountdownQuestion": "Diesen Countdown löschen?",
+  "@deleteCountdownQuestion": {
+    "description": "Confirmation title before deleting a countdown."
+  },
+  "countdownCannotUndo": "Das Löschen des Countdowns kann nicht rückgängig gemacht werden.",
+  "@countdownCannotUndo": {
+    "description": "Warning that deleting a countdown cannot be undone."
+  },
+  "giveCountdownTitle": "Geben Sie diesem Countdown einen Titel.",
+  "@giveCountdownTitle": {
+    "description": "Validation when the countdown title is empty."
+  },
+  "pickFutureMoment": "Wählen Sie einen Zeitpunkt, der noch bevorsteht.",
+  "@pickFutureMoment": {
+    "description": "Validation when the selected countdown moment has passed."
+  },
+  "signInToSaveCountdown": "Melden Sie sich an, um Countdowns zu speichern.",
+  "@signInToSaveCountdown": {
+    "description": "Message shown when a signed-out user tries to save."
+  },
+  "countdownCreated": "Countdown erstellt.",
+  "@countdownCreated": {
+    "description": "Confirmation after creating a countdown."
+  },
+  "changesSaved": "Änderungen gespeichert.",
+  "@changesSaved": {
+    "description": "Confirmation after editing a countdown."
+  },
+  "countdownDeleted": "Countdown gelöscht.",
+  "@countdownDeleted": {
+    "description": "Confirmation after deleting a countdown."
+  },
+  "partnerLabel": "Ihr Partner bzw. Ihre Partnerin",
+  "@partnerLabel": {
+    "description": "Fallback name for a user's partner."
+  },
+  "partnerNotAdded": "Countdown erstellt, aber {partnerName} wurde nicht hinzugefügt. Laden Sie die Person manuell aus dem Countdown ein.",
+  "@partnerNotAdded": {
+    "description": "Warning when a partner could not be automatically added.",
+    "placeholders": {
+      "partnerName": {
+        "type": "String"
+      }
+    }
+  },
+  "partnerAdded": "Countdown erstellt. {partnerName} wurde hinzugefügt.",
+  "@partnerAdded": {
+    "description": "Confirmation when a partner is automatically added.",
+    "placeholders": {
+      "partnerName": {
+        "type": "String"
+      }
+    }
+  },
+  "noPartnerAdded": "Countdown erstellt, aber keine Partnerperson wurde hinzugefügt. Laden Sie sie oder ihn manuell ein.",
+  "@noPartnerAdded": {
+    "description": "Warning when automatic partner sharing did not add anyone."
+  },
+  "chooseFutureDateHint": "Wählen Sie ein zukünftiges Datum, um den Countdown zu sehen.",
+  "@chooseFutureDateHint": {
+    "description": "Preview shown when the selected date is in the past."
+  },
+  "countingDownRemaining": "Countdown: {remaining}",
+  "@countingDownRemaining": {
+    "description": "Countdown preview followed by the remaining time.",
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotEditCountdown": "Sie können diesen Countdown ansehen, aber nicht ändern.",
+  "@cannotEditCountdown": {
+    "description": "Notice shown to a user without edit permission."
+  },
+  "shareWith": "Teilen mit",
+  "@shareWith": {
+    "description": "Heading for selecting circles to share a countdown with."
+  },
+  "circleShareDescription": "Ein Paar-Kreis wird sofort geteilt. Andere Kreise erhalten eine Einladung.",
+  "@circleShareDescription": {
+    "description": "Explains how circle sharing works in the countdown editor."
+  },
+  "collaborators": "Mitwirkende",
+  "@collaborators": {
+    "description": "Heading for people on a countdown."
+  },
+  "collaboratorsCanFollow": "Alle Eingeladenen können diesem Countdown auf ihren eigenen Geräten folgen.",
+  "@collaboratorsCanFollow": {
+    "description": "Description of collaborator access."
+  },
+  "peopleFollowing": "Personen, die diesem Countdown folgen.",
+  "@peopleFollowing": {
+    "description": "Description of the countdown collaborators list."
+  },
+  "noCollaboratorsYet": "Noch niemand sonst.",
+  "@noCollaboratorsYet": {
+    "description": "Empty state for countdown collaborators."
+  },
+  "nameEmailHint": "name@example.com",
+  "@nameEmailHint": {
+    "description": "Example email address in an invitation field."
+  },
+  "recentContactsCouldNotLoad": "Zuletzt verwendete Kontakte konnten nicht geladen werden. Prüfen Sie Ihre Verbindung oder die Firestore-Regeln.",
+  "@recentContactsCouldNotLoad": {
+    "description": "Error loading recent invite suggestions."
+  },
+  "invitationSentTo": "Einladung an {email} gesendet.",
+  "@invitationSentTo": {
+    "description": "Confirmation after sending an invitation.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedWithCircle": "Mit {circleName} geteilt",
+  "@sharedWithCircle": {
+    "description": "Countdown collaborator row representing a shared circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteAgain": "Erneut einladen",
+  "@inviteAgain": {
+    "description": "Action to resend a declined invitation."
+  },
+  "removePersonQuestion": "Diese Person entfernen?",
+  "@removePersonQuestion": {
+    "description": "Confirmation title before removing a countdown collaborator."
+  },
+  "collaboratorLosesAccess": "{email} verliert den Zugriff auf diesen Countdown und sieht ihn nicht mehr in der Liste.",
+  "@collaboratorLosesAccess": {
+    "description": "Explains the effect of removing a collaborator.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "changeRole": "Rolle ändern",
+  "@changeRole": {
+    "description": "Action to change a collaborator's role."
+  },
+  "changeRoleFor": "Rolle für {personName} ändern",
+  "@changeRoleFor": {
+    "description": "Title for the collaborator role picker.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "roleChangeDescription": "Ab sofort ändert dies, was die Person bei diesem Countdown tun kann. Derzeit hat sie Zugriff als {role}.",
+  "@roleChangeDescription": {
+    "description": "Explains collaborator role changes.",
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "rolesNotAssignable": "{roles} können nicht von Ihnen zugewiesen werden — Sie sind {topRole}.",
+  "@rolesNotAssignable": {
+    "description": "Explains why some collaborator roles are unavailable.",
+    "placeholders": {
+      "roles": {
+        "type": "String"
+      },
+      "topRole": {
+        "type": "String"
+      }
+    }
+  },
+  "circlesDescriptionTitle": "Gruppen, mit denen Sie herunterzählen",
+  "@circlesDescriptionTitle": {
+    "description": "Introductory heading on the circles page."
+  },
+  "circlesDescription": "Laden Sie jemandem einmal in einen Kreis ein und teilen Sie dann jeden Countdown mit der gesamten Gruppe durch einen einzigen Tipp. Ein Paar-Kreis wird automatisch geteilt — was eine Person erstellt, sieht die andere.",
+  "@circlesDescription": {
+    "description": "Explains circles and automatic couple sharing."
+  },
+  "circlesLoadError": "Ihre Kreise konnten nicht geladen werden. Zum Wiederholen nach unten ziehen.",
+  "@circlesLoadError": {
+    "description": "Error loading the user's circles."
+  },
+  "noCircles": "Noch keine Kreise",
+  "@noCircles": {
+    "description": "Empty state title for the circles page."
+  },
+  "noCirclesDescription": "Erstellen Sie einen Kreis für die Menschen, mit denen Sie gemeinsam herunterzählen — einen Partner, die Familie oder Freunde, mit denen Sie jedes Jahr eine Reise unternehmen.",
+  "@noCirclesDescription": {
+    "description": "Empty state explanation for circles."
+  },
+  "newCircle": "Neuer Kreis",
+  "@newCircle": {
+    "description": "Action and title for creating a circle."
+  },
+  "sharesAutomatically": "Automatische Freigabe",
+  "@sharesAutomatically": {
+    "description": "Label for a couple circle that automatically shares countdowns."
+  },
+  "peopleCount": "{count, plural, one{{count} Person} other{{count} Personen}}",
+  "@peopleCount": {
+    "description": "Number of people in a circle.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inviteSomeone": "Jemanden einladen",
+  "@inviteSomeone": {
+    "description": "Tooltip for inviting a circle member."
+  },
+  "you": "Sie",
+  "@you": {
+    "description": "Label for the current user in a member list."
+  },
+  "leaveCircle": "Kreis verlassen",
+  "@leaveCircle": {
+    "description": "Action to leave a circle."
+  },
+  "deleteCircle": "Kreis löschen",
+  "@deleteCircle": {
+    "description": "Action to delete a circle."
+  },
+  "removeFromCircle": "Aus dem Kreis entfernen",
+  "@removeFromCircle": {
+    "description": "Tooltip for removing a circle member."
+  },
+  "removeMemberQuestion": "{personName} entfernen?",
+  "@removeMemberQuestion": {
+    "description": "Confirmation title for removing a member from a circle.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "removeMemberExplanation": "Die Person sieht keine Countdowns mehr, die mit diesem Kreis geteilt werden. Erstellte Inhalte werden nicht gelöscht.",
+  "@removeMemberExplanation": {
+    "description": "Explains the effect of removing a circle member."
+  },
+  "leaveCircleQuestion": "„{circleName}“ verlassen?",
+  "@leaveCircleQuestion": {
+    "description": "Confirmation title for leaving a circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveCircleExplanation": "Mit diesem Kreis geteilte Countdowns werden Ihnen nicht mehr angezeigt. Sie können erneut eingeladen werden.",
+  "@leaveCircleExplanation": {
+    "description": "Explains the effect of leaving a circle."
+  },
+  "deleteCircleQuestion": "„{circleName}“ löschen?",
+  "@deleteCircleQuestion": {
+    "description": "Confirmation title for deleting a circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteCircleExplanation": "Die Gruppe wird entfernt. Die damit geteilten Countdowns bleiben erhalten und gehören Ihnen weiterhin — sie werden nur nicht mehr mit diesen Personen geteilt.",
+  "@deleteCircleExplanation": {
+    "description": "Explains the effect of deleting a circle."
+  },
+  "circleNameHint": "Familie, Tokio 2027, Wir",
+  "@circleNameHint": {
+    "description": "Example name for a circle."
+  },
+  "coupleCircleTitle": "Wir — ein Paar",
+  "@coupleCircleTitle": {
+    "description": "Title for the automatic couple-sharing option."
+  },
+  "coupleCircleDescription": "Countdowns werden automatisch mit Ihrem Partner bzw. Ihrer Partnerin geteilt — ohne Annahme einer Einladung.",
+  "@coupleCircleDescription": {
+    "description": "Explains automatic sharing in a couple circle."
+  },
+  "circleCreated": "Kreis erstellt.",
+  "@circleCreated": {
+    "description": "Confirmation after creating a circle."
+  },
+  "coupleCircleCreated": "Erstellt. Laden Sie als Nächstes Ihren Partner bzw. Ihre Partnerin ein.",
+  "@coupleCircleCreated": {
+    "description": "Confirmation after creating a couple circle."
+  },
+  "inviteYourPartner": "Partner bzw. Partnerin einladen",
+  "@inviteYourPartner": {
+    "description": "Title for inviting someone to a couple circle."
+  },
+  "inviteToCircle": "In „{circleName}“ einladen",
+  "@inviteToCircle": {
+    "description": "Title for inviting someone to a circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "coupleInviteExplanation": "Wenn die Person bereits ein Konto hat, wird sie automatisch hinzugefügt. Andernfalls wird sie hinzugefügt, sobald sie sich anmeldet. Zukünftige Countdowns, die mit diesem Kreis geteilt werden, erscheinen automatisch.",
+  "@coupleInviteExplanation": {
+    "description": "Explains how invitations to a couple circle work."
+  },
+  "circleInviteExplanation": "Die Person erhält eine Einladung zum Annehmen oder Ablehnen. Nach dem Beitritt können Sie mit diesem Kreis geteilte Countdowns mit einem Tipp teilen.",
+  "@circleInviteExplanation": {
+    "description": "Explains invitations to a regular circle."
+  },
+  "inviteEmailHint": "them@example.com",
+  "@inviteEmailHint": {
+    "description": "Example email address for inviting a circle member."
+  },
+  "sendInvitation": "Einladung senden",
+  "@sendInvitation": {
+    "description": "Action to send an invitation."
+  },
+  "partnerAddedAutomatically": "Ihr Partner bzw. Ihre Partnerin wird automatisch hinzugefügt.",
+  "@partnerAddedAutomatically": {
+    "description": "Confirmation that a partner will be added automatically."
+  },
+  "signInToUseCircles": "Melden Sie sich an, um Kreise zu verwenden",
+  "@signInToUseCircles": {
+    "description": "Message shown when signed-out users open circles."
+  },
+  "circlesRequireAccounts": "Kreise laden Personen per E-Mail ein, daher benötigen diese ein Konto, zu dem die Einladung gesendet werden kann.",
+  "@circlesRequireAccounts": {
+    "description": "Explains why a circle invitation requires an account."
+  },
+  "waitingOnYou": "Warten auf Ihre Antwort",
+  "@waitingOnYou": {
+    "description": "Invitations page heading for invitations awaiting a response."
+  },
+  "invitationsEmptyDescription": "Nichts wird für Sie freigegeben, solange Sie nicht akzeptieren. Mit Ablehnen informieren Sie die einladende Person, sodass sie nicht im Unklaren bleibt.",
+  "@invitationsEmptyDescription": {
+    "description": "Explains how invitations work when none are waiting."
+  },
+  "signInToSeeInvitations": "Melden Sie sich an, um Einladungen zu sehen",
+  "@signInToSeeInvitations": {
+    "description": "Message shown when signed-out users open invitations."
+  },
+  "invitationsEmailAccount": "Einladungen werden an Ihre E-Mail-Adresse gerichtet. Melden Sie sich daher mit der Adresse an, an die jemand eine Einladung gesendet hat.",
+  "@invitationsEmailAccount": {
+    "description": "Explains which account to use to see invitations."
+  },
+  "invitationsCouldNotLoad": "Einladungen konnten nicht geladen werden. Prüfen Sie Ihre Verbindung oder die Firestore-Regeln.",
+  "@invitationsCouldNotLoad": {
+    "description": "Error loading invitations."
+  },
+  "nothingWaiting": "Keine ausstehenden Einladungen",
+  "@nothingWaiting": {
+    "description": "Empty invitation inbox heading."
+  },
+  "invitationInboxEmpty": "Einladungen, die Ihnen andere senden, erscheinen hier. Countdown- und normale Kreiseinladungen erfordern Ihre Antwort; Paar-Kreise werden automatisch hinzugefügt.",
+  "@invitationInboxEmpty": {
+    "description": "Empty invitation inbox explanation."
+  },
+  "retryAddingYou": "Erneut hinzufügen",
+  "@retryAddingYou": {
+    "description": "Action to retry automatically adding a user to a circle."
+  },
+  "decline": "Ablehnen",
+  "@decline": {
+    "description": "Action to decline an invitation."
+  },
+  "joinInviteQuestion": "„{eventTitle}“ beitreten?",
+  "@joinInviteQuestion": {
+    "description": "Confirmation before joining a countdown invitation.",
+    "placeholders": {
+      "eventTitle": {
+        "type": "String"
+      }
+    }
+  },
+  "joinInviteExplanation": "Der Countdown erscheint in Ihrer Liste und wird auf diesem Gerät heruntergezählt.",
+  "@joinInviteExplanation": {
+    "description": "Explains the effect of accepting a countdown invitation."
+  },
+  "join": "Beitreten",
+  "@join": {
+    "description": "Action to join a shared countdown or circle."
+  },
+  "alreadyMemberOf": "Sie sind bereits Mitglied von „{name}“.",
+  "@alreadyMemberOf": {
+    "description": "Notice shown when the user already belongs to an invited circle.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "youJoined": "Sie sind „{name}“ beigetreten.",
+  "@youJoined": {
+    "description": "Confirmation after joining a countdown or circle.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "youWereAddedTo": "Sie wurden zu „{name}“ hinzugefügt.",
+  "@youWereAddedTo": {
+    "description": "Confirmation after being added to a circle.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "invitationDeclined": "Einladung abgelehnt.",
+  "@invitationDeclined": {
+    "description": "Confirmation after declining an invitation."
+  },
+  "countdownInvitation": "Countdown-Einladung",
+  "@countdownInvitation": {
+    "description": "Invitation type label for a shared countdown."
+  },
+  "aCountdown": "Ein Countdown",
+  "@aCountdown": {
+    "description": "Fallback title for an unnamed countdown."
+  },
+  "invitedToFollowCountdown": "Sie wurden eingeladen, diesem Countdown zu folgen. Mit der Annahme wird er mit der Rolle {role} zu Ihrer Liste hinzugefügt.",
+  "@invitedToFollowCountdown": {
+    "description": "Explanation of a countdown invitation.",
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "accept": "Annehmen",
+  "@accept": {
+    "description": "Action to accept an invitation."
+  },
+  "partnerInvitation": "Partner-Einladung",
+  "@partnerInvitation": {
+    "description": "Invitation type label for a couple circle."
+  },
+  "circleInvitation": "Kreiseinladung",
+  "@circleInvitation": {
+    "description": "Invitation type label for a circle."
+  },
+  "partnerCircleAddTitle": "Sie werden zum Kreis von {personName} hinzugefügt",
+  "@partnerCircleAddTitle": {
+    "description": "Title shown for an automatic couple circle invitation.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "partnerCircleAddExplanation": "Sie werden automatisch hinzugefügt. Countdown-Events, die mit diesem Kreis geteilt werden, erscheinen in Ihrer Liste.",
+  "@partnerCircleAddExplanation": {
+    "description": "Explains automatic joining of a couple circle."
+  },
+  "circleJoinExplanation": "Mit dem Beitritt zu „{circleName}“ erscheinen die von diesem Kreis geteilten Countdowns in Ihrer Liste.",
+  "@circleJoinExplanation": {
+    "description": "Explains what happens when joining a regular circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "becomePartners": "Partner werden",
+  "@becomePartners": {
+    "description": "Action to join a couple circle."
+  },
+  "joinCircle": "Kreis beitreten",
+  "@joinCircle": {
+    "description": "Action to join a circle."
+  },
+  "automaticJoinFailed": "Der automatische Beitritt konnte nicht abgeschlossen werden.",
+  "@automaticJoinFailed": {
+    "description": "Error when automatically joining a couple circle fails."
+  },
+  "notNow": "Nicht jetzt",
+  "@notNow": {
+    "description": "Action to dismiss a prompt."
+  },
+  "notificationsTitle": "Benachrichtigungen",
+  "@notificationsTitle": {
+    "description": "Notifications screen title."
+  },
+  "markAllRead": "Alle als gelesen markieren",
+  "@markAllRead": {
+    "description": "Action to mark all notifications as read."
+  },
+  "markedAllRead": "Alle als gelesen markiert.",
+  "@markedAllRead": {
+    "description": "Confirmation after marking notifications as read."
+  },
+  "moreOptions": "Weitere Optionen",
+  "@moreOptions": {
+    "description": "Tooltip for a menu containing more options."
+  },
+  "noReadMessagesToDelete": "Keine gelesenen Nachrichten zum Löschen.",
+  "@noReadMessagesToDelete": {
+    "description": "Notice when there are no read notifications to delete."
+  },
+  "deleteReadMessages": "Gelesene Nachrichten löschen",
+  "@deleteReadMessages": {
+    "description": "Action to delete read notifications."
+  },
+  "deletedReadMessages": "Gelesene Nachrichten gelöscht.",
+  "@deletedReadMessages": {
+    "description": "Confirmation after deleting read notifications."
+  },
+  "notificationsSignInFirst": "Zuerst anmelden",
+  "@notificationsSignInFirst": {
+    "description": "Empty notification state title for signed-out users."
+  },
+  "notificationsAccountOnly": "Benachrichtigungen sind mit Ihrem Konto verknüpft.",
+  "@notificationsAccountOnly": {
+    "description": "Explains that notifications require an account."
+  },
+  "couldNotLoad": "Laden nicht möglich",
+  "@couldNotLoad": {
+    "description": "Generic title when content cannot be loaded."
+  },
+  "checkConnectionRetry": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+  "@checkConnectionRetry": {
+    "description": "Network retry guidance."
+  },
+  "nothingYet": "Noch nichts",
+  "@nothingYet": {
+    "description": "Empty notifications screen title."
+  },
+  "notificationsEmptyDescription": "Wenn sich etwas bei Ihren Countdowns oder Einladungen ereignet, wird es hier angezeigt.",
+  "@notificationsEmptyDescription": {
+    "description": "Empty notifications screen explanation."
+  },
+  "liveNotificationsCouldNotLoad": "Live-Benachrichtigungen konnten nicht geladen werden.",
+  "@liveNotificationsCouldNotLoad": {
+    "description": "Warning when live notifications cannot be loaded."
+  },
+  "inbox": "POSTEINGANG",
+  "@inbox": {
+    "description": "Heading for the notifications inbox."
+  },
+  "invitationResponses": "ANTWORTEN AUF EINLADUNGEN",
+  "@invitationResponses": {
+    "description": "Heading for invitation response notifications."
+  },
+  "invitationResponsesCouldNotLoad": "Antworten auf Einladungen konnten nicht geladen werden.",
+  "@invitationResponsesCouldNotLoad": {
+    "description": "Warning when invitation responses cannot be loaded."
+  },
+  "countdownUnavailable": "Dieser Countdown ist nicht mehr verfügbar.",
+  "@countdownUnavailable": {
+    "description": "Message shown when a countdown cannot be found."
+  },
+  "viewDetails": "Details anzeigen",
+  "@viewDetails": {
+    "description": "Action to view countdown details without editing."
+  },
+  "sharedWith": "GETEILT MIT",
+  "@sharedWith": {
+    "description": "Heading for people who can see a countdown."
+  },
+  "notes": "NOTIZEN",
+  "@notes": {
+    "description": "Heading for countdown notes."
+  },
+  "notesEmpty": "Noch nichts. Hinterlassen Sie einen Gedanke für alle, die mit Ihnen herunterzählen.",
+  "@notesEmpty": {
+    "description": "Empty state for countdown notes."
+  },
+  "addNote": "Notiz hinzufügen",
+  "@addNote": {
+    "description": "Hint for adding a note to a countdown."
+  },
+  "years": "Jahre",
+  "@years": {
+    "description": "Countdown unit label for years."
+  },
+  "months": "Monate",
+  "@months": {
+    "description": "Countdown unit label for months."
+  },
+  "days": "Tage",
+  "@days": {
+    "description": "Countdown unit label for days."
+  },
+  "hours": "Stunden",
+  "@hours": {
+    "description": "Countdown unit label for hours."
+  },
+  "remainingMinutes": "{count} Min.",
+  "@remainingMinutes": {
+    "description": "Short minute unit shown in the live countdown.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingSeconds": "Noch {count} Sek.",
+  "@remainingSeconds": {
+    "description": "Short second unit shown in the live countdown.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cancel": "Abbrechen",
+  "@cancel": {
+    "description": "Action to cancel a dialog or operation."
+  },
+  "keep": "Behalten",
+  "@keep": {
+    "description": "Action to keep an item instead of deleting it."
+  },
+  "stay": "Bleiben",
+  "@stay": {
+    "description": "Action to stay in a circle."
+  },
+  "leave": "Verlassen",
+  "@leave": {
+    "description": "Action to leave a circle."
+  },
+  "remove": "Entfernen",
+  "@remove": {
+    "description": "Action to remove a person or item."
+  },
+  "delete": "Löschen",
+  "@delete": {
+    "description": "Destructive action to delete an item."
+  },
+  "create": "Erstellen",
+  "@create": {
+    "description": "Action to create an item."
+  },
+  "tryAgain": "Erneut versuchen",
+  "@tryAgain": {
+    "description": "Action to retry after an error."
+  },
+  "share": "Teilen",
+  "@share": {
+    "description": "Action to share a countdown."
+  },
+  "passed": "Vorbei",
+  "@passed": {
+    "description": "Status for a countdown whose moment has passed."
+  },
+  "upcoming": "Bevorstehend",
+  "@upcoming": {
+    "description": "Status for a future countdown."
+  },
+  "accepted": "Angenommen",
+  "@accepted": {
+    "description": "Invitation status after acceptance."
+  },
+  "declined": "Abgelehnt",
+  "@declined": {
+    "description": "Invitation status after decline."
+  },
+  "removed": "Entfernt",
+  "@removed": {
+    "description": "Invitation status after removal."
+  },
+  "reopened": "Erneut geöffnet",
+  "@reopened": {
+    "description": "Invitation status after it is sent again."
+  },
+  "waiting": "Wartend",
+  "@waiting": {
+    "description": "Invitation status while awaiting a response."
+  },
+  "itHasArrived": "Der Moment ist da.",
+  "@itHasArrived": {
+    "description": "Countdown summary for a moment that has arrived."
+  },
+  "remainingToGo": "Noch {remaining}",
+  "@remainingToGo": {
+    "description": "Countdown summary for the time left until an event.",
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "momentHasPassed": "Der Moment ist vorbei",
+  "@momentHasPassed": {
+    "description": "Countdown summary after a moment has passed."
+  },
+  "remainingAnd": "{first} und {last}",
+  "@remainingAnd": {
+    "description": "Conjunction between the final units in a remaining-time summary.",
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
+  "dayHasCome": "DER TAG IST GEKOMMEN",
+  "@dayHasCome": {
+    "description": "Celebration heading when a countdown reaches its date."
+  },
+  "eventArrivedWithDescription": "{title} ist da — {description}",
+  "@eventArrivedWithDescription": {
+    "description": "Celebration message with an event description.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "description": {
+        "type": "String"
+      }
+    }
+  },
+  "eventArrivedTitleOnly": "{title} ist da — genießen Sie jede Minute.",
+  "@eventArrivedTitleOnly": {
+    "description": "Celebration message without an event description.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "personRemovedFromCircle": "{personName} wurde aus „{circleName}“ entfernt.",
+  "@personRemovedFromCircle": {
+    "description": "Confirmation after removing a circle member.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "youLeftCircle": "Sie haben „{circleName}“ verlassen.",
+  "@youLeftCircle": {
+    "description": "Confirmation after leaving a circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "circleDeleted": "„{circleName}“ wurde gelöscht.",
+  "@circleDeleted": {
+    "description": "Confirmation after deleting a circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "someone": "Jemand",
+  "@someone": {
+    "description": "Fallback name for an inviter whose name is unavailable."
+  },
+  "invitedYouToCircle": "{personName} hat Sie zu „{circleName}“ eingeladen",
+  "@invitedYouToCircle": {
+    "description": "Title for a circle invitation.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "roleAdmin": "Administrator",
+  "@roleAdmin": {
+    "description": "Administrator role label."
+  },
+  "roleEditor": "Bearbeiter",
+  "@roleEditor": {
+    "description": "Editor role label."
+  },
+  "roleViewer": "Betrachter",
+  "@roleViewer": {
+    "description": "Viewer role label."
+  },
+  "roleAdminDescription": "Kann den Countdown und seine Teilnehmer verwalten.",
+  "@roleAdminDescription": {
+    "description": "Description of administrator countdown access."
+  },
+  "roleEditorDescription": "Kann den Countdown bearbeiten und andere einladen.",
+  "@roleEditorDescription": {
+    "description": "Description of editor countdown access."
+  },
+  "roleViewerDescription": "Kann den Countdown ansehen und Notizen hinterlassen.",
+  "@roleViewerDescription": {
+    "description": "Description of viewer countdown access."
+  },
+  "remainingYears": "{count, plural, one{{count} Jahr} other{{count} Jahre}}",
+  "@remainingYears": {
+    "description": "Long-form pluralized years in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingMonths": "{count, plural, one{{count} Monat} other{{count} Monate}}",
+  "@remainingMonths": {
+    "description": "Long-form pluralized months in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingDays": "{count, plural, one{{count} Tag} other{{count} Tage}}",
+  "@remainingDays": {
+    "description": "Long-form pluralized days in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingHours": "{count, plural, one{{count} Stunde} other{{count} Stunden}}",
+  "@remainingHours": {
+    "description": "Long-form pluralized hours in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingMinuteUnit": "{count, plural, one{{count} Minute} other{{count} Minuten}}",
+  "@remainingMinuteUnit": {
+    "description": "Long-form pluralized minutes in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingSecondUnit": "{count, plural, one{{count} Sekunde} other{{count} Sekunden}}",
+  "@remainingSecondUnit": {
+    "description": "Long-form pluralized seconds in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moreActions": "Weitere Aktionen",
+  "@moreActions": {
+    "description": "Tooltip for additional item actions."
+  },
+  "block": "Blockieren",
+  "@block": {
+    "description": "Action to block a person."
+  },
+  "roleChanged": "{personName} hat jetzt die Rolle {role}.",
+  "@roleChanged": {
+    "description": "Confirmation after changing a collaborator's role.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "personRemoved": "{personName} wurde entfernt.",
+  "@personRemoved": {
+    "description": "Confirmation after removing a collaborator.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "signInToSaveIt": "Zum Speichern anmelden",
+  "@signInToSaveIt": {
+    "description": "Title shown when sign-in is required to save a countdown."
+  },
+  "countdownsFollowYou": "Countdowns werden in Ihrem Konto gespeichert und folgen Ihnen auf jedes Gerät; Sie können sie mit anderen teilen.",
+  "@countdownsFollowYou": {
+    "description": "Explains why countdowns are saved to an account."
+  },
+  "savePermissionError": "Firestore hat das Speichern abgelehnt. Falls dies weiterhin passiert, sind die bereitgestellten Sicherheitsregeln älter als die App — führen Sie `firebase deploy --only firestore:rules` aus.",
+  "@savePermissionError": {
+    "description": "Actionable message for a Firestore permission error while saving."
+  },
+  "saveNetworkError": "Firestore konnte nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+  "@saveNetworkError": {
+    "description": "Message for a network failure while saving."
+  },
+  "saveFailed": "Speichern fehlgeschlagen. Bitte versuchen Sie es erneut.",
+  "@saveFailed": {
+    "description": "Generic message for an unexpected save failure."
+  },
+  "momentPassed": "Der Moment ist vorbei",
+  "@momentPassed": {
+    "description": "Remaining-time text when a countdown has passed."
+  },
+  "and": "und",
+  "@and": {
+    "description": "Conjunction between the final two units in a remaining-time summary."
+  },
+  "back": "Zurück",
+  "@back": {
+    "description": "Back navigation tooltip."
+  },
+  "policyLastUpdated": "Zuletzt aktualisiert: Februar 2026 — Entspricht der EU-DSGVO und dem kanadischen PIPEDA",
+  "@policyLastUpdated": {
+    "description": "Last-updated note at the top of the legal policy."
+  },
+  "privacyIntroTitle": "1. Einleitung & Verantwortlicher",
+  "@privacyIntroTitle": {
+    "description": "First privacy policy section heading."
+  },
+  "privacyIntroBody": "Date Dawn („wir“, „ens“ oder „unser“) respektiert Ihre Privatsphäre und verpflichtet sich zum Schutz Ihrer personenbezogenen Daten. Diese Datenschutzrichtlinie erläutert, wie wir Ihre Informationen erfassen, verwenden und schützen, wenn Sie unsere mobilen und Webanwendungen nutzen, vollständig gemäß der Datenschutz-Grundverordnung der Europäischen Union (DSGVO) und dem Personal Information Protection and Electronic Documents Act (PIPEDA) Kanadas.\n\nAnschrift des Verantwortlichen: {supportEmail}",
+  "@privacyIntroBody": {
+    "description": "Introduction and data controller contact in the privacy policy.",
+    "placeholders": {
+      "supportEmail": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyCollectTitle": "2. Von uns erfasste Informationen",
+  "@privacyCollectTitle": {
+    "description": "Second privacy policy section heading."
+  },
+  "privacyCollectBody": "• Kontodaten: E-Mail-Adresse und Anzeigename, die bei der Authentifizierung angegeben werden (Firebase Auth).\n• Nutzerinhalte: Countdowns, Titel, Daten, Beschreibungen und Kreis-Mitgliedschaften, die Sie ausdrücklich erstellen oder teilen.\n• Geräte- und Benachrichtigungsdaten: Push-Benachrichtigungstokens zur Zustellung von Countdown-Erinnerungen und Einladungsbenachrichtigungen.\n\nWir erfassen KEINEN Browserverlauf, KEINE Werbe-IDs, KEINE Standortdaten und verkaufen keine personenbezogenen Informationen an Dritte.",
+  "@privacyCollectBody": {
+    "description": "Information collected and not collected, as described in the privacy policy."
+  },
+  "privacyBasisTitle": "3. Rechtsgrundlagen der Verarbeitung (EU-DSGVO)",
+  "@privacyBasisTitle": {
+    "description": "Third privacy policy section heading."
+  },
+  "privacyBasisBody": "Wir verarbeiten Ihre Daten auf folgenden Rechtsgrundlagen:\n• Vertragserfüllung: Bereitstellung der Countdown-Synchronisierung, Kreis-Freigaben und Einladungsfunktionen.\n• Einwilligung: Wenn Sie Push-Benachrichtigungen erlauben oder gemeinsam genutzten Kreisen zustimmen.\n• Berechtigte Interessen: Gewährleistung von Sicherheit und Zuverlässigkeit der Anwendung sowie Missbrauchsprävention.",
+  "@privacyBasisBody": {
+    "description": "Legal bases for processing personal data."
+  },
+  "privacySharingTitle": "4. Teilen & Blockieren",
+  "@privacySharingTitle": {
+    "description": "Fourth privacy policy section heading."
+  },
+  "privacySharingBody": "Date Dawn ermöglicht die direkte Interaktion zwischen Personen: Sie können jemandem einen Countdown einladen, und beide können Notizen in einem gemeinsam genutzten Countdown hinterlassen. Diese Inhalte sind nur für die Personen sichtbar, die diesem Countdown zugeordnet sind — niemals öffentlich und niemals für andere Personen.\n\nSie können eine andere Person jederzeit blockieren: öffnen Sie einen Countdown, den Sie mit ihr teilen, und halten Sie ihren Namen lange gedrückt (oder klicken Sie auf dem Desktop mit der rechten Maustaste). Beim Blockieren werden Sie gegenseitig aus gemeinsamen Countdowns entfernt, Einladungen zwischen Ihnen werden aufgehoben und die andere Person kann Sie nicht erneut einladen. Die Person wird nicht informiert. Die Liste der von Ihnen blockierten Personen ist privat; Sie können jede Person in Einstellungen — Blockierte Personen wieder freischalten.",
+  "@privacySharingBody": {
+    "description": "Privacy policy explanation of sharing and blocking."
+  },
+  "privacyStorageTitle": "5. Datenspeicherung & Sicherheit",
+  "@privacyStorageTitle": {
+    "description": "Fifth privacy policy section heading."
+  },
+  "privacyStorageBody": "Ihre Daten werden sicher gespeichert und verarbeitet, unter Verwendung der Infrastruktur von Firebase (Google Cloud Platform), die hohen branchenüblichen Sicherheitsstandards entspricht. Die zwischen Ihrem Gerät und unseren Servern übertragenen Daten werden während der Übertragung mit TLS verschlüsselt.",
+  "@privacyStorageBody": {
+    "description": "Privacy policy explanation of data storage and security."
+  },
+  "privacyRightsTitle": "6. Ihre Rechte (Auskunft, Berichtigung & Löschung)",
+  "@privacyRightsTitle": {
+    "description": "Sixth privacy policy section heading."
+  },
+  "privacyRightsBody": "Nach DSGVO und PIPEDA haben Sie das Recht:\n• Auskunft: Eine Kopie der personenbezogenen Daten anzufordern, die wir über Sie gespeichert haben.\n• Berichtigung: Ihre Profilinformationen in den Einstellungen aktualisieren oder korrigieren.\n• Löschung (Recht auf Vergessenwerden): Die vollständige Löschung Ihres Kontos sowie aller zugehörigen Countdowns und Benachrichtigungen jederzeit durch eine Nachricht an {supportEmail} anfordern.",
+  "@privacyRightsBody": {
+    "description": "User rights to access, correct, and erase personal data.",
+    "placeholders": {
+      "supportEmail": {
+        "type": "String"
+      }
+    }
+  },
+  "termsAcceptanceTitle": "1. Annahme der Nutzungsbedingungen",
+  "@termsAcceptanceTitle": {
+    "description": "First terms of service section heading."
+  },
+  "termsAcceptanceBody": "Durch den Zugriff auf oder die Nutzung von Date Dawn erklären Sie sich mit diesen Nutzungsbedingungen einverstanden. Wenn Sie diesen Bedingungen nicht zustimmen, nutzen Sie die Anwendung bitte nicht.",
+  "@termsAcceptanceBody": {
+    "description": "Terms of service acceptance section."
+  },
+  "termsUseTitle": "2. Nutzung des Dienstes",
+  "@termsUseTitle": {
+    "description": "Second terms of service section heading."
+  },
+  "termsUseBody": "Date Dawn wird für persönliche, nicht kommerzielle Countdown- und gemeinsame Momentverfolgung bereitgestellt. Sie verpflichten sich, den Dienst nicht missbräuchlich zu nutzen, keine bösartigen Inhalte hochzuladen, andere Nutzer nicht über gemeinsame Kreise oder Einladungen zu belästigen oder Sicherheitskontrollen zu umgehen.",
+  "@termsUseBody": {
+    "description": "Terms of service acceptable-use section."
+  },
+  "termsOwnershipTitle": "3. Nutzerinhalte & Eigentumsrechte",
+  "@termsOwnershipTitle": {
+    "description": "Third terms of service section heading."
+  },
+  "termsOwnershipBody": "Sie behalten alle Eigentumsrechte an den Countdown-Events, Titeln und Inhalten, die Sie erstellen. Sie erteilen Date Dawn eine eingeschränkte Lizenz, Ihre Inhalte ausschließlich zur Speicherung und Synchronisierung zwischen Ihren authentifizierten Geräten und gemeinsam genutzten Kreismitgliedern zu verwenden.",
+  "@termsOwnershipBody": {
+    "description": "Terms of service explanation of user content ownership."
+  },
+  "termsTerminationTitle": "4. Kündigung & Kontolöschung",
+  "@termsTerminationTitle": {
+    "description": "Fourth terms of service section heading."
+  },
+  "termsTerminationBody": "Sie können Date Dawn jederzeit nicht mehr nutzen und die Löschung Ihres Kontos per E-Mail an den Support beantragen. Wir behalten uns das Recht vor, Konten auszusetzen oder zu kündigen, die gegen diese Bedingungen verstoßen oder die Infrastruktur missbrauchen.",
+  "@termsTerminationBody": {
+    "description": "Terms of service account termination and deletion section."
+  },
+  "termsLiabilityTitle": "5. Haftungsbeschränkung",
+  "@termsLiabilityTitle": {
+    "description": "Fifth terms of service section heading."
+  },
+  "termsLiabilityBody": "Date Dawn wird „wie besehen“ ohne jegliche Gewährleistung bereitgestellt. Wir haften nicht für indirekte, zufällige oder Folgeschäden, die aus Ihrer Nutzung der Anwendung entstehen.",
+  "@termsLiabilityBody": {
+    "description": "Terms of service limitation of liability section."
+  },
+  "privacyPolicyTitle": "Datenschutzrichtlinie",
+  "@privacyPolicyTitle": {
+    "description": "Title displayed on the privacy policy page."
+  },
+  "termsOfServiceTitle": "Nutzungsbedingungen",
+  "@termsOfServiceTitle": {
+    "description": "Title displayed on the terms of service page."
+  },
+  "supportHeading": "Wir lesen jede Nachricht",
+  "@supportHeading": {
+    "description": "Heading on the help and support page."
+  },
+  "supportIntro": "Date Dawn ist eine kleine, unabhängige App. E-Mail ist der schnellste Weg zu der Person, die sie entwickelt — es gibt keine zwischengeschaltete Support-Abteilung. Wir antworten normalerweise {responseTime}.",
+  "@supportIntro": {
+    "description": "Introduction and expected response time on support page.",
+    "placeholders": {
+      "responseTime": {
+        "type": "String"
+      }
+    }
+  },
+  "supportResponseTime": "innerhalb von 2 Werktagen",
+  "@supportResponseTime": {
+    "description": "Typical support email response time."
+  },
+  "supportCommonQuestions": "Häufige Fragen",
+  "@supportCommonQuestions": {
+    "description": "FAQ section heading on the support page."
+  },
+  "supportFaqGoogleQuestion": "Ich habe mich mit Google angemeldet und meine Countdowns fehlen.",
+  "@supportFaqGoogleQuestion": {
+    "description": "Support FAQ question about missing countdowns after Google sign-in."
+  },
+  "supportFaqGoogleAnswer": "Verwenden Sie dieselbe Anmeldemethode, die Sie bei der Erstellung Ihres Kontos genutzt haben. Google und E-Mail/Passwort werden nicht automatisch miteinander verknüpft. Wenn Sie die Methode wechseln oder vermuten, dass Daten in zwei Konten liegen, kontaktieren Sie uns, bevor Sie ein weiteres Konto erstellen.",
+  "@supportFaqGoogleAnswer": {
+    "description": "Support FAQ answer about account sign-in methods."
+  },
+  "supportFaqSharingQuestion": "Eine Person, mit der ich den Countdown geteilt habe, kann ihn nicht sehen.",
+  "@supportFaqSharingQuestion": {
+    "description": "Support FAQ question about a shared countdown."
+  },
+  "supportFaqSharingAnswer": "Beim Teilen eines Countdowns mit einem Kreis wird eine Einladung gesendet — Personen werden nicht automatisch hinzugefügt. Sie müssen Einladungen in der App öffnen und die Einladung annehmen. Ein Paar-Kreis ist die Ausnahme: Diese Freigabe erfolgt sofort.",
+  "@supportFaqSharingAnswer": {
+    "description": "Support FAQ answer about accepting countdown invitations."
+  },
+  "supportFaqDeclinedQuestion": "Ich habe versehentlich eine Einladung abgelehnt.",
+  "@supportFaqDeclinedQuestion": {
+    "description": "Support FAQ question about a declined invitation."
+  },
+  "supportFaqDeclinedAnswer": "Bitten Sie die einladende Person, Sie erneut einzuladen — dies ist im Countdown über das Aktualisierungssymbol neben Ihrem Namen möglich. In der Zwischenzeit geht nichts verloren.",
+  "@supportFaqDeclinedAnswer": {
+    "description": "Support FAQ answer about reopening an invitation."
+  },
+  "supportFaqDeleteQuestion": "Wie lösche ich mein Konto und meine Daten?",
+  "@supportFaqDeleteQuestion": {
+    "description": "Support FAQ question about deleting an account."
+  },
+  "supportFaqDeleteAnswer": "Schreiben Sie uns von der E-Mail-Adresse, mit der Sie sich registriert haben, und bitten Sie um Löschung. Jeder Countdown, jede Einladung und jede Benachrichtigung, die mit dem Konto verknüpft ist, wird entfernt; wir bestätigen Ihnen den Abschluss.",
+  "@supportFaqDeleteAnswer": {
+    "description": "Support FAQ answer about account deletion."
+  },
+  "supportFaqBlockQuestion": "Wie kann ich jemanden blockieren?",
+  "@supportFaqBlockQuestion": {
+    "description": "Support FAQ question about blocking a person."
+  },
+  "supportFaqBlockAnswer": "öffnen Sie einen Countdown, den Sie mit dieser Person teilen, halten Sie ihren Namen in der Personenliste lange gedrückt (oder klicken Sie auf einem Computer mit der rechten Maustaste). Die Person wird aus Ihren gemeinsam genutzten Countdowns entfernt und kann Sie nicht erneut einladen. Zum Rückgängigmachen öffnen Sie Einstellungen — Blockierte Personen.",
+  "@supportFaqBlockAnswer": {
+    "description": "Support FAQ answer about blocking and unblocking."
+  },
+  "supportFaqAdsQuestion": "Verkaufen Sie meine Daten oder zeigen Sie Werbung?",
+  "@supportFaqAdsQuestion": {
+    "description": "Support FAQ question about advertising and data."
+  },
+  "supportFaqAdsAnswer": "Nein. Es gibt keine Werbung, keine Analyseprofile und kein Tracking durch Drittanbieter. Ihre Countdowns sind ausschließlich Ihre Angelegenheit und werden in Ihrem Konto gespeichert, damit sie niemand anderes lesen kann.",
+  "@supportFaqAdsAnswer": {
+    "description": "Support FAQ answer about ads and data privacy."
+  },
+  "supportLegal": "Rechtliches",
+  "@supportLegal": {
+    "description": "Legal links section heading on support page."
+  },
+  "supportNotice": "Eine Rückerstattung, eine Abrechnungsfrage oder ein Absturzbericht gehören alle an dieselbe Adresse. Wenn die App nicht richtig funktioniert, sind Angaben zu Ihrem Gerät und zu Ihrem Vorgehen unmittelbar davor am hilfreichsten.",
+  "@supportNotice": {
+    "description": "Support contact guidance at the bottom of the support page."
+  },
+  "supportEmailLabel": "Support per E-Mail",
+  "@supportEmailLabel": {
+    "description": "Label for the support email contact card."
+  },
+  "supportEmailCopied": "{email} wurde kopiert",
+  "@supportEmailCopied": {
+    "description": "Confirmation that the support email was copied.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "openMail": "E-Mail-App öffnen",
+  "@openMail": {
+    "description": "Action to open a mail app."
+  },
+  "linkCopiedClipboard": "Link in die Zwischenablage kopiert.",
+  "@linkCopiedClipboard": {
+    "description": "Notice shown when a link is copied."
+  },
+  "verifyEmailTitle": "E-Mail-Adresse bestätigen",
+  "@verifyEmailTitle": {
+    "description": "Title on the email verification screen."
+  },
+  "verifyEmailInstructions": "Wir haben einen Bestätigungslink an {email} gesendet. Bitte bestätigen Sie ihn, um fortzufahren.",
+  "@verifyEmailInstructions": {
+    "description": "Email verification instructions.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "yourEmailAddress": "Ihre E-Mail-Adresse",
+  "@yourEmailAddress": {
+    "description": "Fallback when the user's email address is not available."
+  },
+  "resetLinkSent": "Zurücksetzungslink wurde an {email} gesendet. Verwenden Sie die neueste E-Mail.",
+  "@resetLinkSent": {
+    "description": "Confirmation that a password reset email was sent.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationEmailSent": "Bestätigungs-E-Mail gesendet.",
+  "@verificationEmailSent": {
+    "description": "Confirmation after resending a verification email."
+  },
+  "verificationNotComplete": "Noch nicht bestätigt. Prüfen Sie Ihren Posteingang.",
+  "@verificationNotComplete": {
+    "description": "Notice when email verification is not complete."
+  },
+  "verifiedSignInToContinue": "Ihre E-Mail-Adresse wurde bestätigt. Melden Sie sich gegebenenfalls an, um fortzufahren.",
+  "@verifiedSignInToContinue": {
+    "description": "Message after verifying an email for a signed-out user."
+  },
+  "checkSpamFolder": "E-Mail nicht gefunden? Prüfen Sie Ihren Spam- oder Junk-Ordner.",
+  "@checkSpamFolder": {
+    "description": "Reminder to check spam for the verification email."
+  },
+  "confirmEmailVerified": "Ich habe meine E-Mail-Adresse bestätigt",
+  "@confirmEmailVerified": {
+    "description": "Action to confirm email verification."
+  },
+  "sendingEmail": "Wird gesendet?",
+  "@sendingEmail": {
+    "description": "Progress label while an email is being sent."
+  },
+  "resendEmail": "E-Mail erneut senden",
+  "@resendEmail": {
+    "description": "Action to resend a verification email."
+  },
+  "waitBeforeResending": "Bitte warten Sie 60 Sekunden, bevor Sie eine weitere E-Mail anfordern.",
+  "@waitBeforeResending": {
+    "description": "Cooldown notice between verification email requests."
+  },
+  "resetCodeMissing": "In diesem Zurücksetzungslink fehlt der Sicherheitscode.",
+  "@resetCodeMissing": {
+    "description": "Error when a password reset link lacks its action code."
+  },
+  "passwordUpdatedSignIn": "Passwort aktualisiert. Melden Sie sich erneut an.",
+  "@passwordUpdatedSignIn": {
+    "description": "Confirmation after a password reset."
+  },
+  "resetLinkInvalidTitle": "Dieser Zurücksetzungslink kann nicht verwendet werden",
+  "@resetLinkInvalidTitle": {
+    "description": "Title for an invalid password reset link."
+  },
+  "resetLinkInvalidBody": "Der Link ist möglicherweise abgelaufen oder wurde bereits verwendet. Kehren Sie zur Anmeldung zurück und fordern Sie eine neue E-Mail zum Zurücksetzen des Passworts an.",
+  "@resetLinkInvalidBody": {
+    "description": "Explanation for an expired or used password reset link."
+  },
+  "backToSignIn": "Zurück zur Anmeldung",
+  "@backToSignIn": {
+    "description": "Navigation action back to sign in."
+  },
+  "chooseNewPassword": "Neues Passwort wählen",
+  "@chooseNewPassword": {
+    "description": "Heading for the new password form."
+  },
+  "newPassword": "Neues Passwort",
+  "@newPassword": {
+    "description": "Label for the new password field."
+  },
+  "confirmNewPassword": "Neues Passwort bestätigen",
+  "@confirmNewPassword": {
+    "description": "Label for the confirm password field."
+  },
+  "passwordMinLength": "Verwenden Sie mindestens 6 Zeichen.",
+  "@passwordMinLength": {
+    "description": "Validation message for a short password."
+  },
+  "passwordsDoNotMatch": "Die Passwörter stimmen nicht überein.",
+  "@passwordsDoNotMatch": {
+    "description": "Validation message when password fields differ."
+  },
+  "updatePassword": "Passwort aktualisieren",
+  "@updatePassword": {
+    "description": "Action to save a new password."
+  },
+  "editCountdownAction": "Bearbeiten",
+  "@editCountdownAction": {
+    "description": "Action to edit a countdown."
+  },
+  "duplicateYearLater": "Ein Jahr später duplizieren",
+  "@duplicateYearLater": {
+    "description": "Action to duplicate a countdown one year later."
+  },
+  "countdownDuplicated": "Dupliziert — öffnen Sie den Countdown, um das Datum anzupassen.",
+  "@countdownDuplicated": {
+    "description": "Confirmation after duplicating a countdown."
+  },
+  "onlyOwnerCanDelete": "Nur die Eigentümerin oder der Eigentümer kann diesen Countdown löschen.",
+  "@onlyOwnerCanDelete": {
+    "description": "Permission notice when a non-owner tries to delete."
+  },
+  "countdownDeleteFailed": "Löschen fehlgeschlagen. Versuchen Sie es erneut.",
+  "@countdownDeleteFailed": {
+    "description": "Error shown when deleting a countdown fails."
+  },
+  "countdownDeleteWarning": "Das Löschen des Countdowns kann nicht rückgängig gemacht werden.",
+  "@countdownDeleteWarning": {
+    "description": "Confirmation dialog warning about deleting a countdown."
+  },
+  "blockPersonQuestion": "{personName} blockieren?",
+  "@blockPersonQuestion": {
+    "description": "Confirmation heading for blocking a person.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "blockExplanation": "Sie sehen einander nicht mehr. Die Person wird aus allen von Ihnen gemeinsam genutzten Countdowns entfernt, Einladungen zwischen Ihnen werden aufgehoben und die Person kann Sie nicht erneut einladen. Sie wird nicht informiert.",
+  "@blockExplanation": {
+    "description": "Explains what happens when another person is blocked."
+  },
+  "undoBlockInSettings": "Sie können dies jederzeit unter Einstellungen — Blockierte Personen rückgängig machen.",
+  "@undoBlockInSettings": {
+    "description": "Explains where to undo a block."
+  },
+  "blocking": "Wird blockiert?",
+  "@blocking": {
+    "description": "Progress label while blocking a person."
+  },
+  "blockAction": "Blockieren",
+  "@blockAction": {
+    "description": "Action to block a person."
+  },
+  "personBlocked": "{personName} ist blockiert.",
+  "@personBlocked": {
+    "description": "Confirmation after blocking a person.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "undo": "Rückgängig",
+  "@undo": {
+    "description": "Action to undo a recent change."
+  },
+  "personUnblocked": "Die Blockierung von {personName} wurde aufgehoben.",
+  "@personUnblocked": {
+    "description": "Confirmation after unblocking a person.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "blockAccessNotRestored": "Der Countdown-Zugriff wurde nicht wiederhergestellt.",
+  "@blockAccessNotRestored": {
+    "description": "Clarifies that unblocking does not restore prior countdown access."
+  },
+  "undoBlockFailed": "Die Blockierung konnte nicht aufgehoben werden. Bitte versuchen Sie es erneut.",
+  "@undoBlockFailed": {
+    "description": "Error when undoing a block fails."
+  },
+  "blockSaveFailed": "Ihre Blockierung konnte nicht gespeichert werden. Melden Sie sich erneut an und versuchen Sie es noch einmal.",
+  "@blockSaveFailed": {
+    "description": "Error when saving a block is refused."
+  },
+  "noConnectionRetry": "Keine Verbindung. Prüfen Sie Ihr Netzwerk und versuchen Sie es erneut.",
+  "@noConnectionRetry": {
+    "description": "Network error with retry guidance."
+  },
+  "blockPersonFailed": "{personName} konnte nicht blockiert werden. Bitte versuchen Sie es erneut.",
+  "@blockPersonFailed": {
+    "description": "Error when blocking a person fails.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "blockedPeopleTitle": "Blockierte Personen",
+  "@blockedPeopleTitle": {
+    "description": "Title of the blocked people screen."
+  },
+  "nobodyBlocked": "Niemand ist blockiert",
+  "@nobodyBlocked": {
+    "description": "Empty state title for the blocked people screen."
+  },
+  "howToBlockPerson": "Um jemanden zu blockieren, öffnen Sie einen Countdown, den Sie mit dieser Person teilen, öffnen Sie das Menü — in deren Zeile und tippen Sie auf „Blockieren“.",
+  "@howToBlockPerson": {
+    "description": "Instructions for blocking someone from a countdown."
+  },
+  "blockedPeopleDescription": "Diese Personen können Sie nicht einladen, und Sie teilen keine Countdowns mit ihnen. Ihnen wird nicht mitgeteilt, dass sie blockiert wurden.",
+  "@blockedPeopleDescription": {
+    "description": "Explanation of the blocked people list."
+  },
+  "unblock": "Blockierung aufheben",
+  "@unblock": {
+    "description": "Action to unblock a person."
+  },
+  "blockedListLoadFailed": "Blockierte Personen konnten nicht geladen werden.",
+  "@blockedListLoadFailed": {
+    "description": "Title for a blocked people list loading error."
+  },
+  "blockedListPermissionError": "Sie können die Liste der blockierten Personen nicht laden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+  "@blockedListPermissionError": {
+    "description": "Permission error when reading the blocked people list."
+  }
+}

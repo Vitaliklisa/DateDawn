@@ -36,6 +36,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageUkrainian => 'Українська';
 
   @override
+  String get languageGerman => 'Deutsch';
+
+  @override
   String get settings => 'Settings';
 
   @override

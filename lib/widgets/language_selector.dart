@@ -127,6 +127,7 @@ class LanguageSelector extends ConsumerWidget {
       'fr' => l10n.languageFrench,
       'es' => l10n.languageSpanish,
       'uk' => l10n.languageUkrainian,
+      'de' => l10n.languageGerman,
       _ => l10n.languageEnglish,
     };
   }
