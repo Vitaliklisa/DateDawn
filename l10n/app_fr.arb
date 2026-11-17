@@ -1,139 +1,1743 @@
 {
   "@@locale": "fr",
   "appTitle": "Date Dawn",
-  "@appTitle": { "description": "Nom de l’application." },
+  "@appTitle": {
+    "description": "Nom de l’application."
+  },
   "language": "Langue",
-  "@language": { "description": "Libellé du choix de langue dans les réglages." },
+  "@language": {
+    "description": "Libellé du choix de langue dans les réglages."
+  },
   "followSystemLanguage": "Suivre la langue du système",
-  "@followSystemLanguage": { "description": "Option qui suit la langue de l’appareil et efface la préférence enregistrée." },
+  "@followSystemLanguage": {
+    "description": "Option qui suit la langue de l’appareil et efface la préférence enregistrée."
+  },
   "languageChanged": "Langue modifiée.",
-  "@languageChanged": { "description": "Confirmation après le changement de langue." },
+  "@languageChanged": {
+    "description": "Confirmation après le changement de langue."
+  },
   "languageSaveFailed": "Impossible d’enregistrer votre préférence de langue.",
-  "@languageSaveFailed": { "description": "Erreur lors de l’enregistrement de la langue." },
+  "@languageSaveFailed": {
+    "description": "Erreur lors de l’enregistrement de la langue."
+  },
   "languageEnglish": "English",
-  "@languageEnglish": { "description": "Nom anglais affiché dans le sélecteur." },
+  "@languageEnglish": {
+    "description": "Nom anglais affiché dans le sélecteur."
+  },
   "languageFrench": "Français",
-  "@languageFrench": { "description": "Nom français affiché dans le sélecteur." },
+  "@languageFrench": {
+    "description": "Nom français affiché dans le sélecteur."
+  },
   "languageSpanish": "Español",
-  "@languageSpanish": { "description": "Nom espagnol affiché dans le sélecteur." },
+  "@languageSpanish": {
+    "description": "Nom espagnol affiché dans le sélecteur."
+  },
   "languageUkrainian": "Українська",
-  "@languageUkrainian": { "description": "Nom ukrainien affiché dans le sélecteur." },
+  "@languageUkrainian": {
+    "description": "Nom ukrainien affiché dans le sélecteur."
+  },
   "settings": "Réglages",
-  "@settings": { "description": "Titre de l’écran des réglages." },
+  "@settings": {
+    "description": "Titre de l’écran des réglages."
+  },
   "dateDawnUser": "Utilisateur Date Dawn",
-  "@dateDawnUser": { "description": "Nom affiché si le compte n’a pas de nom." },
+  "@dateDawnUser": {
+    "description": "Nom affiché si le compte n’a pas de nom."
+  },
   "guestAccount": "Compte invité",
-  "@guestAccount": { "description": "Type de compte invité." },
+  "@guestAccount": {
+    "description": "Type de compte invité."
+  },
   "notSignedIn": "Vous n’êtes pas connecté",
-  "@notSignedIn": { "description": "Message affiché aux personnes déconnectées." },
+  "@notSignedIn": {
+    "description": "Message affiché aux personnes déconnectées."
+  },
   "syncAndShareDescription": "Connectez-vous pour synchroniser vos comptes à rebours sur tous vos appareils et les partager.",
-  "@syncAndShareDescription": { "description": "Avantages de la connexion." },
+  "@syncAndShareDescription": {
+    "description": "Avantages de la connexion."
+  },
   "signIn": "Se connecter",
-  "@signIn": { "description": "Action de connexion." },
+  "@signIn": {
+    "description": "Action de connexion."
+  },
   "appearance": "APPARENCE",
-  "@appearance": { "description": "Titre de la section du thème." },
+  "@appearance": {
+    "description": "Titre de la section du thème."
+  },
   "darkTheme": "Sombre",
-  "@darkTheme": { "description": "Option de thème sombre." },
+  "@darkTheme": {
+    "description": "Option de thème sombre."
+  },
   "lightTheme": "Clair",
-  "@lightTheme": { "description": "Option de thème clair." },
+  "@lightTheme": {
+    "description": "Option de thème clair."
+  },
   "systemTheme": "Système",
-  "@systemTheme": { "description": "Option de thème de l’appareil." },
+  "@systemTheme": {
+    "description": "Option de thème de l’appareil."
+  },
   "time": "HEURE",
-  "@time": { "description": "Titre de la section du format de l’heure." },
+  "@time": {
+    "description": "Titre de la section du format de l’heure."
+  },
   "timeFormatDescription": "Choisissez l’affichage de l’heure. Les comptes à rebours restent des instants précis ; seul leur affichage change.",
-  "@timeFormatDescription": { "description": "Explication du format de l’heure." },
+  "@timeFormatDescription": {
+    "description": "Explication du format de l’heure."
+  },
   "twelveHourTime": "12 heures (AM/PM)",
-  "@twelveHourTime": { "description": "Option d’affichage sur 12 heures." },
+  "@twelveHourTime": {
+    "description": "Option d’affichage sur 12 heures."
+  },
   "twentyFourHourTime": "24 heures",
-  "@twentyFourHourTime": { "description": "Option d’affichage sur 24 heures." },
+  "@twentyFourHourTime": {
+    "description": "Option d’affichage sur 24 heures."
+  },
   "about": "À PROPOS",
-  "@about": { "description": "Titre de la section des informations." },
+  "@about": {
+    "description": "Titre de la section des informations."
+  },
   "version": "Version",
-  "@version": { "description": "Version de l’application." },
+  "@version": {
+    "description": "Version de l’application."
+  },
   "sync": "Synchronisation",
-  "@sync": { "description": "Service de synchronisation." },
+  "@sync": {
+    "description": "Service de synchronisation."
+  },
   "safety": "SÉCURITÉ",
-  "@safety": { "description": "Titre de la section de sécurité." },
+  "@safety": {
+    "description": "Titre de la section de sécurité."
+  },
   "blockedPeople": "Personnes bloquées",
-  "@blockedPeople": { "description": "Lien vers les personnes bloquées." },
+  "@blockedPeople": {
+    "description": "Lien vers les personnes bloquées."
+  },
   "legal": "JURIDIQUE",
-  "@legal": { "description": "Titre de la section juridique." },
+  "@legal": {
+    "description": "Titre de la section juridique."
+  },
   "privacyPolicy": "Politique de confidentialité",
-  "@privacyPolicy": { "description": "Lien vers la politique de confidentialité." },
+  "@privacyPolicy": {
+    "description": "Lien vers la politique de confidentialité."
+  },
   "termsOfService": "Conditions d’utilisation",
-  "@termsOfService": { "description": "Lien vers les conditions d’utilisation." },
+  "@termsOfService": {
+    "description": "Lien vers les conditions d’utilisation."
+  },
   "helpAndSupport": "Aide et assistance",
-  "@helpAndSupport": { "description": "Lien vers l’aide et l’assistance." },
+  "@helpAndSupport": {
+    "description": "Lien vers l’aide et l’assistance."
+  },
   "signOut": "Se déconnecter",
-  "@signOut": { "description": "Action de déconnexion." },
+  "@signOut": {
+    "description": "Action de déconnexion."
+  },
   "signedOut": "Déconnexion effectuée.",
-  "@signedOut": { "description": "Confirmation de déconnexion." },
+  "@signedOut": {
+    "description": "Confirmation de déconnexion."
+  },
   "countdownsCount": "{count, plural, one{{count} compte à rebours} other{{count} comptes à rebours}}",
-  "@countdownsCount": { "description": "Nombre de comptes à rebours du compte.", "placeholders": { "count": { "type": "int" } } },
+  "@countdownsCount": {
+    "description": "Nombre de comptes à rebours du compte.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "welcomeToDateDawn": "Bienvenue sur Date Dawn",
-  "@welcomeToDateDawn": { "description": "Titre de l’écran de connexion." },
+  "@welcomeToDateDawn": {
+    "description": "Titre de l’écran de connexion."
+  },
   "createYourAccount": "Créez votre compte",
-  "@createYourAccount": { "description": "Titre de l’inscription." },
+  "@createYourAccount": {
+    "description": "Titre de l’inscription."
+  },
   "countdownsSyncDescription": "Vos comptes à rebours se synchronisent sur tous les appareils utilisés.",
-  "@countdownsSyncDescription": { "description": "Description de l’inscription." },
+  "@countdownsSyncDescription": {
+    "description": "Description de l’inscription."
+  },
   "welcomeDescription": "Compte à rebours jusqu’aux moments importants, sur téléphone, tablette et web.",
-  "@welcomeDescription": { "description": "Description de bienvenue." },
+  "@welcomeDescription": {
+    "description": "Description de bienvenue."
+  },
   "name": "Nom",
-  "@name": { "description": "Libellé du nom." },
+  "@name": {
+    "description": "Libellé du nom."
+  },
   "nameHint": "Alex Rivera",
-  "@nameHint": { "description": "Exemple de nom dans le champ d’inscription." },
+  "@nameHint": {
+    "description": "Exemple de nom dans le champ d’inscription."
+  },
   "nameRequired": "Comment souhaitez-vous que l’on vous appelle ?",
-  "@nameRequired": { "description": "Validation du nom manquant." },
+  "@nameRequired": {
+    "description": "Validation du nom manquant."
+  },
   "email": "E-mail",
-  "@email": { "description": "Libellé de l’adresse e-mail." },
+  "@email": {
+    "description": "Libellé de l’adresse e-mail."
+  },
   "emailHint": "vous@exemple.com",
-  "@emailHint": { "description": "Exemple d’adresse e-mail." },
+  "@emailHint": {
+    "description": "Exemple d’adresse e-mail."
+  },
   "emailRequired": "Saisissez votre adresse e-mail.",
-  "@emailRequired": { "description": "Validation de l’adresse e-mail manquante." },
+  "@emailRequired": {
+    "description": "Validation de l’adresse e-mail manquante."
+  },
   "emailInvalid": "Cette adresse e-mail semble incorrecte.",
-  "@emailInvalid": { "description": "Validation de l’adresse e-mail incorrecte." },
+  "@emailInvalid": {
+    "description": "Validation de l’adresse e-mail incorrecte."
+  },
   "password": "Mot de passe",
-  "@password": { "description": "Libellé du mot de passe." },
+  "@password": {
+    "description": "Libellé du mot de passe."
+  },
   "passwordRequired": "Saisissez votre mot de passe.",
-  "@passwordRequired": { "description": "Validation du mot de passe manquant." },
+  "@passwordRequired": {
+    "description": "Validation du mot de passe manquant."
+  },
   "passwordTooShort": "Utilisez au moins 6 caractères.",
-  "@passwordTooShort": { "description": "Validation du mot de passe trop court." },
+  "@passwordTooShort": {
+    "description": "Validation du mot de passe trop court."
+  },
   "forgotPassword": "Mot de passe oublié ?",
-  "@forgotPassword": { "description": "Action de réinitialisation du mot de passe." },
+  "@forgotPassword": {
+    "description": "Action de réinitialisation du mot de passe."
+  },
   "forgotPasswordPrompt": "Saisissez d’abord votre e-mail, puis appuyez sur « Mot de passe oublié ». ",
-  "@forgotPasswordPrompt": { "description": "Invite lorsque l’adresse e-mail manque." },
+  "@forgotPasswordPrompt": {
+    "description": "Invite lorsque l’adresse e-mail manque."
+  },
   "signInConnectionError": "Service de connexion inaccessible. Vérifiez votre connexion Internet.",
-  "@signInConnectionError": { "description": "Erreur de connexion au service d’authentification." },
+  "@signInConnectionError": {
+    "description": "Erreur de connexion au service d’authentification."
+  },
   "createAccount": "Créer un compte",
-  "@createAccount": { "description": "Action de création de compte." },
+  "@createAccount": {
+    "description": "Action de création de compte."
+  },
   "or": "OU",
-  "@or": { "description": "Séparateur entre les méthodes de connexion." },
+  "@or": {
+    "description": "Séparateur entre les méthodes de connexion."
+  },
   "continueWithGoogle": "Continuer avec Google",
-  "@continueWithGoogle": { "description": "Action de connexion Google." },
+  "@continueWithGoogle": {
+    "description": "Action de connexion Google."
+  },
   "alreadyHaveAccount": "Vous avez déjà un compte ? ",
-  "@alreadyHaveAccount": { "description": "Invite à se connecter depuis l’inscription." },
+  "@alreadyHaveAccount": {
+    "description": "Invite à se connecter depuis l’inscription."
+  },
   "newHere": "Nouveau ici ? ",
-  "@newHere": { "description": "Invite à créer un compte depuis la connexion." },
+  "@newHere": {
+    "description": "Invite à créer un compte depuis la connexion."
+  },
   "createOne": "En créer un",
-  "@createOne": { "description": "Action pour passer à l’inscription." },
+  "@createOne": {
+    "description": "Action pour passer à l’inscription."
+  },
   "troubleSigningIn": "Problème de connexion ? Obtenir de l’aide",
-  "@troubleSigningIn": { "description": "Lien d’assistance depuis l’écran de connexion." },
+  "@troubleSigningIn": {
+    "description": "Lien d’assistance depuis l’écran de connexion."
+  },
   "accountCreated": "Compte créé.",
-  "@accountCreated": { "description": "Confirmation de création du compte." },
+  "@accountCreated": {
+    "description": "Confirmation de création du compte."
+  },
   "welcomeBack": "Bon retour.",
-  "@welcomeBack": { "description": "Confirmation de connexion." },
+  "@welcomeBack": {
+    "description": "Confirmation de connexion."
+  },
   "signInFailed": "Connexion impossible. Veuillez réessayer.",
-  "@signInFailed": { "description": "Erreur générale de connexion." },
+  "@signInFailed": {
+    "description": "Erreur générale de connexion."
+  },
   "signedInWithGoogle": "Connecté avec Google.",
-  "@signedInWithGoogle": { "description": "Confirmation de connexion Google." },
+  "@signedInWithGoogle": {
+    "description": "Confirmation de connexion Google."
+  },
   "home": "Accueil",
-  "@home": { "description": "Destination de navigation vers l’accueil." },
+  "@home": {
+    "description": "Destination de navigation vers l’accueil."
+  },
   "invitations": "Invitations",
-  "@invitations": { "description": "Destination de navigation vers les invitations." },
+  "@invitations": {
+    "description": "Destination de navigation vers les invitations."
+  },
   "circles": "Cercles",
-  "@circles": { "description": "Destination de navigation vers les cercles." },
+  "@circles": {
+    "description": "Destination de navigation vers les cercles."
+  },
   "notifications": "Notifications",
-  "@notifications": { "description": "Destination de navigation vers les notifications." },
+  "@notifications": {
+    "description": "Destination de navigation vers les notifications."
+  },
   "support": "Assistance",
-  "@support": { "description": "Destination de navigation vers l’assistance." }
+  "@support": {
+    "description": "Destination de navigation vers l’assistance."
+  },
+  "homeEmptyTitle": "Nommez une date.",
+  "@homeEmptyTitle": {
+    "description": "Empty home screen headline."
+  },
+  "homeEmptyDescription": "Choisissez un moment à venir — un mariage, un lancement, un retour chez vous. Date Dawn compte les années, les mois, les jours et les heures qu’il reste, puis célèbre le moment quand il arrive.",
+  "@homeEmptyDescription": {
+    "description": "Empty home screen introduction."
+  },
+  "homeLoadError": "Impossible d’atteindre vos comptes à rebours. Tirez vers le bas pour réessayer.",
+  "@homeLoadError": {
+    "description": "Error when the home countdown list cannot be loaded."
+  },
+  "getStarted": "Commencer",
+  "@getStarted": {
+    "description": "Action for a signed-out user to begin creating a countdown."
+  },
+  "homeSyncTitle": "Gardez-les partout",
+  "@homeSyncTitle": {
+    "description": "Home screen title for countdown syncing."
+  },
+  "homeSyncDescription": "Connectez-vous pour synchroniser vos comptes à rebours sur téléphone, tablette et web — et pour les partager avec les personnes qui comptent aussi le temps avec vous.",
+  "@homeSyncDescription": {
+    "description": "Home screen explanation of syncing and sharing."
+  },
+  "otherCountdowns": "AUTRES COMPTES À REBOURS",
+  "@otherCountdowns": {
+    "description": "Heading for the secondary countdown list."
+  },
+  "arrived": "ARRIVÉ",
+  "@arrived": {
+    "description": "Status shown when a countdown moment has arrived."
+  },
+  "countingDown": "COMPTE À REBOURS",
+  "@countingDown": {
+    "description": "Status shown while a countdown is active."
+  },
+  "options": "Options",
+  "@options": {
+    "description": "Button and tooltip for more countdown actions."
+  },
+  "open": "Ouvrir",
+  "@open": {
+    "description": "Action to open a countdown."
+  },
+  "openCountdown": "Ouvrir le compte à rebours",
+  "@openCountdown": {
+    "description": "Action to open a countdown detail page."
+  },
+  "newCountdown": "Nouveau compte à rebours",
+  "@newCountdown": {
+    "description": "Title for the new countdown screen."
+  },
+  "editCountdown": "Modifier le compte à rebours",
+  "@editCountdown": {
+    "description": "Title for editing a countdown."
+  },
+  "countdownTitleLabel": "Titre",
+  "@countdownTitleLabel": {
+    "description": "Countdown title field label."
+  },
+  "countdownDescriptionLabel": "Description",
+  "@countdownDescriptionLabel": {
+    "description": "Countdown description field label."
+  },
+  "whenLabel": "Quand",
+  "@whenLabel": {
+    "description": "Heading for the countdown date and time."
+  },
+  "titleExampleHint": "Mariage, lancement, réunion",
+  "@titleExampleHint": {
+    "description": "Example countdown title shown in the title field."
+  },
+  "descriptionExampleHint": "Une courte note à propos du jour",
+  "@descriptionExampleHint": {
+    "description": "Hint for the optional countdown description."
+  },
+  "dateLabel": "Date",
+  "@dateLabel": {
+    "description": "Date picker label."
+  },
+  "timeLabel": "Heure",
+  "@timeLabel": {
+    "description": "Time picker label."
+  },
+  "presetWeek": "+1 semaine",
+  "@presetWeek": {
+    "description": "Quick date preset for one week from now."
+  },
+  "presetMonth": "+1 mois",
+  "@presetMonth": {
+    "description": "Quick date preset for one month from now."
+  },
+  "presetYear": "+1 an",
+  "@presetYear": {
+    "description": "Quick date preset for one year from now."
+  },
+  "presetFiveYears": "+5 ans",
+  "@presetFiveYears": {
+    "description": "Quick date preset for five years from now."
+  },
+  "createCountdown": "Créer un compte à rebours",
+  "@createCountdown": {
+    "description": "Action to create a countdown."
+  },
+  "saveChanges": "Enregistrer les modifications",
+  "@saveChanges": {
+    "description": "Action to save edits to a countdown."
+  },
+  "deleteCountdown": "Supprimer le compte à rebours",
+  "@deleteCountdown": {
+    "description": "Action to delete a countdown."
+  },
+  "countdownActions": "Actions du compte à rebours",
+  "@countdownActions": {
+    "description": "Tooltip for the countdown action menu."
+  },
+  "deleteCountdownQuestion": "Supprimer ce compte à rebours ?",
+  "@deleteCountdownQuestion": {
+    "description": "Confirmation title before deleting a countdown."
+  },
+  "countdownCannotUndo": "La suppression du compte à rebours est définitive.",
+  "@countdownCannotUndo": {
+    "description": "Warning that deleting a countdown cannot be undone."
+  },
+  "giveCountdownTitle": "Donnez un titre à ce compte à rebours.",
+  "@giveCountdownTitle": {
+    "description": "Validation when the countdown title is empty."
+  },
+  "pickFutureMoment": "Choisissez un moment encore à venir.",
+  "@pickFutureMoment": {
+    "description": "Validation when the selected countdown moment has passed."
+  },
+  "signInToSaveCountdown": "Connectez-vous pour enregistrer les comptes à rebours.",
+  "@signInToSaveCountdown": {
+    "description": "Message shown when a signed-out user tries to save."
+  },
+  "countdownCreated": "Compte à rebours créé.",
+  "@countdownCreated": {
+    "description": "Confirmation after creating a countdown."
+  },
+  "changesSaved": "Modifications enregistrées.",
+  "@changesSaved": {
+    "description": "Confirmation after editing a countdown."
+  },
+  "countdownDeleted": "Compte à rebours supprimé.",
+  "@countdownDeleted": {
+    "description": "Confirmation after deleting a countdown."
+  },
+  "partnerLabel": "votre partenaire",
+  "@partnerLabel": {
+    "description": "Fallback name for a user's partner."
+  },
+  "partnerNotAdded": "Compte à rebours créé, mais {partnerName} n’a pas été ajouté. Invitez-le manuellement depuis le compte à rebours.",
+  "@partnerNotAdded": {
+    "description": "Warning when a partner could not be automatically added.",
+    "placeholders": {
+      "partnerName": {
+        "type": "String"
+      }
+    }
+  },
+  "partnerAdded": "Compte à rebours créé. {partnerName} a été ajouté.",
+  "@partnerAdded": {
+    "description": "Confirmation when a partner is automatically added.",
+    "placeholders": {
+      "partnerName": {
+        "type": "String"
+      }
+    }
+  },
+  "noPartnerAdded": "Compte à rebours créé, mais aucun partenaire n’a été ajouté. Invitez-le manuellement.",
+  "@noPartnerAdded": {
+    "description": "Warning when automatic partner sharing did not add anyone."
+  },
+  "chooseFutureDateHint": "Choisissez une date future pour voir le compte à rebours.",
+  "@chooseFutureDateHint": {
+    "description": "Preview shown when the selected date is in the past."
+  },
+  "countingDownRemaining": "Compte à rebours en cours {remaining}",
+  "@countingDownRemaining": {
+    "description": "Countdown preview followed by the remaining time.",
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotEditCountdown": "Vous pouvez voir ce compte à rebours, mais pas le modifier.",
+  "@cannotEditCountdown": {
+    "description": "Notice shown to a user without edit permission."
+  },
+  "shareWith": "Partager avec",
+  "@shareWith": {
+    "description": "Heading for selecting circles to share a countdown with."
+  },
+  "circleShareDescription": "Un cercle de couple se partage instantanément. Les autres cercles reçoivent une invitation.",
+  "@circleShareDescription": {
+    "description": "Explains how circle sharing works in the countdown editor."
+  },
+  "collaborators": "Collaborateurs",
+  "@collaborators": {
+    "description": "Heading for people on a countdown."
+  },
+  "collaboratorsCanFollow": "Toute personne que vous invitez peut suivre ce compte à rebours sur ses propres appareils.",
+  "@collaboratorsCanFollow": {
+    "description": "Description of collaborator access."
+  },
+  "peopleFollowing": "Personnes qui suivent ce compte à rebours.",
+  "@peopleFollowing": {
+    "description": "Description of the countdown collaborators list."
+  },
+  "noCollaboratorsYet": "Personne d’autre pour le moment.",
+  "@noCollaboratorsYet": {
+    "description": "Empty state for countdown collaborators."
+  },
+  "nameEmailHint": "nom@exemple.com",
+  "@nameEmailHint": {
+    "description": "Example email address in an invitation field."
+  },
+  "recentContactsCouldNotLoad": "Les contacts récents n’ont pas pu être chargés. Vérifiez votre connexion ou les règles Firestore.",
+  "@recentContactsCouldNotLoad": {
+    "description": "Error loading recent invite suggestions."
+  },
+  "invitationSentTo": "Invitation envoyée à {email}.",
+  "@invitationSentTo": {
+    "description": "Confirmation after sending an invitation.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedWithCircle": "Partagé avec {circleName}",
+  "@sharedWithCircle": {
+    "description": "Countdown collaborator row representing a shared circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteAgain": "Inviter à nouveau",
+  "@inviteAgain": {
+    "description": "Action to resend a declined invitation."
+  },
+  "removePersonQuestion": "Retirer cette personne ?",
+  "@removePersonQuestion": {
+    "description": "Confirmation title before removing a countdown collaborator."
+  },
+  "collaboratorLosesAccess": "{email} perdra l’accès à ce compte à rebours et ne le verra plus dans sa liste.",
+  "@collaboratorLosesAccess": {
+    "description": "Explains the effect of removing a collaborator.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "changeRole": "Modifier le rôle",
+  "@changeRole": {
+    "description": "Action to change a collaborator's role."
+  },
+  "changeRoleFor": "Modifier le rôle de {personName}",
+  "@changeRoleFor": {
+    "description": "Title for the collaborator role picker.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "roleChangeDescription": "Cela change ce qu’il peut faire sur ce compte à rebours à partir de maintenant. Il a actuellement un accès {role}.",
+  "@roleChangeDescription": {
+    "description": "Explains collaborator role changes.",
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "rolesNotAssignable": "{roles} ne peuvent pas être attribués par vous — vous êtes {topRole}.",
+  "@rolesNotAssignable": {
+    "description": "Explains why some collaborator roles are unavailable.",
+    "placeholders": {
+      "roles": {
+        "type": "String"
+      },
+      "topRole": {
+        "type": "String"
+      }
+    }
+  },
+  "circlesDescriptionTitle": "Groupes avec lesquels vous comptez le temps",
+  "@circlesDescriptionTitle": {
+    "description": "Introductory heading on the circles page."
+  },
+  "circlesDescription": "Invitez quelqu’un à un cercle une fois, puis partagez n’importe quel compte à rebours avec tout le groupe en un seul geste. Un cercle de couple est partagé automatiquement — tout ce qu’un de vous crée, l’autre le voit.",
+  "@circlesDescription": {
+    "description": "Explains circles and automatic couple sharing."
+  },
+  "circlesLoadError": "Impossible de charger vos cercles. Tirez vers le bas pour réessayer.",
+  "@circlesLoadError": {
+    "description": "Error loading the user's circles."
+  },
+  "noCircles": "Aucun cercle pour le moment",
+  "@noCircles": {
+    "description": "Empty state title for the circles page."
+  },
+  "noCirclesDescription": "Créez-en un pour les personnes avec lesquelles vous comptez le temps — un partenaire, votre famille ou les amis avec qui vous partez en voyage chaque année.",
+  "@noCirclesDescription": {
+    "description": "Empty state explanation for circles."
+  },
+  "newCircle": "Nouveau cercle",
+  "@newCircle": {
+    "description": "Action and title for creating a circle."
+  },
+  "sharesAutomatically": "Partage automatique",
+  "@sharesAutomatically": {
+    "description": "Label for a couple circle that automatically shares countdowns."
+  },
+  "peopleCount": "{count, plural, one{{count} personne} other{{count} personnes}}",
+  "@peopleCount": {
+    "description": "Number of people in a circle.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inviteSomeone": "Inviter quelqu’un",
+  "@inviteSomeone": {
+    "description": "Tooltip for inviting a circle member."
+  },
+  "you": "Vous",
+  "@you": {
+    "description": "Label for the current user in a member list."
+  },
+  "leaveCircle": "Quitter le cercle",
+  "@leaveCircle": {
+    "description": "Action to leave a circle."
+  },
+  "deleteCircle": "Supprimer le cercle",
+  "@deleteCircle": {
+    "description": "Action to delete a circle."
+  },
+  "removeFromCircle": "Retirer du cercle",
+  "@removeFromCircle": {
+    "description": "Tooltip for removing a circle member."
+  },
+  "removeMemberQuestion": "Retirer {personName} ?",
+  "@removeMemberQuestion": {
+    "description": "Confirmation title for removing a member from a circle.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "removeMemberExplanation": "Ils cesseront de voir les comptes à rebours partagés avec ce cercle. Rien de ce qu’ils ont créé n’est supprimé.",
+  "@removeMemberExplanation": {
+    "description": "Explains the effect of removing a circle member."
+  },
+  "leaveCircleQuestion": "Quitter “{circleName}” ?",
+  "@leaveCircleQuestion": {
+    "description": "Confirmation title for leaving a circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveCircleExplanation": "Les comptes à rebours partagés avec ce cercle n’apparaîtront plus pour vous. Vous pouvez être invité à nouveau.",
+  "@leaveCircleExplanation": {
+    "description": "Explains the effect of leaving a circle."
+  },
+  "deleteCircleQuestion": "Supprimer “{circleName}” ?",
+  "@deleteCircleQuestion": {
+    "description": "Confirmation title for deleting a circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteCircleExplanation": "Le groupe disparaît. Les comptes à rebours partagés avec lui sont conservés et restent à vous — ils ne sont simplement plus partagés avec ces personnes.",
+  "@deleteCircleExplanation": {
+    "description": "Explains the effect of deleting a circle."
+  },
+  "circleNameHint": "Famille, Tokyo 2027, Nous",
+  "@circleNameHint": {
+    "description": "Example name for a circle."
+  },
+  "coupleCircleTitle": "C’est nous — un couple",
+  "@coupleCircleTitle": {
+    "description": "Title for the automatic couple-sharing option."
+  },
+  "coupleCircleDescription": "Les comptes à rebours sont partagés avec votre partenaire automatiquement, sans invitation à accepter.",
+  "@coupleCircleDescription": {
+    "description": "Explains automatic sharing in a couple circle."
+  },
+  "circleCreated": "Cercle créé.",
+  "@circleCreated": {
+    "description": "Confirmation after creating a circle."
+  },
+  "coupleCircleCreated": "Créé. Invitez votre partenaire ensuite.",
+  "@coupleCircleCreated": {
+    "description": "Confirmation after creating a couple circle."
+  },
+  "inviteYourPartner": "Inviter votre partenaire",
+  "@inviteYourPartner": {
+    "description": "Title for inviting someone to a couple circle."
+  },
+  "inviteToCircle": "Inviter à “{circleName}”",
+  "@inviteToCircle": {
+    "description": "Title for inviting someone to a circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "coupleInviteExplanation": "S’ils ont déjà un compte, ils seront ajoutés automatiquement. Sinon, ils seront ajoutés lorsqu’ils se connecteront. Les futurs comptes à rebours partagés avec ce cercle apparaîtront automatiquement.",
+  "@coupleInviteExplanation": {
+    "description": "Explains how invitations to a couple circle work."
+  },
+  "circleInviteExplanation": "Ils recevront une invitation à accepter ou refuser. Une fois qu’ils auront rejoint, vous pourrez partager des comptes à rebours avec ce cercle en un seul geste.",
+  "@circleInviteExplanation": {
+    "description": "Explains invitations to a regular circle."
+  },
+  "inviteEmailHint": "eux@exemple.com",
+  "@inviteEmailHint": {
+    "description": "Example email address for inviting a circle member."
+  },
+  "sendInvitation": "Envoyer une invitation",
+  "@sendInvitation": {
+    "description": "Action to send an invitation."
+  },
+  "partnerAddedAutomatically": "Votre partenaire sera ajouté automatiquement.",
+  "@partnerAddedAutomatically": {
+    "description": "Confirmation that a partner will be added automatically."
+  },
+  "signInToUseCircles": "Connectez-vous pour utiliser les cercles",
+  "@signInToUseCircles": {
+    "description": "Message shown when signed-out users open circles."
+  },
+  "circlesRequireAccounts": "Les cercles invitent des personnes par e-mail, donc elles ont besoin d’un compte pour être invitées.",
+  "@circlesRequireAccounts": {
+    "description": "Explains why a circle invitation requires an account."
+  },
+  "waitingOnYou": "En attente de votre réponse",
+  "@waitingOnYou": {
+    "description": "Invitations page heading for invitations awaiting a response."
+  },
+  "invitationsEmptyDescription": "Rien n’est partagé avec vous tant que vous n’acceptez pas. Refuser indique à la personne qui vous a invité qu’elle n’a pas à se demander.",
+  "@invitationsEmptyDescription": {
+    "description": "Explains how invitations work when none are waiting."
+  },
+  "signInToSeeInvitations": "Connectez-vous pour voir les invitations",
+  "@signInToSeeInvitations": {
+    "description": "Message shown when signed-out users open invitations."
+  },
+  "invitationsEmailAccount": "Les invitations sont adressées à votre e-mail, donc connectez-vous avec l’adresse à laquelle quelqu’un vous a invité.",
+  "@invitationsEmailAccount": {
+    "description": "Explains which account to use to see invitations."
+  },
+  "invitationsCouldNotLoad": "Les invitations n’ont pas pu être chargées. Vérifiez votre connexion ou les règles Firestore.",
+  "@invitationsCouldNotLoad": {
+    "description": "Error loading invitations."
+  },
+  "nothingWaiting": "Rien en attente",
+  "@nothingWaiting": {
+    "description": "Empty invitation inbox heading."
+  },
+  "invitationInboxEmpty": "Les invitations que les gens vous envoient apparaîtront ici. Les invitations de compte à rebours et de cercle standard nécessitent votre réponse ; les cercles de couple se rejoignent automatiquement.",
+  "@invitationInboxEmpty": {
+    "description": "Empty invitation inbox explanation."
+  },
+  "retryAddingYou": "Réessayer de vous ajouter",
+  "@retryAddingYou": {
+    "description": "Action to retry automatically adding a user to a circle."
+  },
+  "decline": "Refuser",
+  "@decline": {
+    "description": "Action to decline an invitation."
+  },
+  "joinInviteQuestion": "Rejoindre “{eventTitle}” ?",
+  "@joinInviteQuestion": {
+    "description": "Confirmation before joining a countdown invitation.",
+    "placeholders": {
+      "eventTitle": {
+        "type": "String"
+      }
+    }
+  },
+  "joinInviteExplanation": "Il apparaîtra dans votre liste et vous obtiendrez son compte à rebours sur cet appareil.",
+  "@joinInviteExplanation": {
+    "description": "Explains the effect of accepting a countdown invitation."
+  },
+  "join": "Rejoindre",
+  "@join": {
+    "description": "Action to join a shared countdown or circle."
+  },
+  "alreadyMemberOf": "Vous êtes déjà membre de “{name}”.",
+  "@alreadyMemberOf": {
+    "description": "Notice shown when the user already belongs to an invited circle.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "youJoined": "Vous avez rejoint “{name}”.",
+  "@youJoined": {
+    "description": "Confirmation after joining a countdown or circle.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "youWereAddedTo": "Vous avez été ajouté à “{name}”.",
+  "@youWereAddedTo": {
+    "description": "Confirmation after being added to a circle.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "invitationDeclined": "Invitation refusée.",
+  "@invitationDeclined": {
+    "description": "Confirmation after declining an invitation."
+  },
+  "countdownInvitation": "Invitation à un compte à rebours",
+  "@countdownInvitation": {
+    "description": "Invitation type label for a shared countdown."
+  },
+  "aCountdown": "Un compte à rebours",
+  "@aCountdown": {
+    "description": "Fallback title for an unnamed countdown."
+  },
+  "invitedToFollowCountdown": "Vous avez été invité à suivre ce compte à rebours. L’accepter l’ajoute à votre liste en tant que {role}.",
+  "@invitedToFollowCountdown": {
+    "description": "Explanation of a countdown invitation.",
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "accept": "Accepter",
+  "@accept": {
+    "description": "Action to accept an invitation."
+  },
+  "partnerInvitation": "Invitation de partenaire",
+  "@partnerInvitation": {
+    "description": "Invitation type label for a couple circle."
+  },
+  "circleInvitation": "Invitation à un cercle",
+  "@circleInvitation": {
+    "description": "Invitation type label for a circle."
+  },
+  "partnerCircleAddTitle": "Vous êtes en train d’être ajouté au cercle de {personName}",
+  "@partnerCircleAddTitle": {
+    "description": "Title shown for an automatic couple circle invitation.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "partnerCircleAddExplanation": "Vous serez ajouté automatiquement. Les événements de compte à rebours partagés avec ce cercle apparaîtront dans votre liste.",
+  "@partnerCircleAddExplanation": {
+    "description": "Explains automatic joining of a couple circle."
+  },
+  "circleJoinExplanation": "Rejoindre “{circleName}” signifie que les comptes à rebours qu’ils partagent avec ce cercle apparaîtront dans votre liste.",
+  "@circleJoinExplanation": {
+    "description": "Explains what happens when joining a regular circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "becomePartners": "Devenir partenaires",
+  "@becomePartners": {
+    "description": "Action to join a couple circle."
+  },
+  "joinCircle": "Rejoindre le cercle",
+  "@joinCircle": {
+    "description": "Action to join a circle."
+  },
+  "automaticJoinFailed": "L’adhésion automatique n’a pas pu être terminée.",
+  "@automaticJoinFailed": {
+    "description": "Error when automatically joining a couple circle fails."
+  },
+  "notNow": "Pas maintenant",
+  "@notNow": {
+    "description": "Action to dismiss a prompt."
+  },
+  "notificationsTitle": "Notifications",
+  "@notificationsTitle": {
+    "description": "Notifications screen title."
+  },
+  "markAllRead": "Tout marquer comme lu",
+  "@markAllRead": {
+    "description": "Action to mark all notifications as read."
+  },
+  "markedAllRead": "Tout marqué comme lu.",
+  "@markedAllRead": {
+    "description": "Confirmation after marking notifications as read."
+  },
+  "moreOptions": "Plus d’options",
+  "@moreOptions": {
+    "description": "Tooltip for a menu containing more options."
+  },
+  "noReadMessagesToDelete": "Aucun message lu à supprimer.",
+  "@noReadMessagesToDelete": {
+    "description": "Notice when there are no read notifications to delete."
+  },
+  "deleteReadMessages": "Supprimer les messages lus",
+  "@deleteReadMessages": {
+    "description": "Action to delete read notifications."
+  },
+  "deletedReadMessages": "Messages lus supprimés.",
+  "@deletedReadMessages": {
+    "description": "Confirmation after deleting read notifications."
+  },
+  "notificationsSignInFirst": "Connectez-vous d’abord",
+  "@notificationsSignInFirst": {
+    "description": "Empty notification state title for signed-out users."
+  },
+  "notificationsAccountOnly": "Les notifications sont liées à votre compte.",
+  "@notificationsAccountOnly": {
+    "description": "Explains that notifications require an account."
+  },
+  "couldNotLoad": "Impossible de charger",
+  "@couldNotLoad": {
+    "description": "Generic title when content cannot be loaded."
+  },
+  "checkConnectionRetry": "Vérifiez votre connexion et réessayez.",
+  "@checkConnectionRetry": {
+    "description": "Network retry guidance."
+  },
+  "nothingYet": "Rien pour le moment",
+  "@nothingYet": {
+    "description": "Empty notifications screen title."
+  },
+  "notificationsEmptyDescription": "Quand quelque chose se produit avec vos comptes à rebours ou vos invitations, cela apparaîtra ici.",
+  "@notificationsEmptyDescription": {
+    "description": "Empty notifications screen explanation."
+  },
+  "liveNotificationsCouldNotLoad": "Les notifications en direct n’ont pas pu être chargées.",
+  "@liveNotificationsCouldNotLoad": {
+    "description": "Warning when live notifications cannot be loaded."
+  },
+  "inbox": "BOÎTE DE RÉCEPTION",
+  "@inbox": {
+    "description": "Heading for the notifications inbox."
+  },
+  "invitationResponses": "RÉPONSES AUX INVITATIONS",
+  "@invitationResponses": {
+    "description": "Heading for invitation response notifications."
+  },
+  "invitationResponsesCouldNotLoad": "Les réponses aux invitations n’ont pas pu être chargées.",
+  "@invitationResponsesCouldNotLoad": {
+    "description": "Warning when invitation responses cannot be loaded."
+  },
+  "countdownUnavailable": "Ce compte à rebours n’est plus disponible.",
+  "@countdownUnavailable": {
+    "description": "Message shown when a countdown cannot be found."
+  },
+  "viewDetails": "Voir les détails",
+  "@viewDetails": {
+    "description": "Action to view countdown details without editing."
+  },
+  "sharedWith": "PARTAGÉ AVEC",
+  "@sharedWith": {
+    "description": "Heading for people who can see a countdown."
+  },
+  "notes": "NOTES",
+  "@notes": {
+    "description": "Heading for countdown notes."
+  },
+  "notesEmpty": "Rien pour le moment. Laissez un message pour tout le monde qui compte le temps avec vous.",
+  "@notesEmpty": {
+    "description": "Empty state for countdown notes."
+  },
+  "addNote": "Ajouter une note",
+  "@addNote": {
+    "description": "Hint for adding a note to a countdown."
+  },
+  "years": "Années",
+  "@years": {
+    "description": "Countdown unit label for years."
+  },
+  "months": "Mois",
+  "@months": {
+    "description": "Countdown unit label for months."
+  },
+  "days": "Jours",
+  "@days": {
+    "description": "Countdown unit label for days."
+  },
+  "hours": "Heures",
+  "@hours": {
+    "description": "Countdown unit label for hours."
+  },
+  "remainingMinutes": "{count} min",
+  "@remainingMinutes": {
+    "description": "Short minute unit shown in the live countdown.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingSeconds": "{count} s restantes",
+  "@remainingSeconds": {
+    "description": "Short second unit shown in the live countdown.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cancel": "Annuler",
+  "@cancel": {
+    "description": "Action to cancel a dialog or operation."
+  },
+  "keep": "Conserver",
+  "@keep": {
+    "description": "Action to keep an item instead of deleting it."
+  },
+  "stay": "Rester",
+  "@stay": {
+    "description": "Action to stay in a circle."
+  },
+  "leave": "Quitter",
+  "@leave": {
+    "description": "Action to leave a circle."
+  },
+  "remove": "Retirer",
+  "@remove": {
+    "description": "Action to remove a person or item."
+  },
+  "delete": "Supprimer",
+  "@delete": {
+    "description": "Destructive action to delete an item."
+  },
+  "create": "Créer",
+  "@create": {
+    "description": "Action to create an item."
+  },
+  "tryAgain": "Réessayer",
+  "@tryAgain": {
+    "description": "Action to retry after an error."
+  },
+  "share": "Partager",
+  "@share": {
+    "description": "Action to share a countdown."
+  },
+  "passed": "Passé",
+  "@passed": {
+    "description": "Status for a countdown whose moment has passed."
+  },
+  "upcoming": "À venir",
+  "@upcoming": {
+    "description": "Status for a future countdown."
+  },
+  "accepted": "Acceptée",
+  "@accepted": {
+    "description": "Invitation status after acceptance."
+  },
+  "declined": "Refusée",
+  "@declined": {
+    "description": "Invitation status after decline."
+  },
+  "removed": "Retirée",
+  "@removed": {
+    "description": "Invitation status after removal."
+  },
+  "reopened": "Rouverte",
+  "@reopened": {
+    "description": "Invitation status after it is sent again."
+  },
+  "waiting": "En attente",
+  "@waiting": {
+    "description": "Invitation status while awaiting a response."
+  },
+  "itHasArrived": "Il est arrivé.",
+  "@itHasArrived": {
+    "description": "Countdown summary for a moment that has arrived."
+  },
+  "remainingToGo": "{remaining} à faire",
+  "@remainingToGo": {
+    "description": "Countdown summary for the time left until an event.",
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "momentHasPassed": "Le moment est passé",
+  "@momentHasPassed": {
+    "description": "Countdown summary after a moment has passed."
+  },
+  "remainingAnd": "{first} et {last}",
+  "@remainingAnd": {
+    "description": "Conjunction between the final units in a remaining-time summary.",
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
+  "dayHasCome": "LE JOUR EST ARRIVÉ",
+  "@dayHasCome": {
+    "description": "Celebration heading when a countdown reaches its date."
+  },
+  "eventArrivedWithDescription": "{title} est là — {description}",
+  "@eventArrivedWithDescription": {
+    "description": "Celebration message with an event description.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "description": {
+        "type": "String"
+      }
+    }
+  },
+  "eventArrivedTitleOnly": "{title} est là — profitez de chaque minute.",
+  "@eventArrivedTitleOnly": {
+    "description": "Celebration message without an event description.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "personRemovedFromCircle": "{personName} a été retiré de “{circleName}”.",
+  "@personRemovedFromCircle": {
+    "description": "Confirmation after removing a circle member.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "youLeftCircle": "Vous avez quitté “{circleName}”.",
+  "@youLeftCircle": {
+    "description": "Confirmation after leaving a circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "circleDeleted": "“{circleName}” supprimé.",
+  "@circleDeleted": {
+    "description": "Confirmation after deleting a circle.",
+    "placeholders": {
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "someone": "Quelqu’un",
+  "@someone": {
+    "description": "Fallback name for an inviter whose name is unavailable."
+  },
+  "invitedYouToCircle": "{personName} vous a invité à “{circleName}”",
+  "@invitedYouToCircle": {
+    "description": "Title for a circle invitation.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "circleName": {
+        "type": "String"
+      }
+    }
+  },
+  "roleAdmin": "Administrateur",
+  "@roleAdmin": {
+    "description": "Administrator role label."
+  },
+  "roleEditor": "Éditeur",
+  "@roleEditor": {
+    "description": "Editor role label."
+  },
+  "roleViewer": "Lecteur",
+  "@roleViewer": {
+    "description": "Viewer role label."
+  },
+  "roleAdminDescription": "Peut gérer le compte à rebours et ses participants.",
+  "@roleAdminDescription": {
+    "description": "Description of administrator countdown access."
+  },
+  "roleEditorDescription": "Peut modifier le compte à rebours et inviter d’autres personnes.",
+  "@roleEditorDescription": {
+    "description": "Description of editor countdown access."
+  },
+  "roleViewerDescription": "Peut voir le compte à rebours et laisser des notes.",
+  "@roleViewerDescription": {
+    "description": "Description of viewer countdown access."
+  },
+  "remainingYears": "{count, plural, one{{count} an} other{{count} ans}}",
+  "@remainingYears": {
+    "description": "Long-form pluralized years in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingMonths": "{count, plural, one{{count} mois} other{{count} mois}}",
+  "@remainingMonths": {
+    "description": "Long-form pluralized months in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingDays": "{count, plural, one{{count} jour} other{{count} jours}}",
+  "@remainingDays": {
+    "description": "Long-form pluralized days in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingHours": "{count, plural, one{{count} heure} other{{count} heures}}",
+  "@remainingHours": {
+    "description": "Long-form pluralized hours in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingMinuteUnit": "{count, plural, one{{count} minute} other{{count} minutes}}",
+  "@remainingMinuteUnit": {
+    "description": "Long-form pluralized minutes in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingSecondUnit": "{count, plural, one{{count} seconde} other{{count} secondes}}",
+  "@remainingSecondUnit": {
+    "description": "Long-form pluralized seconds in the remaining-time summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moreActions": "Plus d’actions",
+  "@moreActions": {
+    "description": "Tooltip for additional item actions."
+  },
+  "block": "Bloquer",
+  "@block": {
+    "description": "Action to block a person."
+  },
+  "roleChanged": "{personName} est maintenant {role}.",
+  "@roleChanged": {
+    "description": "Confirmation after changing a collaborator's role.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "personRemoved": "{personName} a été retiré.",
+  "@personRemoved": {
+    "description": "Confirmation after removing a collaborator.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "signInToSaveIt": "Connectez-vous pour l’enregistrer",
+  "@signInToSaveIt": {
+    "description": "Title shown when sign-in is required to save a countdown."
+  },
+  "countdownsFollowYou": "Les comptes à rebours vivent dans votre compte, donc ils vous suivent sur tous vos appareils et peuvent être partagés avec d’autres personnes.",
+  "@countdownsFollowYou": {
+    "description": "Explains why countdowns are saved to an account."
+  },
+  "savePermissionError": "Firestore a refusé l’enregistrement. Si cela continue, les règles de sécurité déployées sont plus anciennes que l’application — exécutez `firebase deploy --only firestore:rules`.",
+  "@savePermissionError": {
+    "description": "Actionable message for a Firestore permission error while saving."
+  },
+  "saveNetworkError": "Impossible d’atteindre Firestore. Vérifiez votre connexion et réessayez.",
+  "@saveNetworkError": {
+    "description": "Message for a network failure while saving."
+  },
+  "saveFailed": "Impossible d’enregistrer. Veuillez réessayer.",
+  "@saveFailed": {
+    "description": "Generic message for an unexpected save failure."
+  },
+  "momentPassed": "Le moment est passé",
+  "@momentPassed": {
+    "description": "Remaining-time text when a countdown has passed."
+  },
+  "and": "et",
+  "@and": {
+    "description": "Conjunction between the final two units in a remaining-time summary."
+  },
+  "back": "Retour",
+  "@back": {
+    "description": "Back navigation tooltip."
+  },
+  "policyLastUpdated": "Dernière mise à jour : février 2026 · Conforme au RGPD de l’UE et à la LPRPDE du Canada",
+  "@policyLastUpdated": {
+    "description": "Last-updated note at the top of the legal policy."
+  },
+  "privacyIntroTitle": "1. Introduction et responsable du traitement",
+  "@privacyIntroTitle": {
+    "description": "First privacy policy section heading."
+  },
+  "privacyIntroBody": "Date Dawn (« nous », « notre » ou « nos ») respecte votre vie privée et s’engage à protéger vos données personnelles. Cette politique de confidentialité explique comment nous collectons, utilisons et protégeons vos informations lorsque vous utilisez nos applications mobiles et web, dans le plein respect du Règlement général sur la protection des données (RGPD) de l’UE et de la Loi sur la protection des renseignements personnels et les documents électroniques (LPRPDE) du Canada.\n\nContact du responsable du traitement : {supportEmail}",
+  "@privacyIntroBody": {
+    "description": "Introduction and data controller contact in the privacy policy.",
+    "placeholders": {
+      "supportEmail": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyCollectTitle": "2. Informations que nous collectons",
+  "@privacyCollectTitle": {
+    "description": "Second privacy policy section heading."
+  },
+  "privacyCollectBody": "• Données du compte : adresse e-mail et nom d’affichage fournis lors de l’authentification (Firebase Auth).\n• Contenu utilisateur : comptes à rebours, titres, dates, descriptions et adhésions à des cercles que vous créez ou partagez explicitement.\n• Données de l’appareil et des notifications : jetons de notification push pour envoyer des rappels de comptes à rebours et des alertes d’invitation.\n\nNous ne collectons PAS l’historique de navigation, les identifiants publicitaires ni les données de localisation, et nous ne vendons aucune information personnelle à des tiers.",
+  "@privacyCollectBody": {
+    "description": "Information collected and not collected, as described in the privacy policy."
+  },
+  "privacyBasisTitle": "3. Base légale pour le traitement (RGPD de l’UE)",
+  "@privacyBasisTitle": {
+    "description": "Third privacy policy section heading."
+  },
+  "privacyBasisBody": "Nous traitons vos données selon les bases légales suivantes :\n• Exécution d’un contrat : fourniture de la synchronisation des comptes à rebours, du partage de cercles et des fonctionnalités d’invitation.\n• Consentement : lorsque vous accordez des autorisations de notification push ou vous inscrivez à des cercles partagés.\n• Intérêt légitime : garantir la sécurité, la fiabilité de l’application et prévenir les abus.",
+  "@privacyBasisBody": {
+    "description": "Legal bases for processing personal data."
+  },
+  "privacySharingTitle": "4. Partage et blocage",
+  "@privacySharingTitle": {
+    "description": "Fourth privacy policy section heading."
+  },
+  "privacySharingBody": "Date Dawn permet les interactions un à un : vous pouvez inviter quelqu’un à un compte à rebours, et vous pouvez tous les deux laisser des notes sur un compte que vous partagez. Ce contenu est visible uniquement pour les personnes concernées par ce compte à rebours — jamais public, jamais visible pour quelqu’un d’autre.\n\nVous pouvez bloquer une autre personne à tout moment : ouvrez un compte à rebours que vous partagez avec elle et appuyez longuement sur son nom (ou cliquez avec le bouton secondaire sur un ordinateur). Le blocage vous retire mutuellement des comptes à rebours, annule les invitations entre vous et l’empêche de vous inviter de nouveau. La personne n’est pas avertie. La liste des personnes que vous avez bloquées est privée et vous pouvez en débloquer n’importe qui depuis Paramètres → Personnes bloquées.",
+  "@privacySharingBody": {
+    "description": "Privacy policy explanation of sharing and blocking."
+  },
+  "privacyStorageTitle": "5. Stockage des données et sécurité",
+  "@privacyStorageTitle": {
+    "description": "Fifth privacy policy section heading."
+  },
+  "privacyStorageBody": "Vos données sont stockées et traitées en toute sécurité à l’aide de l’infrastructure Firebase (Google Cloud Platform) qui respecte des normes de sécurité élevées de l’industrie. Les données transmises entre votre appareil et nos serveurs sont chiffrées en transit via TLS.",
+  "@privacyStorageBody": {
+    "description": "Privacy policy explanation of data storage and security."
+  },
+  "privacyRightsTitle": "6. Vos droits (accès, correction et effacement)",
+  "@privacyRightsTitle": {
+    "description": "Sixth privacy policy section heading."
+  },
+  "privacyRightsBody": "Selon le RGPD et la LPRPDE, vous avez le droit de :\n• Accès : demander une copie des données personnelles que nous détenons sur vous.\n• Rectification : mettre à jour ou corriger vos informations de profil dans Paramètres.\n• Effacement (droit à l’oubli) : demander la suppression complète de votre compte et de tous les comptes à rebours et notifications associés à tout moment en contactant {supportEmail}.",
+  "@privacyRightsBody": {
+    "description": "User rights to access, correct, and erase personal data.",
+    "placeholders": {
+      "supportEmail": {
+        "type": "String"
+      }
+    }
+  },
+  "termsAcceptanceTitle": "1. Acceptation des conditions",
+  "@termsAcceptanceTitle": {
+    "description": "First terms of service section heading."
+  },
+  "termsAcceptanceBody": "En accédant ou en utilisant Date Dawn, vous acceptez d’être lié par les présentes Conditions d’utilisation. Si vous n’acceptez pas ces conditions, veuillez ne pas utiliser l’application.",
+  "@termsAcceptanceBody": {
+    "description": "Terms of service acceptance section."
+  },
+  "termsUseTitle": "2. Utilisation du service",
+  "@termsUseTitle": {
+    "description": "Second terms of service section heading."
+  },
+  "termsUseBody": "Date Dawn est fourni pour le suivi personnel et non commercial des comptes à rebours et des moments partagés. Vous acceptez de ne pas utiliser le service de manière abusive, de ne pas téléverser de contenu malveillant, de ne pas harceler d’autres utilisateurs via des cercles partagés ou des invitations, ni d’essayer de contourner les contrôles de sécurité.",
+  "@termsUseBody": {
+    "description": "Terms of service acceptable-use section."
+  },
+  "termsOwnershipTitle": "3. Contenu utilisateur et propriété",
+  "@termsOwnershipTitle": {
+    "description": "Third terms of service section heading."
+  },
+  "termsOwnershipBody": "Vous gardez tous les droits de propriété sur les événements de compte à rebours, les titres et le contenu que vous créez. Vous accordez à Date Dawn une licence limitée uniquement pour stocker et synchroniser votre contenu sur vos appareils authentifiés et les membres du cercle partagé.",
+  "@termsOwnershipBody": {
+    "description": "Terms of service explanation of user content ownership."
+  },
+  "termsTerminationTitle": "4. Résiliation et suppression du compte",
+  "@termsTerminationTitle": {
+    "description": "Fourth terms of service section heading."
+  },
+  "termsTerminationBody": "Vous pouvez arrêter d’utiliser Date Dawn à tout moment et demander la suppression du compte en envoyant un e-mail au support. Nous nous réservons le droit de suspendre ou de supprimer les comptes qui violent ces conditions ou abusent de l’infrastructure de la plateforme.",
+  "@termsTerminationBody": {
+    "description": "Terms of service account termination and deletion section."
+  },
+  "termsLiabilityTitle": "5. Limitation de responsabilité",
+  "@termsLiabilityTitle": {
+    "description": "Fifth terms of service section heading."
+  },
+  "termsLiabilityBody": "Date Dawn est fourni « tel quel » sans aucune garantie de quelque nature que ce soit. Nous ne serons pas responsables des dommages indirects, accessoires ou consécutifs découlant de votre utilisation de l’application.",
+  "@termsLiabilityBody": {
+    "description": "Terms of service limitation of liability section."
+  },
+  "privacyPolicyTitle": "Politique de confidentialité",
+  "@privacyPolicyTitle": {
+    "description": "Title displayed on the privacy policy page."
+  },
+  "termsOfServiceTitle": "Conditions d’utilisation",
+  "@termsOfServiceTitle": {
+    "description": "Title displayed on the terms of service page."
+  },
+  "supportHeading": "Nous lisons chaque message",
+  "@supportHeading": {
+    "description": "Heading on the help and support page."
+  },
+  "supportIntro": "Date Dawn est une petite application indépendante. L’e-mail est le moyen le plus rapide d’atteindre la personne qui la développe — il n’y a pas de service d’assistance entre les deux. Nous répondons généralement dans {responseTime}.",
+  "@supportIntro": {
+    "description": "Introduction and expected response time on support page.",
+    "placeholders": {
+      "responseTime": {
+        "type": "String"
+      }
+    }
+  },
+  "supportResponseTime": "dans les 2 jours ouvrables",
+  "@supportResponseTime": {
+    "description": "Typical support email response time."
+  },
+  "supportCommonQuestions": "Questions fréquentes",
+  "@supportCommonQuestions": {
+    "description": "FAQ section heading on the support page."
+  },
+  "supportFaqGoogleQuestion": "Je me suis connecté avec Google et mes comptes à rebours ont disparu.",
+  "@supportFaqGoogleQuestion": {
+    "description": "Support FAQ question about missing countdowns after Google sign-in."
+  },
+  "supportFaqGoogleAnswer": "Utilisez la même méthode que celle que vous avez utilisée pour créer votre compte. Google et le mot de passe/e-mail ne sont pas liés automatiquement. Si vous devez changer de méthode ou pensez avoir des données dans deux comptes, contactez-nous avant de créer un autre compte.",
+  "@supportFaqGoogleAnswer": {
+    "description": "Support FAQ answer about account sign-in methods."
+  },
+  "supportFaqSharingQuestion": "Quelqu’un avec qui j’ai partagé ne voit pas le compte à rebours.",
+  "@supportFaqSharingQuestion": {
+    "description": "Support FAQ question about a shared countdown."
+  },
+  "supportFaqSharingAnswer": "Partager un compte à rebours avec un cercle envoie une invitation — cela ne rajoute pas les personnes automatiquement. Ils doivent ouvrir Invitations dans l’application et l’accepter. Un cercle de couple est la seule exception : il se partage instantanément.",
+  "@supportFaqSharingAnswer": {
+    "description": "Support FAQ answer about accepting countdown invitations."
+  },
+  "supportFaqDeclinedQuestion": "J’ai refusé une invitation par erreur.",
+  "@supportFaqDeclinedQuestion": {
+    "description": "Support FAQ question about a declined invitation."
+  },
+  "supportFaqDeclinedAnswer": "Demandez à la personne qui vous a invité de vous réinviter — elle peut le faire depuis le compte à rebours en appuyant sur l’icône d’actualisation à côté de votre nom. Rien n’est perdu entre-temps.",
+  "@supportFaqDeclinedAnswer": {
+    "description": "Support FAQ answer about reopening an invitation."
+  },
+  "supportFaqDeleteQuestion": "Comment supprimer mon compte et mes données ?",
+  "@supportFaqDeleteQuestion": {
+    "description": "Support FAQ question about deleting an account."
+  },
+  "supportFaqDeleteAnswer": "Envoyez-nous un e-mail depuis l’adresse avec laquelle vous vous êtes inscrit et demandez la suppression. Tous les comptes à rebours, invitations et notifications liés au compte sont supprimés, et nous confirmons quand c’est fait.",
+  "@supportFaqDeleteAnswer": {
+    "description": "Support FAQ answer about account deletion."
+  },
+  "supportFaqBlockQuestion": "Comment bloquer quelqu’un ?",
+  "@supportFaqBlockQuestion": {
+    "description": "Support FAQ question about blocking a person."
+  },
+  "supportFaqBlockAnswer": "Ouvrez un compte à rebours que vous partagez avec lui et appuyez longuement sur son nom dans la liste des personnes (clic secondaire sur un ordinateur). Il est retiré de vos comptes à rebours partagés et ne peut plus vous inviter à nouveau. Pour annuler, allez dans Paramètres → Personnes bloquées.",
+  "@supportFaqBlockAnswer": {
+    "description": "Support FAQ answer about blocking and unblocking."
+  },
+  "supportFaqAdsQuestion": "Vendez-vous mes données ou affichez-vous des publicités ?",
+  "@supportFaqAdsQuestion": {
+    "description": "Support FAQ question about advertising and data."
+  },
+  "supportFaqAdsAnswer": "Non. Il n’y a ni publicités, ni profils analytiques, ni suivi tiers. Ce que vous comptez n’appartient à personne d’autre que vous, donc il est stocké sous votre propre compte pour que personne d’autre ne puisse le lire.",
+  "@supportFaqAdsAnswer": {
+    "description": "Support FAQ answer about ads and data privacy."
+  },
+  "supportLegal": "Juridique",
+  "@supportLegal": {
+    "description": "Legal links section heading on support page."
+  },
+  "supportNotice": "Un remboursement, une question de facturation ou un signalement de bug appartiennent tous à la même adresse. Si l’application se comporte mal, nous dire votre appareil et ce que vous faisiez au moment du problème est la chose la plus utile que vous puissiez inclure.",
+  "@supportNotice": {
+    "description": "Support contact guidance at the bottom of the support page."
+  },
+  "supportEmailLabel": "Contacter le support par e-mail",
+  "@supportEmailLabel": {
+    "description": "Label for the support email contact card."
+  },
+  "supportEmailCopied": "{email} copié",
+  "@supportEmailCopied": {
+    "description": "Confirmation that the support email was copied.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "openMail": "Ouvrir le mail",
+  "@openMail": {
+    "description": "Action to open a mail app."
+  },
+  "linkCopiedClipboard": "Lien copié dans votre presse-papiers.",
+  "@linkCopiedClipboard": {
+    "description": "Notice shown when a link is copied."
+  },
+  "verifyEmailTitle": "Vérifiez votre e-mail",
+  "@verifyEmailTitle": {
+    "description": "Title on the email verification screen."
+  },
+  "verifyEmailInstructions": "Nous avons envoyé un lien de vérification à {email}. Veuillez le vérifier pour continuer.",
+  "@verifyEmailInstructions": {
+    "description": "Email verification instructions.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "yourEmailAddress": "votre adresse e-mail",
+  "@yourEmailAddress": {
+    "description": "Fallback when the user's email address is not available."
+  },
+  "resetLinkSent": "Lien de réinitialisation envoyé à {email}. Utilisez le plus récent e-mail.",
+  "@resetLinkSent": {
+    "description": "Confirmation that a password reset email was sent.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationEmailSent": "E-mail de vérification envoyé.",
+  "@verificationEmailSent": {
+    "description": "Confirmation after resending a verification email."
+  },
+  "verificationNotComplete": "Pas encore vérifié. Vérifiez votre boîte de réception.",
+  "@verificationNotComplete": {
+    "description": "Notice when email verification is not complete."
+  },
+  "verifiedSignInToContinue": "Votre e-mail est vérifié. Connectez-vous pour continuer si nécessaire.",
+  "@verifiedSignInToContinue": {
+    "description": "Message after verifying an email for a signed-out user."
+  },
+  "checkSpamFolder": "Vous ne trouvez pas l’e-mail ? Veuillez vérifier votre dossier Spam ou Courrier indésirable.",
+  "@checkSpamFolder": {
+    "description": "Reminder to check spam for the verification email."
+  },
+  "confirmEmailVerified": "J’ai vérifié mon e-mail",
+  "@confirmEmailVerified": {
+    "description": "Action to confirm email verification."
+  },
+  "sendingEmail": "Envoi?",
+  "@sendingEmail": {
+    "description": "Progress label while an email is being sent."
+  },
+  "resendEmail": "Renvoyer l’e-mail",
+  "@resendEmail": {
+    "description": "Action to resend a verification email."
+  },
+  "waitBeforeResending": "Veuillez attendre 60 secondes avant de demander un autre e-mail.",
+  "@waitBeforeResending": {
+    "description": "Cooldown notice between verification email requests."
+  },
+  "resetCodeMissing": "Ce lien de réinitialisation n’a pas son code de sécurité.",
+  "@resetCodeMissing": {
+    "description": "Error when a password reset link lacks its action code."
+  },
+  "passwordUpdatedSignIn": "Mot de passe mis à jour. Connectez-vous à nouveau.",
+  "@passwordUpdatedSignIn": {
+    "description": "Confirmation after a password reset."
+  },
+  "resetLinkInvalidTitle": "Ce lien de réinitialisation ne peut pas être utilisé",
+  "@resetLinkInvalidTitle": {
+    "description": "Title for an invalid password reset link."
+  },
+  "resetLinkInvalidBody": "Le lien a peut-être expiré ou a déjà été utilisé. Revenez à l’écran de connexion et demandez un nouvel e-mail de réinitialisation de mot de passe.",
+  "@resetLinkInvalidBody": {
+    "description": "Explanation for an expired or used password reset link."
+  },
+  "backToSignIn": "Retour à la connexion",
+  "@backToSignIn": {
+    "description": "Navigation action back to sign in."
+  },
+  "chooseNewPassword": "Choisissez un nouveau mot de passe",
+  "@chooseNewPassword": {
+    "description": "Heading for the new password form."
+  },
+  "newPassword": "Nouveau mot de passe",
+  "@newPassword": {
+    "description": "Label for the new password field."
+  },
+  "confirmNewPassword": "Confirmer le nouveau mot de passe",
+  "@confirmNewPassword": {
+    "description": "Label for the confirm password field."
+  },
+  "passwordMinLength": "Utilisez au moins 6 caractères.",
+  "@passwordMinLength": {
+    "description": "Validation message for a short password."
+  },
+  "passwordsDoNotMatch": "Les mots de passe ne correspondent pas.",
+  "@passwordsDoNotMatch": {
+    "description": "Validation message when password fields differ."
+  },
+  "updatePassword": "Mettre à jour le mot de passe",
+  "@updatePassword": {
+    "description": "Action to save a new password."
+  },
+  "editCountdownAction": "Modifier",
+  "@editCountdownAction": {
+    "description": "Action to edit a countdown."
+  },
+  "duplicateYearLater": "Dupliquer dans un an",
+  "@duplicateYearLater": {
+    "description": "Action to duplicate a countdown one year later."
+  },
+  "countdownDuplicated": "Dupliqué — ouvrez-le pour ajuster la date.",
+  "@countdownDuplicated": {
+    "description": "Confirmation after duplicating a countdown."
+  },
+  "onlyOwnerCanDelete": "Seul le propriétaire peut supprimer ce compte à rebours.",
+  "@onlyOwnerCanDelete": {
+    "description": "Permission notice when a non-owner tries to delete."
+  },
+  "countdownDeleteFailed": "Impossible de supprimer. Réessayez.",
+  "@countdownDeleteFailed": {
+    "description": "Error shown when deleting a countdown fails."
+  },
+  "countdownDeleteWarning": "Le compte à rebours ne peut pas être annulé.",
+  "@countdownDeleteWarning": {
+    "description": "Confirmation dialog warning about deleting a countdown."
+  },
+  "blockPersonQuestion": "Bloquer {personName} ?",
+  "@blockPersonQuestion": {
+    "description": "Confirmation heading for blocking a person.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "blockExplanation": "Vous cesserez de vous voir. Ils seront retirés de tous les comptes à rebours que vous partagez, les invitations entre vous seront annulées et ils ne pourront plus vous inviter à nouveau. Ils ne sont pas avertis.",
+  "@blockExplanation": {
+    "description": "Explains what happens when another person is blocked."
+  },
+  "undoBlockInSettings": "Vous pouvez annuler cela à tout moment dans Paramètres → Personnes bloquées.",
+  "@undoBlockInSettings": {
+    "description": "Explains where to undo a block."
+  },
+  "blocking": "Blocage?",
+  "@blocking": {
+    "description": "Progress label while blocking a person."
+  },
+  "blockAction": "Bloquer",
+  "@blockAction": {
+    "description": "Action to block a person."
+  },
+  "personBlocked": "{personName} est bloqué.",
+  "@personBlocked": {
+    "description": "Confirmation after blocking a person.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "undo": "Annuler",
+  "@undo": {
+    "description": "Action to undo a recent change."
+  },
+  "personUnblocked": "{personName} a été débloqué.",
+  "@personUnblocked": {
+    "description": "Confirmation after unblocking a person.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "blockAccessNotRestored": "L’accès au compte à rebours n’a pas été restauré.",
+  "@blockAccessNotRestored": {
+    "description": "Clarifies that unblocking does not restore prior countdown access."
+  },
+  "undoBlockFailed": "Impossible d’annuler le blocage. Veuillez réessayer.",
+  "@undoBlockFailed": {
+    "description": "Error when undoing a block fails."
+  },
+  "blockSaveFailed": "Votre blocage n’a pas pu être enregistré. Connectez-vous à nouveau puis réessayez.",
+  "@blockSaveFailed": {
+    "description": "Error when saving a block is refused."
+  },
+  "noConnectionRetry": "Aucune connexion. Vérifiez votre réseau et réessayez.",
+  "@noConnectionRetry": {
+    "description": "Network error with retry guidance."
+  },
+  "blockPersonFailed": "Impossible de bloquer {personName}. Veuillez réessayer.",
+  "@blockPersonFailed": {
+    "description": "Error when blocking a person fails.",
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "blockedPeopleTitle": "Personnes bloquées",
+  "@blockedPeopleTitle": {
+    "description": "Title of the blocked people screen."
+  },
+  "nobodyBlocked": "Personne n’est bloqué",
+  "@nobodyBlocked": {
+    "description": "Empty state title for the blocked people screen."
+  },
+  "howToBlockPerson": "Pour bloquer quelqu’un, ouvrez un compte à rebours que vous partagez avec lui, ouvrez le menu ⋮ dans sa ligne, puis appuyez sur Bloquer.",
+  "@howToBlockPerson": {
+    "description": "Instructions for blocking someone from a countdown."
+  },
+  "blockedPeopleDescription": "Ces personnes ne peuvent pas vous inviter et vous ne partagez aucun compte à rebours avec elles. Elles ne sont pas informées qu’elles sont bloquées.",
+  "@blockedPeopleDescription": {
+    "description": "Explanation of the blocked people list."
+  },
+  "unblock": "Débloquer",
+  "@unblock": {
+    "description": "Action to unblock a person."
+  },
+  "blockedListLoadFailed": "Impossible de charger votre liste de blocage",
+  "@blockedListLoadFailed": {
+    "description": "Title for a blocked people list loading error."
+  },
+  "blockedListPermissionError": "Votre compte n’est pas autorisé à lire cette liste. Si cela continue, mettez à jour l’application.",
+  "@blockedListPermissionError": {
+    "description": "Permission error when reading the blocked people list."
+  }
 }
