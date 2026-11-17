@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/models.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../services/event_repository.dart';
@@ -22,13 +23,14 @@ class BlockedPeopleScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final router = GoRouter.of(context);
     final blocked = ref.watch(blockedUsersProvider);
     final refreshing = blocked.isLoading && blocked.hasValue;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Blocked people'),
+        title: Text(l10n.blockedPeopleTitle),
         bottom: refreshing
             ? const PreferredSize(
                 preferredSize: Size.fromHeight(2),
@@ -38,7 +40,7 @@ class BlockedPeopleScreen extends ConsumerWidget {
         leading: router.canPop()
             ? HoverTintIconButton(
                 icon: Icons.arrow_back_rounded,
-                tooltip: 'Back',
+                tooltip: l10n.back,
                 onPressed: () =>
                     router.canPop() ? router.pop() : router.go(Routes.settings),
               )
@@ -73,7 +75,7 @@ class BlockedPeopleScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Nobody is blocked',
+                  l10n.nobodyBlocked,
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
@@ -82,8 +84,7 @@ class BlockedPeopleScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'To block someone, open a countdown you share with them, open '
-                  'the ⋮ menu on their row, and tap Block.',
+                  l10n.howToBlockPerson,
                   style: TextStyle(
                       fontSize: 13.5, height: 1.5, color: colors.muted),
                 ),
@@ -101,8 +102,7 @@ class BlockedPeopleScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
               children: [
                 Text(
-                  'These people cannot invite you, and you do not share any '
-                  'countdown with them. They are not told they are blocked.',
+                  l10n.blockedPeopleDescription,
                   style:
                       TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
                 ),
@@ -134,7 +134,7 @@ class BlockedPeopleScreen extends ConsumerWidget {
       () => ref
           .read(eventRepositoryProvider)
           .unblockUser(userId: me.id, targetUid: person.userId),
-      successMessage: '${person.label} is unblocked.',
+      successMessage: context.l10n.personUnblocked(person.label),
     );
     // The list is a live snapshot, but an unblock also needs the invitations
     // inbox to re-admit anything the block was filtering out.
@@ -191,7 +191,7 @@ class _BlockedRow extends StatelessWidget {
           ),
           TextButton(
             onPressed: onUnblock,
-            child: const Text('Unblock'),
+            child: Text(context.l10n.unblock),
           ),
         ],
       ),
@@ -223,15 +223,15 @@ class _BlockedListError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final detail = switch (error) {
       DataFailure(:final message) => message,
       FirebaseException(code: 'permission-denied') =>
-        'Your account is not allowed to read this list. If this keeps '
-            'happening, update the app.',
+        l10n.blockedListPermissionError,
       FirebaseException(code: 'unavailable') ||
       FirebaseException(code: 'network-request-failed') =>
-        'No connection. Check your network and try again.',
-      _ => 'Check your connection and try again.',
+        l10n.noConnectionRetry,
+      _ => l10n.checkConnectionRetry,
     };
 
     return LayoutBuilder(
@@ -262,10 +262,10 @@ class _BlockedListError extends StatelessWidget {
                           size: 22, color: colors.danger),
                     ),
                     const SizedBox(height: 18),
-                    const Text(
-                      'Could not load your blocked list',
-                      style:
-                          TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                    Text(
+                      l10n.blockedListLoadFailed,
+                      style: const TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -277,7 +277,7 @@ class _BlockedListError extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: () => onRetry(),
                       icon: const Icon(Icons.refresh_rounded, size: 18),
-                      label: const Text('Try again'),
+                      label: Text(l10n.tryAgain),
                     ),
                   ],
                 ),

@@ -4,6 +4,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
 
 /// The moment a countdown hits zero.
 ///
@@ -55,6 +56,7 @@ class _ArrivalCelebrationState extends State<ArrivalCelebration>
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
 
     return Stack(
       alignment: Alignment.topCenter,
@@ -108,7 +110,7 @@ class _ArrivalCelebrationState extends State<ArrivalCelebration>
               ),
               const SizedBox(height: 18),
               Text(
-                'THE DAY HAS COME',
+                l10n.dayHasCome,
                 style: Theme.of(context)
                     .textTheme
                     .labelSmall
@@ -117,8 +119,11 @@ class _ArrivalCelebrationState extends State<ArrivalCelebration>
               const SizedBox(height: 10),
               Text(
                 widget.description?.isNotEmpty == true
-                    ? '${widget.title} is here — ${widget.description}'
-                    : '${widget.title} is here — enjoy every minute of it.',
+                    ? l10n.eventArrivedWithDescription(
+                        widget.title,
+                        widget.description!,
+                      )
+                    : l10n.eventArrivedTitleOnly(widget.title),
                 textAlign: TextAlign.center,
                 style:
                     TextStyle(fontSize: 14, height: 1.5, color: colors.muted),

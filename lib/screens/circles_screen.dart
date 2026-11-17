@@ -6,6 +6,7 @@ import '../core/circles.dart';
 import '../core/recent_contacts.dart';
 import '../core/routes.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
 import '../providers/app_providers.dart';
 import '../widgets/brand_kit.dart';
 
@@ -20,12 +21,13 @@ class CirclesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final user = ref.watch(currentUserProvider);
     final circles = ref.watch(circlesProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Circles'),
+        title: Text(l10n.circles),
       ),
       floatingActionButton: user == null
           ? null
@@ -34,7 +36,7 @@ class CirclesScreen extends ConsumerWidget {
               foregroundColor: colors.accentFg,
               onPressed: () => _openCreateSheet(context, ref),
               icon: const Icon(Icons.group_add_outlined, size: 20),
-              label: const Text('New circle'),
+              label: Text(l10n.newCircle),
             ),
       body: user == null
           ? _SignInPrompt(onSignIn: () => context.push(Routes.login))
@@ -42,14 +44,12 @@ class CirclesScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 96),
               children: [
                 Text(
-                  'Groups you count down with',
+                  l10n.circlesDescriptionTitle,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Invite someone to a circle once, then share any countdown with '
-                  'the whole group in a single tap. A couple circle shares '
-                  'automatically — anything one of you creates, the other sees.',
+                  l10n.circlesDescription,
                   style: TextStyle(
                       fontSize: 13.5, height: 1.5, color: colors.muted),
                 ),
@@ -66,7 +66,7 @@ class CirclesScreen extends ConsumerWidget {
                     ),
                   ),
                   error: (_, __) => Text(
-                    'Could not load your circles. Pull down to retry.',
+                    l10n.circlesLoadError,
                     style: TextStyle(fontSize: 13, color: colors.danger),
                   ),
                   data: (items) {
@@ -93,6 +93,7 @@ class _NoCircles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     return Column(
       children: [
         const SizedBox(height: 32),
@@ -107,14 +108,13 @@ class _NoCircles extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Text(
-          'No circles yet',
+          l10n.noCircles,
           style: TextStyle(
               fontSize: 15, fontWeight: FontWeight.w600, color: colors.fg),
         ),
         const SizedBox(height: 8),
         Text(
-          'Create one for the people you count down with — a partner, family, or '
-          'the friends you take a trip with every year.',
+          l10n.noCirclesDescription,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13.5, height: 1.5, color: colors.muted),
         ),
@@ -131,6 +131,7 @@ class _CircleCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final user = ref.watch(currentUserProvider);
     final members = ref.watch(circleMembersProvider(circle.id)).value ??
         const <CircleMember>[];
@@ -169,8 +170,8 @@ class _CircleCard extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Text(
                       circle.isCouple
-                          ? 'Shares automatically'
-                          : '${members.length} ${members.length == 1 ? 'person' : 'people'}',
+                          ? l10n.sharesAutomatically
+                          : l10n.peopleCount(members.length),
                       style: TextStyle(
                         fontSize: 12,
                         color: circle.isCouple ? colors.accent : colors.subtle,
@@ -181,7 +182,7 @@ class _CircleCard extends ConsumerWidget {
               ),
               if (isOwner)
                 HoverTintIconButton(
-                  tooltip: 'Invite someone',
+                  tooltip: l10n.inviteSomeone,
                   iconSize: 19,
                   icon: Icons.person_add_alt_1_rounded,
                   onPressed: () => _openInviteSheet(context, ref, circle),
@@ -212,7 +213,7 @@ class _CircleCard extends ConsumerWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          member.userId == user?.id ? 'You' : member.label,
+                          member.userId == user?.id ? l10n.you : member.label,
                           style: const TextStyle(fontSize: 12.5),
                         ),
                         if (member.isOwner) ...[
@@ -237,8 +238,10 @@ class _CircleCard extends ConsumerWidget {
                                     ownerId: user!.id,
                                     memberId: member.userId,
                                   ),
-                              successMessage:
-                                  '${member.label} was removed from “${circle.name}”.',
+                              successMessage: l10n.personRemovedFromCircle(
+                                member.label,
+                                circle.name,
+                              ),
                             ),
                           ),
                         ],
@@ -275,11 +278,12 @@ class _CircleCard extends ConsumerWidget {
                   () => ref
                       .read(eventRepositoryProvider)
                       .leaveCircle(circleId: circle.id, userId: userId),
-                  successMessage: 'You left “${circle.name}”.',
+                  successMessage: l10n.youLeftCircle(circle.name),
                 );
               },
               icon: const Icon(Icons.logout_rounded, size: 16),
-              label: const Text('Leave circle', style: TextStyle(fontSize: 13)),
+              label:
+                  Text(l10n.leaveCircle, style: const TextStyle(fontSize: 13)),
             )
           else
             TextButton.icon(
@@ -300,12 +304,12 @@ class _CircleCard extends ConsumerWidget {
                         circleId: circle.id,
                         userId: userId,
                       ),
-                  successMessage: 'Deleted “${circle.name}”.',
+                  successMessage: l10n.circleDeleted(circle.name),
                 );
               },
               icon: const Icon(Icons.delete_outline_rounded, size: 16),
               label:
-                  const Text('Delete circle', style: TextStyle(fontSize: 13)),
+                  Text(l10n.deleteCircle, style: const TextStyle(fontSize: 13)),
             ),
         ],
       ),
@@ -326,23 +330,21 @@ class _KickOutButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     return Tooltip(
-      message: 'Remove from circle',
+      message: l10n.removeFromCircle,
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
         onTap: () async {
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (dialogContext) => AlertDialog(
-              title: Text('Remove $label?'),
-              content: const Text(
-                'They will stop seeing countdowns shared with this circle. '
-                'Nothing they created is deleted.',
-              ),
+              title: Text(l10n.removeMemberQuestion(label)),
+              content: Text(l10n.removeMemberExplanation),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Keep'),
+                  child: Text(l10n.keep),
                 ),
                 FilledButton(
                   style: FilledButton.styleFrom(
@@ -350,7 +352,7 @@ class _KickOutButton extends StatelessWidget {
                     minimumSize: const Size(88, 42),
                   ),
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Remove'),
+                  child: Text(l10n.remove),
                 ),
               ],
             ),
@@ -368,18 +370,16 @@ class _KickOutButton extends StatelessWidget {
 
 /// Confirms leaving a circle.
 Future<bool> _confirmLeaveCircle(BuildContext context, String name) async {
+  final l10n = context.l10n;
   final result = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: Text('Leave “$name”?'),
-      content: const Text(
-        'Countdowns shared with this circle will no longer appear for you. '
-        'You can be invited back.',
-      ),
+      title: Text(l10n.leaveCircleQuestion(name)),
+      content: Text(l10n.leaveCircleExplanation),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Stay'),
+          child: Text(l10n.stay),
         ),
         FilledButton(
           style: FilledButton.styleFrom(
@@ -387,7 +387,7 @@ Future<bool> _confirmLeaveCircle(BuildContext context, String name) async {
             minimumSize: const Size(88, 42),
           ),
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Leave'),
+          child: Text(l10n.leave),
         ),
       ],
     ),
@@ -397,18 +397,16 @@ Future<bool> _confirmLeaveCircle(BuildContext context, String name) async {
 
 /// Confirms removing a circle, spelling out that the countdowns survive.
 Future<bool> _confirmDeleteCircle(BuildContext context, String name) async {
+  final l10n = context.l10n;
   final result = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: Text('Delete “$name”?'),
-      content: const Text(
-        'The group goes away. Countdowns shared with it are kept and stay yours — '
-        'they are just no longer shared with these people.',
-      ),
+      title: Text(l10n.deleteCircleQuestion(name)),
+      content: Text(l10n.deleteCircleExplanation),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Keep'),
+          child: Text(l10n.keep),
         ),
         FilledButton(
           style: FilledButton.styleFrom(
@@ -416,7 +414,7 @@ Future<bool> _confirmDeleteCircle(BuildContext context, String name) async {
             minimumSize: const Size(88, 42),
           ),
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Delete'),
+          child: Text(l10n.delete),
         ),
       ],
     ),
@@ -461,6 +459,7 @@ class _CreateCircleSheetState extends ConsumerState<_CreateCircleSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final user = ref.watch(currentUserProvider);
 
     return Padding(
@@ -476,7 +475,7 @@ class _CreateCircleSheetState extends ConsumerState<_CreateCircleSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'New circle',
+              l10n.newCircle,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
@@ -484,8 +483,7 @@ class _CreateCircleSheetState extends ConsumerState<_CreateCircleSheet> {
               controller: _nameController,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
-              decoration:
-                  const InputDecoration(hintText: 'Family, Tokyo 2027, Us'),
+              decoration: InputDecoration(hintText: l10n.circleNameHint),
             ),
             const SizedBox(height: 14),
             InkWell(
@@ -509,15 +507,14 @@ class _CreateCircleSheetState extends ConsumerState<_CreateCircleSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'This is us — a couple',
-                            style: TextStyle(
+                          Text(
+                            l10n.coupleCircleTitle,
+                            style: const TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Countdowns are shared with your partner automatically, '
-                            'with no invitation to accept.',
+                            l10n.coupleCircleDescription,
                             style: TextStyle(
                               fontSize: 12,
                               height: 1.35,
@@ -556,14 +553,14 @@ class _CreateCircleSheetState extends ConsumerState<_CreateCircleSheet> {
                               isCouple: _isCouple,
                             ),
                         successMessage: _isCouple
-                            ? 'Created. Invite your partner next.'
-                            : 'Circle created.',
+                            ? l10n.coupleCircleCreated
+                            : l10n.circleCreated,
                       );
                       if (mounted) {
                         navigator.pop();
                       }
                     },
-              child: const Text('Create'),
+              child: Text(l10n.create),
             ),
           ],
         ),
@@ -613,6 +610,7 @@ class _InviteCircleSheetState extends ConsumerState<_InviteCircleSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final user = ref.watch(currentUserProvider);
     final circle = widget.circle;
 
@@ -630,19 +628,15 @@ class _InviteCircleSheetState extends ConsumerState<_InviteCircleSheet> {
           children: [
             Text(
               circle.isCouple
-                  ? 'Invite your partner'
-                  : 'Invite to “${circle.name}”',
+                  ? l10n.inviteYourPartner
+                  : l10n.inviteToCircle(circle.name),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Text(
               circle.isCouple
-                  ? 'If they already have an account, they will be added '
-                      'automatically. Otherwise, they will be added when they '
-                      'sign in. Future countdowns shared with this circle '
-                      'will appear automatically.'
-                  : 'They will get an invitation to accept or decline. After they '
-                      'join, you can share countdowns with this circle in one tap.',
+                  ? l10n.coupleInviteExplanation
+                  : l10n.circleInviteExplanation,
               style: TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
             ),
             const SizedBox(height: 18),
@@ -650,7 +644,7 @@ class _InviteCircleSheetState extends ConsumerState<_InviteCircleSheet> {
               controller: _emailController,
               autofocus: true,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(hintText: 'them@example.com'),
+              decoration: InputDecoration(hintText: l10n.inviteEmailHint),
               onChanged: (value) {
                 setState(() {
                   _query = value.trim();
@@ -680,8 +674,7 @@ class _InviteCircleSheetState extends ConsumerState<_InviteCircleSheet> {
                   return Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
-                      'Recent contacts could not load. Check your '
-                      'connection or Firestore rules.',
+                      l10n.recentContactsCouldNotLoad,
                       style: TextStyle(fontSize: 12.5, color: colors.danger),
                     ),
                   );
@@ -776,8 +769,8 @@ class _InviteCircleSheetState extends ConsumerState<_InviteCircleSheet> {
                               inviterName: user.displayName,
                             ),
                         successMessage: circle.isCouple
-                            ? 'Your partner will be added automatically.'
-                            : 'Invitation sent to $email.',
+                            ? l10n.partnerAddedAutomatically
+                            : l10n.invitationSentTo(email),
                       );
                       if (failure != null) {
                         if (mounted) {
@@ -792,7 +785,7 @@ class _InviteCircleSheetState extends ConsumerState<_InviteCircleSheet> {
                         navigator.pop();
                       }
                     },
-              child: const Text('Send invitation'),
+              child: Text(l10n.sendInvitation),
             ),
           ],
         ),
@@ -809,6 +802,7 @@ class _SignInPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -818,19 +812,18 @@ class _SignInPrompt extends StatelessWidget {
             Icon(Icons.groups_outlined, size: 32, color: colors.accent),
             const SizedBox(height: 18),
             Text(
-              'Sign in to use circles',
+              l10n.signInToUseCircles,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Text(
-              'Circles invite people by email, so they need an account to be '
-              'invited to.',
+              l10n.circlesRequireAccounts,
               textAlign: TextAlign.center,
               style:
                   TextStyle(fontSize: 13.5, height: 1.5, color: colors.muted),
             ),
             const SizedBox(height: 22),
-            FilledButton(onPressed: onSignIn, child: const Text('Sign in')),
+            FilledButton(onPressed: onSignIn, child: Text(l10n.signIn)),
           ],
         ),
       ),

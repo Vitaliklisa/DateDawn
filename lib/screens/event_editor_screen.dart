@@ -8,6 +8,8 @@ import '../core/countdown.dart';
 import '../core/models.dart';
 import '../core/recent_contacts.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../services/event_repository.dart';
@@ -56,14 +58,6 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   /// `initState` runs. The listener below waits for the first real list and
   /// ticks the couple circle then, exactly once.
   bool _couplePreselected = false;
-
-  /// Quick jumps for the dates people actually pick — days to years ahead.
-  static const _presets = <(String, int)>[
-    ('+1 week', 7),
-    ('+1 month', 30),
-    ('+1 year', 365),
-    ('+5 years', 1826),
-  ];
 
   @override
   void initState() {
@@ -182,19 +176,20 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   }
 
   Future<void> _save() async {
+    final l10n = context.l10n;
     final title = _title.text.trim();
     if (title.isEmpty) {
-      setState(() => _error = 'Give this countdown a title.');
+      setState(() => _error = l10n.giveCountdownTitle);
       return;
     }
     if (!_at.isAfter(DateTime.now())) {
-      setState(() => _error = 'Pick a moment still ahead of you.');
+      setState(() => _error = l10n.pickFutureMoment);
       return;
     }
 
     final user = ref.read(currentUserProvider);
     if (user == null) {
-      setState(() => _error = 'Sign in to save countdowns.');
+      setState(() => _error = l10n.signInToSaveCountdown);
       return;
     }
 
@@ -257,22 +252,19 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         );
       }
       if (!mounted) return;
-      var message = existing == null ? 'Countdown created.' : 'Changes saved.';
+      var message =
+          existing == null ? l10n.countdownCreated : l10n.changesSaved;
       var duration = const Duration(seconds: 4);
       if (existing == null && selectedCoupleCircle && createResult != null) {
         final result = createResult;
-        final partnerName = result.partnerName ?? 'your partner';
-        final displayPartnerName =
-            partnerName == 'your partner' ? 'Your partner' : partnerName;
+        final partnerName = result.partnerName ?? l10n.partnerLabel;
         if (result.autoShareError != null) {
-          message = 'Countdown created, but $partnerName was not added. '
-              'Invite them manually from the countdown.';
+          message = l10n.partnerNotAdded(partnerName);
           duration = const Duration(seconds: 8);
         } else if (result.autoShared.isNotEmpty) {
-          message = 'Countdown created. $displayPartnerName was added.';
+          message = l10n.partnerAdded(partnerName);
         } else {
-          message = 'Countdown created, but no partner was added. '
-              'Invite them manually.';
+          message = l10n.noPartnerAdded;
         }
       }
       if (!mounted) return;
@@ -297,7 +289,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       // or insufficient permissions.` tells the person nothing they can act on,
       // and the two cases that actually happen here deserve their own words:
       // the security rules refusing the write, and the network being away.
-      if (mounted) setState(() => _error = _saveError(e));
+      if (mounted) setState(() => _error = _saveError(e, l10n));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -315,7 +307,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           .deleteEvent(event: existing, userId: user.id);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Countdown deleted.')),
+        SnackBar(content: Text(context.l10n.countdownDeleted)),
       );
       // Forget the pin and refresh the feed, then land on a clean home rather
       // than popping back onto the now-deleted countdown's own screen.
@@ -333,19 +325,19 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete this countdown?'),
-        content: const Text('The countdown cannot be undone.'),
+        title: Text(context.l10n.deleteCountdownQuestion),
+        content: Text(context.l10n.countdownCannotUndo),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Keep'),
+            child: Text(context.l10n.keep),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: dialogContext.colors.danger,
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
@@ -356,6 +348,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final editing = widget.event != null;
     final user = ref.watch(currentUserProvider);
     final timeFormat = ref.watch(timeFormatProvider);
@@ -371,7 +364,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
             icon: Icons.arrow_back_rounded,
             onPressed: () => context.pop(),
           ),
-          title: Text(editing ? 'Edit countdown' : 'New countdown'),
+          title: Text(editing ? l10n.editCountdown : l10n.newCountdown),
         ),
         body: _SignInPrompt(onSignIn: () => context.push(Routes.login)),
       );
@@ -382,19 +375,19 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           icon: Icons.arrow_back_rounded,
           onPressed: () => context.pop(),
         ),
-        title: Text(editing ? 'Edit countdown' : 'New countdown'),
+        title: Text(editing ? l10n.editCountdown : l10n.newCountdown),
         actions: [
           if (editing && (widget.event?.canManage(user.id) ?? false))
             PopupMenuButton<String>(
-              tooltip: 'Countdown actions',
+              tooltip: l10n.countdownActions,
               enabled: !_busy,
               onSelected: (value) {
                 if (value == 'delete') _confirmDeleteCountdown();
               },
-              itemBuilder: (context) => const [
+              itemBuilder: (context) => [
                 PopupMenuItem(
                   value: 'delete',
-                  child: Text('Delete countdown'),
+                  child: Text(l10n.deleteCountdown),
                 ),
               ],
             ),
@@ -404,39 +397,44 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
           children: [
-            const _Label('Title'),
+            _Label(l10n.countdownTitleLabel),
             TextField(
               controller: _title,
               enabled: canEdit,
               maxLength: 80,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'Wedding, launch, reunion',
+              decoration: InputDecoration(
+                hintText: l10n.titleExampleHint,
                 counterText: '',
               ),
             ),
             const SizedBox(height: 18),
-            const _Label('Description'),
+            _Label(l10n.countdownDescriptionLabel),
             TextField(
               controller: _description,
               enabled: canEdit,
               maxLines: 3,
               maxLength: 280,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'A short note about the day',
-                counterStyle: TextStyle(fontSize: 11),
+              decoration: InputDecoration(
+                hintText: l10n.descriptionExampleHint,
+                counterStyle: const TextStyle(fontSize: 11),
               ),
             ),
             const SizedBox(height: 22),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const _Label('When'),
+                _Label(l10n.whenLabel),
                 Wrap(
                   spacing: 6,
                   children: [
-                    for (final (label, days) in _presets)
+                    for (final (label, days) in [
+                      (l10n.presetWeek, 7),
+                      (l10n.presetMonth, 30),
+                      (l10n.presetYear, 365),
+                      (l10n.presetFiveYears, 1826),
+                    ])
                       _PresetChip(
                         label: label,
                         onTap: canEdit ? () => _applyPreset(days) : null,
@@ -451,8 +449,11 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                 Expanded(
                   child: _MomentTile(
                     icon: Icons.calendar_today_rounded,
-                    label: 'Date',
-                    value: DateFormat('EEE, MMM d, yyyy').format(_at),
+                    label: l10n.dateLabel,
+                    value: DateFormat(
+                      'EEE, MMM d, yyyy',
+                      Localizations.localeOf(context).toString(),
+                    ).format(_at),
                     onTap: canEdit ? _pickDate : null,
                   ),
                 ),
@@ -460,8 +461,12 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                 Expanded(
                   child: _MomentTile(
                     icon: Icons.schedule_rounded,
-                    label: 'Time',
-                    value: formatClock(_at, format: timeFormat),
+                    label: l10n.timeLabel,
+                    value: formatClock(
+                      _at,
+                      format: timeFormat,
+                      localizations: MaterialLocalizations.of(context),
+                    ),
                     onTap: canEdit ? _pickTime : null,
                   ),
                 ),
@@ -508,7 +513,8 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                   child: FilledButton.icon(
                     onPressed: (_busy || !canEdit) ? null : _save,
                     icon: const Icon(Icons.check_rounded, size: 20),
-                    label: Text(editing ? 'Save changes' : 'Create countdown'),
+                    label:
+                        Text(editing ? l10n.saveChanges : l10n.createCountdown),
                   ),
                 ),
               ],
@@ -516,7 +522,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
             if (!canEdit) ...[
               const SizedBox(height: 14),
               Text(
-                'You can view this countdown but not change it.',
+                l10n.cannotEditCountdown,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12.5, color: colors.subtle),
               ),
@@ -650,6 +656,7 @@ class _PreviewStrip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final now = ref.watch(clockProvider).value ?? DateTime.now();
     final remaining = remainingUntil(at, now);
 
@@ -672,8 +679,9 @@ class _PreviewStrip extends ConsumerWidget {
           Expanded(
             child: Text(
               remaining.isPast
-                  ? 'Choose a future date to see the countdown.'
-                  : 'Counting down ${describeRemaining(remaining)}',
+                  ? l10n.chooseFutureDateHint
+                  : l10n.countingDownRemaining(
+                      describeRemaining(remaining, l10n: l10n)),
               style: TextStyle(fontSize: 13, color: colors.muted),
             ),
           ),
@@ -792,7 +800,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
               email: email,
               role: _role,
             ),
-        successMessage: 'Invitation sent to $email.',
+        successMessage: context.l10n.invitationSentTo(email),
       );
       if (failure == null) {
         _email.clear();
@@ -807,6 +815,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final participants =
         ref.watch(participantsProvider(widget.event.id)).value ??
             widget.event.participants;
@@ -829,17 +838,15 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
           children: [
             Icon(Icons.people_alt_outlined, size: 18, color: colors.muted),
             const SizedBox(width: 9),
-            const Text(
-              'Collaborators',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            Text(
+              l10n.collaborators,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-          canManage
-              ? 'Anyone you invite can follow this countdown on their own devices.'
-              : 'People following this countdown.',
+          canManage ? l10n.collaboratorsCanFollow : l10n.peopleFollowing,
           style: TextStyle(fontSize: 12.5, color: colors.subtle),
         ),
         if (canManage) ...[
@@ -853,8 +860,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _invite(),
-                  decoration:
-                      const InputDecoration(hintText: 'name@example.com'),
+                  decoration: InputDecoration(hintText: l10n.nameEmailHint),
                 ),
               ),
               const SizedBox(width: 10),
@@ -872,8 +878,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
           if (contactsAsync.hasError) ...[
             const SizedBox(height: 8),
             Text(
-              'Recent contacts could not load. Check your connection or '
-              'Firestore rules.',
+              l10n.recentContactsCouldNotLoad,
               style: TextStyle(fontSize: 12.5, color: colors.danger),
             ),
           ],
@@ -922,7 +927,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
         const SizedBox(height: 16),
         if (participants.isEmpty)
           Text(
-            'No one else yet.',
+            l10n.noCollaboratorsYet,
             style: TextStyle(fontSize: 13, color: colors.subtle),
           )
         else
@@ -979,7 +984,8 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                           children: [
                             Text(
                               participant.isCircle
-                                  ? 'Shared with ${participant.circleName ?? 'a circle'}'
+                                  ? l10n.sharedWithCircle(
+                                      participant.circleName ?? l10n.circles)
                                   : (participant.displayName?.isNotEmpty == true
                                       ? participant.displayName!
                                       : participant.email),
@@ -1004,7 +1010,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                               Row(
                                 children: [
                                   Text(
-                                    _roleLabel(participant.role),
+                                    _roleLabel(participant.role, l10n),
                                     style: TextStyle(
                                         fontSize: 11.5, color: colors.subtle),
                                   ),
@@ -1028,7 +1034,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                         // rather than to erase them.
                         if (participant.inviteStatus.isAwaitingAnswer)
                           IconButton(
-                            tooltip: 'Remove',
+                            tooltip: l10n.remove,
                             iconSize: 18,
                             color: colors.subtle,
                             onPressed: () => _remove(participant),
@@ -1037,7 +1043,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                         else if (participant.inviteStatus ==
                             InviteStatus.declined)
                           IconButton(
-                            tooltip: 'Invite again',
+                            tooltip: l10n.inviteAgain,
                             iconSize: 18,
                             color: colors.warning,
                             onPressed: () => _inviteAgain(participant),
@@ -1055,7 +1061,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                           participant.userId !=
                               ref.read(currentUserProvider)?.id)
                         PopupMenuButton<String>(
-                          tooltip: 'More actions',
+                          tooltip: l10n.moreActions,
                           iconSize: 18,
                           icon: Icon(Icons.more_vert_rounded,
                               size: 18, color: colors.subtle),
@@ -1091,27 +1097,27 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
                                 !participant.isCircle;
                             return [
                               if (assignable.isNotEmpty)
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: 'role',
                                   child: _MenuAction(
                                     icon: Icons.manage_accounts_outlined,
-                                    label: 'Change role',
+                                    label: l10n.changeRole,
                                   ),
                                 ),
                               if (canRemove)
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: 'remove',
                                   child: _MenuAction(
                                     icon: Icons.person_remove_outlined,
-                                    label: 'Remove',
+                                    label: l10n.remove,
                                     destructive: true,
                                   ),
                                 ),
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'block',
                                 child: _MenuAction(
                                   icon: Icons.block_rounded,
-                                  label: 'Block',
+                                  label: l10n.block,
                                   destructive: true,
                                 ),
                               ),
@@ -1134,6 +1140,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
   /// the same policy before it writes, and the security rules check it again.
   Future<void> _changeRole(
       CountdownEvent event, Participant participant) async {
+    final l10n = context.l10n;
     final me = ref.read(currentUserProvider);
     if (me == null) return;
     final assignable = event.assignableRolesFor(
@@ -1172,7 +1179,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
             role: chosen,
             event: event,
           ),
-      successMessage: '$who is now ${chosen.label.toLowerCase()}.',
+      successMessage: l10n.roleChanged(who, _roleLabel(chosen, l10n)),
     );
   }
 
@@ -1210,7 +1217,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
             actorId: user.id,
             userId: participant.userId,
           ),
-      successMessage: '$who was removed.',
+      successMessage: context.l10n.personRemoved(who),
     );
     // `runAction` shows the reason for every failure it maps; this only makes
     // sure a removal that silently did nothing is never mistaken for success.
@@ -1232,7 +1239,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
             eventTitle: widget.event.title,
             inviterId: user.id,
           ),
-      successMessage: 'Asked ${participant.email} again.',
+      successMessage: context.l10n.invitationSentTo(participant.email),
     );
   }
 
@@ -1240,14 +1247,12 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Remove this person?'),
-        content: Text(
-            '${participant.email} will lose access to this countdown and will no '
-            'longer see it in their list.'),
+        title: Text(context.l10n.removePersonQuestion),
+        content: Text(context.l10n.collaboratorLosesAccess(participant.email)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Keep'),
+            child: Text(context.l10n.keep),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -1255,7 +1260,7 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
               minimumSize: const Size(88, 42),
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Remove'),
+            child: Text(context.l10n.remove),
           ),
         ],
       ),
@@ -1263,7 +1268,8 @@ class _CollaboratorsState extends ConsumerState<_Collaborators> {
     return result ?? false;
   }
 
-  String _roleLabel(ParticipantRole role) => role.label;
+  String _roleLabel(ParticipantRole role, AppLocalizations l10n) =>
+      roleLabel(role, l10n);
 }
 
 /// One row in the invite field's suggestion list.
@@ -1387,6 +1393,7 @@ class _RoleSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final who = participant.displayName?.trim().isNotEmpty == true
         ? participant.displayName!.trim()
         : participant.email;
@@ -1406,14 +1413,14 @@ class _RoleSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Change role for $who',
+              l10n.changeRoleFor(who),
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 6),
             Text(
-              'This changes what they can do on this countdown from now on. '
-              'They currently have ${participant.role.label.toLowerCase()} '
-              'access.',
+              l10n.roleChangeDescription(
+                roleLabel(participant.role, l10n).toLowerCase(),
+              ),
               style: TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
             ),
             const SizedBox(height: 14),
@@ -1428,8 +1435,10 @@ class _RoleSheet extends StatelessWidget {
             if (withheld.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
-                '${withheld.map((r) => r.label).join(' and ')} cannot be '
-                'assigned by you — you are ${topRole.label.toLowerCase()}.',
+                l10n.rolesNotAssignable(
+                  withheld.map((r) => roleLabel(r, l10n)).join(' ${l10n.and} '),
+                  roleLabel(topRole, l10n).toLowerCase(),
+                ),
                 style: TextStyle(fontSize: 11.5, color: colors.subtle),
               ),
             ],
@@ -1454,6 +1463,7 @@ class _RoleOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -1478,13 +1488,13 @@ class _RoleOption extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        role.label,
+                        roleLabel(role, l10n),
                         style: const TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        role.description,
+                        roleDescription(role, l10n),
                         style: TextStyle(
                             fontSize: 12.5, height: 1.4, color: colors.muted),
                       ),
@@ -1514,6 +1524,7 @@ class _RoleDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -1536,7 +1547,7 @@ class _RoleDropdown extends StatelessWidget {
           // sheet can never drift into two different sets of names.
           items: [
             for (final role in ParticipantRole.values)
-              DropdownMenuItem(value: role, child: Text(role.label)),
+              DropdownMenuItem(value: role, child: Text(roleLabel(role, l10n))),
           ],
         ),
       ),
@@ -1556,6 +1567,7 @@ class _SignInPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
@@ -1576,20 +1588,19 @@ class _SignInPrompt extends StatelessWidget {
               ),
               const SizedBox(height: 22),
               Text(
-                'Sign in to save it',
+                l10n.signInToSaveIt,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 12),
               Text(
-                'Countdowns live in your account, so they follow you to every '
-                'device and can be shared with other people.',
+                l10n.countdownsFollowYou,
                 textAlign: TextAlign.center,
                 style:
                     TextStyle(fontSize: 14, height: 1.5, color: colors.muted),
               ),
               const SizedBox(height: 26),
-              FilledButton(onPressed: onSignIn, child: const Text('Sign in')),
+              FilledButton(onPressed: onSignIn, child: Text(l10n.signIn)),
             ],
           ),
         ),
@@ -1611,6 +1622,7 @@ class _CirclePicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final circles = ref.watch(circlesProvider).value ?? const <Circle>[];
     if (circles.isEmpty) return const SizedBox.shrink();
 
@@ -1621,15 +1633,15 @@ class _CirclePicker extends ConsumerWidget {
           children: [
             Icon(Icons.groups_outlined, size: 16, color: colors.muted),
             const SizedBox(width: 9),
-            const Text(
-              'Share with',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            Text(
+              l10n.shareWith,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-          'A couple circle shares instantly. Other circles get an invitation.',
+          l10n.circleShareDescription,
           style: TextStyle(fontSize: 12, color: colors.subtle),
         ),
         const SizedBox(height: 12),
@@ -1696,17 +1708,28 @@ class _CirclePicker extends ConsumerWidget {
 /// security-rules rejection look like an app crash. The two failures that
 /// actually occur here are a refused write and a dead connection, so each gets a
 /// plain sentence and a next step.
-String _saveError(Object error) {
+String _saveError(Object error, AppLocalizations l10n) {
   final text = error.toString();
   if (text.contains('permission-denied')) {
-    return 'Firestore refused the save. If this keeps happening, the deployed '
-        'security rules are older than the app — run '
-        '`firebase deploy --only firestore:rules`.';
+    return l10n.savePermissionError;
   }
   if (text.contains('unavailable') ||
       text.contains('network') ||
       text.contains('Failed to fetch')) {
-    return 'Could not reach Firestore. Check your connection and try again.';
+    return l10n.saveNetworkError;
   }
-  return 'Could not save. Please try again.';
+  return l10n.saveFailed;
 }
+
+String roleLabel(ParticipantRole role, AppLocalizations l10n) => switch (role) {
+      ParticipantRole.admin => l10n.roleAdmin,
+      ParticipantRole.editor => l10n.roleEditor,
+      ParticipantRole.viewer => l10n.roleViewer,
+    };
+
+String roleDescription(ParticipantRole role, AppLocalizations l10n) =>
+    switch (role) {
+      ParticipantRole.admin => l10n.roleAdminDescription,
+      ParticipantRole.editor => l10n.roleEditorDescription,
+      ParticipantRole.viewer => l10n.roleViewerDescription,
+    };

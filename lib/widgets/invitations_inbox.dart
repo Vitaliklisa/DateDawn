@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/circles.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../providers/app_providers.dart';
 
 /// One inbox for countdown and circle invitations.
@@ -74,7 +76,7 @@ class _InviteLoadError extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
-        'Invitations could not load. Check your connection or Firestore rules.',
+        context.l10n.invitationsCouldNotLoad,
         style: TextStyle(fontSize: 12.5, color: colors.danger),
       ),
     );
@@ -87,20 +89,20 @@ class _EmptyInbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     return Column(
       children: [
         const SizedBox(height: 40),
         Icon(Icons.mark_email_read_outlined, size: 30, color: colors.subtle),
         const SizedBox(height: 16),
         Text(
-          'Nothing waiting',
+          l10n.nothingWaiting,
           style: TextStyle(
               fontSize: 15, fontWeight: FontWeight.w600, color: colors.fg),
         ),
         const SizedBox(height: 8),
         Text(
-          'Invitations people send you will appear here. Countdown and standard '
-          'circle invitations need your response; couple circles join automatically.',
+          l10n.invitationInboxEmpty,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13, height: 1.5, color: colors.muted),
         ),
@@ -136,6 +138,7 @@ class _InviteShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -202,7 +205,7 @@ class _InviteShell extends StatelessWidget {
                   const SizedBox(height: 10),
                   FilledButton(
                     onPressed: onRetry,
-                    child: const Text('Retry adding you'),
+                    child: Text(l10n.retryAddingYou),
                   ),
                 ],
               )
@@ -248,7 +251,7 @@ class _InviteShell extends StatelessWidget {
                       overlayColor: colors.danger.withValues(alpha: 0.10),
                     ),
                     onPressed: busy ? null : onDecline,
-                    child: const Text('Decline'),
+                    child: Text(l10n.decline),
                   ),
                 ),
               ],
@@ -284,15 +287,15 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
 
   Future<void> _accept() async {
     if (_alreadyClaimed) return;
+    final l10n = context.l10n;
     final user = ref.read(currentUserProvider);
     if (user == null) return;
     setState(() => _busy = true);
     final confirmed = await _confirm(
       context,
-      title: 'Join “${widget.invite.eventTitle}”?',
-      body:
-          'It will appear in your list and you will get its countdown on this device.',
-      action: 'Join',
+      title: l10n.joinInviteQuestion(widget.invite.eventTitle),
+      body: l10n.joinInviteExplanation,
+      action: l10n.join,
     );
     if (!confirmed) {
       if (mounted) setState(() => _busy = false);
@@ -333,8 +336,8 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
         SnackBar(
           content: Text(
             alreadyMember
-                ? 'You are already a member of “${widget.invite.eventTitle}”.'
-                : 'You joined “${widget.invite.eventTitle}”.',
+                ? l10n.alreadyMemberOf(widget.invite.eventTitle)
+                : l10n.youJoined(widget.invite.eventTitle),
           ),
         ),
       );
@@ -358,7 +361,7 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
             responderName: user?.displayName,
             userId: user?.id,
           ),
-      successMessage: 'Invitation declined.',
+      successMessage: context.l10n.invitationDeclined,
     );
     if (failure != null) _release();
     if (mounted) setState(() => _busy = false);
@@ -367,14 +370,16 @@ class _EventInviteCardState extends ConsumerState<_EventInviteCard> {
   @override
   Widget build(BuildContext context) {
     final invite = widget.invite;
+    final l10n = context.l10n;
     return _InviteShell(
-      eyebrow: 'Countdown invitation',
-      title:
-          invite.eventTitle.isEmpty ? 'A countdown' : '“${invite.eventTitle}”',
-      body:
-          'You have been invited to follow this countdown. Accepting adds it to '
-          'your list as ${_roleLabel(invite.role).toLowerCase()}.',
-      acceptLabel: 'Accept',
+      eyebrow: l10n.countdownInvitation,
+      title: invite.eventTitle.isEmpty
+          ? l10n.aCountdown
+          : '“${invite.eventTitle}”',
+      body: l10n.invitedToFollowCountdown(
+        roleLabel(invite.role, l10n).toLowerCase(),
+      ),
+      acceptLabel: l10n.accept,
       busy: _busy,
       onAccept: _accept,
       onDecline: _decline,
@@ -407,6 +412,7 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
 
   Future<void> _accept() async {
     if (_alreadyClaimed) return;
+    final l10n = context.l10n;
     final user = ref.read(currentUserProvider);
     if (user == null) return;
     setState(() => _busy = true);
@@ -439,10 +445,10 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
         SnackBar(
           content: Text(
             alreadyMember
-                ? 'You are already a member of “${widget.invite.circleName}”.'
+                ? l10n.alreadyMemberOf(widget.invite.circleName)
                 : widget.invite.isCouple
-                    ? 'You were added to “${widget.invite.circleName}”.'
-                    : 'You joined “${widget.invite.circleName}”.',
+                    ? l10n.youWereAddedTo(widget.invite.circleName)
+                    : l10n.youJoined(widget.invite.circleName),
           ),
         ),
       );
@@ -468,7 +474,7 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
             responderName: user?.displayName,
             userId: user?.id,
           ),
-      successMessage: 'Invitation declined.',
+      successMessage: context.l10n.invitationDeclined,
     );
     if (failure != null) _release();
     if (mounted) setState(() => _busy = false);
@@ -477,25 +483,23 @@ class _CircleInviteCardState extends ConsumerState<_CircleInviteCard> {
   @override
   Widget build(BuildContext context) {
     final invite = widget.invite;
+    final l10n = context.l10n;
     final invitedBy = invite.invitedByName?.trim();
     final from =
-        (invitedBy != null && invitedBy.isNotEmpty) ? invitedBy : 'Someone';
+        (invitedBy != null && invitedBy.isNotEmpty) ? invitedBy : l10n.someone;
 
     return _InviteShell(
-      eyebrow: invite.isCouple ? 'Partner invitation' : 'Circle invitation',
+      eyebrow: invite.isCouple ? l10n.partnerInvitation : l10n.circleInvitation,
       title: invite.isCouple
-          ? "You're being added to $from's circle"
-          : "$from invited you to “${invite.circleName}”",
+          ? l10n.partnerCircleAddTitle(from)
+          : l10n.invitedYouToCircle(from, invite.circleName),
       body: invite.isCouple
-          ? 'You will be added automatically. Countdown events shared with '
-              '“${invite.circleName}” in the future will appear in your list.'
-          : 'Joining “${invite.circleName}” means the countdowns they share with this '
-              'circle will show up in your list.',
-      acceptLabel: invite.isCouple ? 'Become partners' : 'Join circle',
+          ? l10n.partnerCircleAddExplanation
+          : l10n.circleJoinExplanation(invite.circleName),
+      acceptLabel: invite.isCouple ? l10n.becomePartners : l10n.joinCircle,
       busy: _busy,
-      automaticStatus: invite.isCouple
-          ? invite.joinError ?? 'Automatic join could not be completed.'
-          : null,
+      automaticStatus:
+          invite.isCouple ? invite.joinError ?? l10n.automaticJoinFailed : null,
       onRetry: invite.isCouple ? _accept : null,
       onAccept: invite.isCouple ? null : _accept,
       onDecline: invite.isCouple ? null : _decline,
@@ -509,6 +513,7 @@ Future<bool> _confirm(
   required String body,
   required String action,
 }) async {
+  final l10n = context.l10n;
   final result = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
@@ -517,7 +522,7 @@ Future<bool> _confirm(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Not now'),
+          child: Text(l10n.notNow),
         ),
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(88, 42)),
@@ -530,8 +535,8 @@ Future<bool> _confirm(
   return result ?? false;
 }
 
-String _roleLabel(ParticipantRole role) => switch (role) {
-      ParticipantRole.admin => 'Admin',
-      ParticipantRole.editor => 'Editor',
-      ParticipantRole.viewer => 'Viewer',
+String roleLabel(ParticipantRole role, AppLocalizations l10n) => switch (role) {
+      ParticipantRole.admin => l10n.roleAdmin,
+      ParticipantRole.editor => l10n.roleEditor,
+      ParticipantRole.viewer => l10n.roleViewer,
     };

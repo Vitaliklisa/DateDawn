@@ -2,7 +2,9 @@ import 'package:datedawn/core/locale_settings.dart';
 import 'package:datedawn/l10n/generated/app_localizations.dart';
 import 'package:datedawn/providers/app_providers.dart';
 import 'package:datedawn/providers/locale_provider.dart';
+import 'package:datedawn/screens/policy_screen.dart';
 import 'package:datedawn/screens/settings_screen.dart';
+import 'package:datedawn/widgets/countdown_face.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -178,5 +180,45 @@ void main() {
     expect(localizations.countdownsCount(5), '5 відліків');
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.getString(localePreferenceKey), 'uk');
+  });
+
+  testWidgets('Ukrainian policy and countdown labels render localized',
+      (tester) async {
+    Widget localizedApp(Widget home) => MaterialApp(
+          locale: const Locale('uk'),
+          supportedLocales: supportedAppLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: home,
+        );
+
+    await tester.pumpWidget(localizedApp(const PolicyScreen(isPrivacy: true)));
+    expect(find.text('Політика конфіденційності'), findsOneWidget);
+    expect(find.text('1. Вступ і контролер даних'), findsOneWidget);
+    expect(find.textContaining('Оновлено: лютий 2026'), findsOneWidget);
+
+    await tester.pumpWidget(
+      localizedApp(
+        Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 340,
+              child: CountdownFace(
+                target: DateTime(2027, 1, 1),
+                now: DateTime(2026, 1, 1),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('РОКИ'), findsOneWidget);
+    expect(find.text('МІСЯЦІ'), findsOneWidget);
+    expect(find.text('ДНІ'), findsOneWidget);
+    expect(find.text('ГОДИНИ'), findsOneWidget);
   });
 }

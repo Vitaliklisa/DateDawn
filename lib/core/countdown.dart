@@ -1,5 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import 'time_format.dart';
 
 /// How much time is left until a target moment, broken into calendar units.
@@ -142,42 +144,99 @@ DateTime _addMonths(DateTime from, int months) {
 String pad2(int n) => n < 0 ? '00' : n.toString().padLeft(2, '0');
 
 /// A compact human phrase — "2 years, 3 months, 4 days and 5 hours".
-String describeRemaining(Remaining r, {bool compact = false}) {
-  if (r.isPast) return 'The moment has passed';
+String describeRemaining(
+  Remaining r, {
+  bool compact = false,
+  AppLocalizations? l10n,
+}) {
+  if (r.isPast) return l10n?.momentHasPassed ?? 'The moment has passed';
 
   final parts = <String>[];
-  if (r.years > 0) parts.add('${r.years} ${_plural(r.years, 'year')}');
-  if (r.months > 0) parts.add('${r.months} ${_plural(r.months, 'month')}');
-  if (r.days > 0) parts.add('${r.days} ${_plural(r.days, 'day')}');
-  if (r.hours > 0) parts.add('${r.hours} ${_plural(r.hours, 'hour')}');
+  if (r.years > 0) parts.add(_remainingUnit(l10n, 'years', r.years));
+  if (r.months > 0) parts.add(_remainingUnit(l10n, 'months', r.months));
+  if (r.days > 0) parts.add(_remainingUnit(l10n, 'days', r.days));
+  if (r.hours > 0) parts.add(_remainingUnit(l10n, 'hours', r.hours));
 
   if (parts.isEmpty) {
-    if (r.minutes > 0) return '${r.minutes} ${_plural(r.minutes, 'minute')}';
-    return '${r.seconds} ${_plural(r.seconds, 'second')}';
+    if (r.minutes > 0) return _remainingUnit(l10n, 'minutes', r.minutes);
+    return _remainingUnit(l10n, 'seconds', r.seconds);
   }
 
   if (compact) return parts.take(2).join(' · ');
 
   if (parts.length == 1) return parts.first;
   final last = parts.removeLast();
-  return '${parts.join(', ')} and $last';
+  return l10n?.remainingAnd(parts.join(', '), last) ??
+      '${parts.join(', ')} and $last';
 }
 
-String _plural(int n, String unit) => n == 1 ? unit : '${unit}s';
+String _remainingUnit(AppLocalizations? l10n, String unit, int count) {
+  if (l10n == null) return '$count ${_englishUnit(unit, count)}';
+  return switch (unit) {
+    'years' => l10n.remainingYears(count),
+    'months' => l10n.remainingMonths(count),
+    'days' => l10n.remainingDays(count),
+    'hours' => l10n.remainingHours(count),
+    'minutes' => l10n.remainingMinutes(count),
+    _ => l10n.remainingSeconds(count),
+  };
+}
+
+String _englishUnit(String unit, int count) =>
+    count == 1 ? unit.substring(0, unit.length - 1) : unit;
 
 /// "Wed, March 14, 2026 · 6:00 PM" — the format used across the detail header.
 ///
 /// [format] defaults to 12-hour so an existing call site keeps the wording it
 /// had; screens that honour the user's preference pass it in explicitly.
-String formatMomentFull(DateTime when, {TimeFormat? format}) => DateFormat(
-      'EEE, MMMM d, yyyy · ${(format ?? TimeFormat.twelveHour).timePattern}',
-    ).format(when);
+String formatMomentFull(
+  DateTime when, {
+  TimeFormat? format,
+  MaterialLocalizations? localizations,
+}) {
+  final timeFormat = format ?? TimeFormat.twelveHour;
+  if (localizations != null) {
+    final date = localizations.formatFullDate(when);
+    final time = localizations.formatTimeOfDay(
+      TimeOfDay.fromDateTime(when),
+      alwaysUse24HourFormat: timeFormat.uses24HourClock,
+    );
+    return '$date · $time';
+  }
+  return DateFormat('EEE, MMMM d, yyyy · ${timeFormat.timePattern}')
+      .format(when);
+}
 
 /// "Mar 14, 2026 · 6:00 PM" — the compact form used in event rows.
-String formatMomentShort(DateTime when, {TimeFormat? format}) => DateFormat(
-      'MMM d, yyyy · ${(format ?? TimeFormat.twelveHour).timePattern}',
-    ).format(when);
+String formatMomentShort(
+  DateTime when, {
+  TimeFormat? format,
+  MaterialLocalizations? localizations,
+}) {
+  final timeFormat = format ?? TimeFormat.twelveHour;
+  if (localizations != null) {
+    final date = localizations.formatMediumDate(when);
+    final time = localizations.formatTimeOfDay(
+      TimeOfDay.fromDateTime(when),
+      alwaysUse24HourFormat: timeFormat.uses24HourClock,
+    );
+    return '$date · $time';
+  }
+  return DateFormat('MMM d, yyyy · ${timeFormat.timePattern}').format(when);
+}
 
 /// A time with no date, for "at 6:00 PM" style copy.
-String formatClock(DateTime when, {TimeFormat? format}) =>
-    DateFormat((format ?? TimeFormat.twelveHour).timePattern).format(when);
+String formatClock(
+  DateTime when, {
+  TimeFormat? format,
+  MaterialLocalizations? localizations,
+}) {
+  final timeFormat = format ?? TimeFormat.twelveHour;
+  if (localizations != null) {
+    return localizations.formatTimeOfDay(
+      TimeOfDay.fromDateTime(when),
+      alwaysUse24HourFormat: timeFormat.uses24HourClock,
+    );
+  }
+  return DateFormat(timeFormat.timePattern).format(when);
+}

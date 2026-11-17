@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../core/countdown.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
 
 /// The "Date Dawn" wordmark with its clock glyph. The second hand sweeps once
 /// on mount — the same greeting the web app's animated icon gives.
@@ -136,7 +137,7 @@ class StatusChip extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Text(
-          isPast ? 'Passed' : 'Upcoming',
+          isPast ? context.l10n.passed : context.l10n.upcoming,
           style: TextStyle(
             fontSize: 12,
             color: isPast ? colors.accent : colors.subtle,
@@ -263,12 +264,13 @@ class InviteStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final (label, tint) = switch (status) {
-      InviteStatus.accepted => ('Accepted', colors.success),
-      InviteStatus.declined => ('Declined', colors.danger),
-      InviteStatus.rejected => ('Removed', colors.subtle),
-      InviteStatus.reopened => ('Reopened', colors.warning),
-      InviteStatus.pending => ('Waiting', colors.warning),
+      InviteStatus.accepted => (l10n.accepted, colors.success),
+      InviteStatus.declined => (l10n.declined, colors.danger),
+      InviteStatus.rejected => (l10n.removed, colors.subtle),
+      InviteStatus.reopened => (l10n.reopened, colors.warning),
+      InviteStatus.pending => (l10n.waiting, colors.warning),
     };
 
     return Container(
@@ -301,11 +303,12 @@ class RemainingSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final remaining = remainingUntil(target, now);
     return Text(
       remaining.isPast
-          ? 'It has arrived.'
-          : '${describeRemaining(remaining)} to go',
+          ? l10n.itHasArrived
+          : l10n.remainingToGo(describeRemaining(remaining, l10n: l10n)),
       style: TextStyle(fontSize: 13, color: colors.muted),
     );
   }

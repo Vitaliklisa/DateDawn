@@ -282,7 +282,10 @@ class _TimeFormatSelector extends StatelessWidget {
                     // The sample is formatted the real way, not a hand-typed
                     // string, so it can never drift from what the app shows.
                     Text(
-                      option.example,
+                      MaterialLocalizations.of(context).formatTimeOfDay(
+                        const TimeOfDay(hour: 15, minute: 40),
+                        alwaysUse24HourFormat: option.uses24HourClock,
+                      ),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/firebase_action_code.dart';
 import '../core/routes.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
 import '../providers/app_providers.dart';
 
 class PasswordResetScreen extends ConsumerStatefulWidget {
@@ -47,7 +48,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
     final code = _code;
     if (code == null || code.isEmpty) {
       setState(() {
-        _error = 'This reset link is missing its security code.';
+        _error = context.l10n.resetCodeMissing;
         _loading = false;
       });
       return;
@@ -83,7 +84,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
             );
         if (!mounted) return;
         messenger.showSnackBar(
-          const SnackBar(content: Text('Password updated. Sign in again.')),
+          SnackBar(content: Text(context.l10n.passwordUpdatedSignIn)),
         );
         context.go(Routes.login);
       } catch (error) {
@@ -119,36 +120,37 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
   }
 
   Widget _buildInvalidLink(BuildContext context, AppPalette colors) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'This reset link can’t be used',
+          l10n.resetLinkInvalidTitle,
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         const SizedBox(height: 12),
         Text(
-          'The link may have expired or already been used. Return to sign in '
-          'and request a new password reset email.',
+          l10n.resetLinkInvalidBody,
           style: TextStyle(height: 1.5, color: colors.muted),
         ),
         const SizedBox(height: 24),
         FilledButton(
           onPressed: () => context.go(Routes.login),
-          child: const Text('Back to sign in'),
+          child: Text(l10n.backToSignIn),
         ),
       ],
     );
   }
 
   Widget _buildPasswordForm(BuildContext context, AppPalette colors) {
+    final l10n = context.l10n;
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Choose a new password',
+            l10n.chooseNewPassword,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           if (_email != null) ...[
@@ -167,7 +169,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
             autocorrect: false,
             autofillHints: const [AutofillHints.newPassword],
             decoration: InputDecoration(
-              labelText: 'New password',
+              labelText: l10n.newPassword,
               suffixIcon: IconButton(
                 onPressed: () =>
                     setState(() => _obscurePassword = !_obscurePassword),
@@ -180,7 +182,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
             ),
             validator: (value) {
               if ((value ?? '').length < 6) {
-                return 'Use at least 6 characters.';
+                return l10n.passwordMinLength;
               }
               return null;
             },
@@ -193,7 +195,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
             enableSuggestions: false,
             autocorrect: false,
             decoration: InputDecoration(
-              labelText: 'Confirm new password',
+              labelText: l10n.confirmNewPassword,
               suffixIcon: IconButton(
                 onPressed: () => setState(
                     () => _obscureConfirmation = !_obscureConfirmation),
@@ -205,7 +207,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
               ),
             ),
             validator: (value) =>
-                value != _password.text ? 'Passwords do not match.' : null,
+                value != _password.text ? l10n.passwordsDoNotMatch : null,
           ),
           const SizedBox(height: 24),
           FilledButton(
@@ -216,7 +218,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Update password'),
+                : Text(l10n.updatePassword),
           ),
         ],
       ),

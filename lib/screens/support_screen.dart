@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/routes.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
 import '../widgets/brand_kit.dart';
 
 /// Support, contact and legal.
@@ -24,18 +25,15 @@ class SupportScreen extends StatelessWidget {
   /// The support address shown in the store listings.
   static const supportEmail = supportEmailAddress;
 
-  /// How long a support request usually takes to answer. Stated on the screen so
-  /// nobody is left guessing, and kept honest — it is a promise, not marketing.
-  static const responseTime = 'within 2 business days';
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final router = GoRouter.of(context);
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Help & support'),
+        title: Text(l10n.helpAndSupport),
         // A back arrow only where there is a stack to go back through.
         //
         // Inside the shell on desktop the sidebar is the navigation, and an
@@ -47,7 +45,7 @@ class SupportScreen extends StatelessWidget {
         leading: router.canPop()
             ? HoverTintIconButton(
                 icon: Icons.arrow_back_rounded,
-                tooltip: 'Back',
+                tooltip: l10n.back,
                 onPressed: () {
                   final router = GoRouter.of(context);
                   if (router.canPop()) {
@@ -63,7 +61,7 @@ class SupportScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
         children: [
           Text(
-            'We read every message',
+            l10n.supportHeading,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -72,9 +70,7 @@ class SupportScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Date Dawn is a small, independent app. Email is the fastest way to '
-            'reach the person who actually builds it — there is no support desk '
-            'in between. We usually reply $responseTime.',
+            l10n.supportIntro(l10n.supportResponseTime),
             style: TextStyle(fontSize: 13.5, height: 1.55, color: colors.muted),
           ),
           const SizedBox(height: 22),
@@ -83,62 +79,41 @@ class SupportScreen extends StatelessWidget {
             onTap: () => _copyEmail(context),
           ),
           const SizedBox(height: 26),
-          const _SectionTitle('Common questions'),
+          _SectionTitle(l10n.supportCommonQuestions),
           const SizedBox(height: 12),
-          const _Faq(
-            question: 'I signed in with Google and my countdowns are missing.',
-            answer:
-                'Use the same method you used when you created your account. '
-                'Google and email/password are not automatically linked. If you '
-                'need to switch methods or think you have data in two accounts, '
-                'contact us before creating another account.',
+          _Faq(
+            question: l10n.supportFaqGoogleQuestion,
+            answer: l10n.supportFaqGoogleAnswer,
           ),
-          const _Faq(
-            question: 'Someone I shared with cannot see the countdown.',
-            answer:
-                'Sharing a countdown with a circle sends an invitation — it '
-                'does not add people automatically. They need to open '
-                'Invitations in the app and accept it. A couple circle is the '
-                'one exception: those share instantly.',
+          _Faq(
+            question: l10n.supportFaqSharingQuestion,
+            answer: l10n.supportFaqSharingAnswer,
           ),
-          const _Faq(
-            question: 'I declined an invitation by mistake.',
-            answer:
-                'Ask the person who invited you to invite you again — they can '
-                'do that from the countdown by tapping the refresh icon next to '
-                'your name. Nothing is lost in the meantime.',
+          _Faq(
+            question: l10n.supportFaqDeclinedQuestion,
+            answer: l10n.supportFaqDeclinedAnswer,
           ),
-          const _Faq(
-            question: 'How do I delete my account and my data?',
-            answer: 'Email us from the address you signed up with and ask for '
-                'deletion. Every countdown, invitation and notification tied to '
-                'the account is removed, and we confirm when it is done.',
+          _Faq(
+            question: l10n.supportFaqDeleteQuestion,
+            answer: l10n.supportFaqDeleteAnswer,
           ),
-          const _Faq(
-            question: 'How do I block someone?',
-            answer:
-                'Open a countdown you share with them and long-press their name '
-                'in the people list (secondary-click on a computer). They are '
-                'removed from your shared countdowns and cannot invite you '
-                'again. To undo it, go to Settings → Blocked people.',
+          _Faq(
+            question: l10n.supportFaqBlockQuestion,
+            answer: l10n.supportFaqBlockAnswer,
           ),
-          const _Faq(
-            question: 'Do you sell my data or show ads?',
-            answer:
-                'No. There are no ads, no analytics profiles and no third-party '
-                'tracking. What you count down to is nobody\'s business but '
-                'yours, so it is stored under your own account for nobody else '
-                'to read.',
+          _Faq(
+            question: l10n.supportFaqAdsQuestion,
+            answer: l10n.supportFaqAdsAnswer,
           ),
           const SizedBox(height: 26),
-          const _SectionTitle('Legal'),
+          _SectionTitle(l10n.supportLegal),
           const SizedBox(height: 12),
           _LinkRow(
-            label: 'Privacy policy',
+            label: l10n.privacyPolicy,
             onTap: () => openLegalPage(context, LegalDocument.privacy),
           ),
           _LinkRow(
-            label: 'Terms of service',
+            label: l10n.termsOfService,
             onTap: () => openLegalPage(context, LegalDocument.terms),
           ),
           const SizedBox(height: 26),
@@ -157,10 +132,7 @@ class SupportScreen extends StatelessWidget {
                 const SizedBox(width: 11),
                 Expanded(
                   child: Text(
-                    'A refund, a billing question or a crash report all belong '
-                    'at the same address. If the app misbehaves, telling us your '
-                    'device and what you were doing when it happened is the '
-                    'single most useful thing you can include.',
+                    l10n.supportNotice,
                     style: TextStyle(
                         fontSize: 12.5, height: 1.5, color: colors.subtle),
                   ),
@@ -184,9 +156,9 @@ class SupportScreen extends StatelessWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('$supportEmail copied'),
+        content: Text(context.l10n.supportEmailCopied(supportEmail)),
         action: SnackBarAction(
-          label: 'Open mail',
+          label: context.l10n.openMail,
           onPressed: () => _open(context, 'mailto:$supportEmail'),
         ),
       ),
@@ -204,7 +176,7 @@ class SupportScreen extends StatelessWidget {
       await Clipboard.setData(ClipboardData(text: url));
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Link copied to your clipboard.')),
+        SnackBar(content: Text(context.l10n.linkCopiedClipboard)),
       );
     }
   }
@@ -254,7 +226,7 @@ class _ContactCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Email support',
+                      context.l10n.supportEmailLabel,
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,

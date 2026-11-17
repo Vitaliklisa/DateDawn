@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/firebase_action_code.dart';
 import '../core/routes.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
 import '../providers/app_providers.dart';
 
 class VerifyEmailScreen extends ConsumerStatefulWidget {
@@ -47,8 +48,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
         context.go(Routes.home);
       } else {
         setState(() {
-          _actionMessage =
-              'Your email is verified. Sign in to continue if needed.';
+          _actionMessage = context.l10n.verifiedSignInToContinue;
         });
       }
     } catch (error) {
@@ -66,7 +66,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       await ref.read(authServiceProvider).sendEmailVerification();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verification email sent.')),
+        SnackBar(content: Text(context.l10n.verificationEmailSent)),
       );
       setState(() {
         _resending = false;
@@ -93,7 +93,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
         context.go(Routes.home);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Not verified yet. Check your inbox.')),
+          SnackBar(content: Text(context.l10n.verificationNotComplete)),
         );
       }
     } catch (error) {
@@ -110,6 +110,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final colors = context.colors;
+    final l10n = context.l10n;
 
     return Scaffold(
       body: SafeArea(
@@ -129,15 +130,15 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Verify your email',
+                    l10n.verifyEmailTitle,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'We sent a verification link to '
-                    '${user?.email ?? 'your email address'}. Please verify to '
-                    'continue.',
+                    l10n.verifyEmailInstructions(
+                      user?.email ?? l10n.yourEmailAddress,
+                    ),
                     textAlign: TextAlign.center,
                     style: TextStyle(height: 1.5, color: colors.muted),
                   ),
@@ -159,7 +160,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                   ],
                   const SizedBox(height: 12),
                   Text(
-                    "Can't find the email? Please check your Spam or Junk folder.",
+                    l10n.checkSpamFolder,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       height: 1.5,
@@ -176,19 +177,19 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('I have verified my email'),
+                        : Text(l10n.confirmEmailVerified),
                   ),
                   const SizedBox(height: 10),
                   OutlinedButton(
                     onPressed: _resending || _cooldownActive ? null : _resend,
                     child: Text(
-                      _resending ? 'Sending…' : 'Resend email',
+                      _resending ? l10n.sendingEmail : l10n.resendEmail,
                     ),
                   ),
                   if (_cooldownActive) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'Please wait 60 seconds before requesting another email.',
+                      l10n.waitBeforeResending,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: colors.muted),
                     ),
@@ -204,7 +205,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                         context.go(Routes.login);
                       }
                     },
-                    child: const Text('Sign out'),
+                    child: Text(l10n.signOut),
                   ),
                 ],
               ),

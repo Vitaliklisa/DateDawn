@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/countdown.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
 import '../core/time_format.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
@@ -141,6 +142,7 @@ class _EmptyHome extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final user = ref.watch(currentUserProvider);
 
     return ListView(
@@ -161,12 +163,11 @@ class _EmptyHome extends ConsumerWidget {
               size: 26, color: colors.accent),
         ),
         const SizedBox(height: 22),
-        Text('Name a day.', style: Theme.of(context).textTheme.headlineLarge),
+        Text(l10n.homeEmptyTitle,
+            style: Theme.of(context).textTheme.headlineLarge),
         const SizedBox(height: 12),
         Text(
-          'Pick a future moment — a wedding, a launch, a trip home. Date Dawn '
-          'counts the years, months, days and hours left, then celebrates when '
-          'it arrives.',
+          l10n.homeEmptyDescription,
           style: TextStyle(fontSize: 15, height: 1.5, color: colors.muted),
         ),
         const SizedBox(height: 28),
@@ -180,7 +181,7 @@ class _EmptyHome extends ConsumerWidget {
           icon: const Icon(Icons.add_rounded, size: 20),
           // Signed out, this leads to the editor's sign-in prompt rather than a
           // form that cannot be saved — so the label says as much.
-          label: Text(user == null ? 'Get started' : 'Create countdown'),
+          label: Text(user == null ? l10n.getStarted : l10n.createCountdown),
         ),
       ],
     );
@@ -195,9 +196,10 @@ class _ErrorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final message = error is DataFailure
         ? (error as DataFailure).message
-        : 'Could not reach your countdowns. Pull down to try again.';
+        : l10n.homeLoadError;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -227,6 +229,7 @@ class _GuestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -241,18 +244,17 @@ class _GuestCard extends StatelessWidget {
             children: [
               Icon(Icons.sync_rounded, size: 18, color: colors.accent),
               const SizedBox(width: 10),
-              const Text('Keep them everywhere',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(l10n.homeSyncTitle,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            'Sign in to sync your countdowns across phone, tablet and web — and to '
-            'share them with the people counting down with you.',
+            l10n.homeSyncDescription,
             style: TextStyle(fontSize: 13, height: 1.45, color: colors.muted),
           ),
           const SizedBox(height: 14),
-          OutlinedButton(onPressed: onSignIn, child: const Text('Sign in')),
+          OutlinedButton(onPressed: onSignIn, child: Text(l10n.signIn)),
         ],
       ),
     );
@@ -271,6 +273,7 @@ class _HeroHome extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final l10n = context.l10n;
     // Read here rather than in `_FeaturedContent`, which is a plain
     // `StatelessWidget` and takes the format as a parameter.
     final timeFormat = ref.watch(timeFormatProvider);
@@ -332,7 +335,7 @@ class _HeroHome extends ConsumerWidget {
                                 .set(null),
                           ),
                           icon: const Icon(Icons.more_horiz_rounded, size: 18),
-                          label: const Text('Options'),
+                          label: Text(l10n.options),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -341,7 +344,7 @@ class _HeroHome extends ConsumerWidget {
                           onPressed: () => context
                               .push('${Routes.eventDetail}/${featured.id}'),
                           icon: const Icon(Icons.tune_rounded, size: 18),
-                          label: const Text('Open'),
+                          label: Text(l10n.open),
                         ),
                       ),
                     ],
@@ -349,7 +352,7 @@ class _HeroHome extends ConsumerWidget {
                   if (others.isNotEmpty) ...[
                     const SizedBox(height: 34),
                     Text(
-                      'OTHER COUNTDOWNS',
+                      l10n.otherCountdowns,
                       style: Theme.of(context).textTheme.labelSmall,
                     ),
                     const SizedBox(height: 12),
@@ -399,7 +402,7 @@ class _HeroHome extends ConsumerWidget {
                                     ),
                                     icon: const Icon(Icons.more_horiz_rounded,
                                         size: 18),
-                                    label: const Text('Options'),
+                                    label: Text(l10n.options),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -409,7 +412,7 @@ class _HeroHome extends ConsumerWidget {
                                         '${Routes.eventDetail}/${featured.id}'),
                                     icon: const Icon(Icons.tune_rounded,
                                         size: 18),
-                                    label: const Text('Open countdown'),
+                                    label: Text(l10n.openCountdown),
                                   ),
                                 ),
                               ],
@@ -431,7 +434,7 @@ class _HeroHome extends ConsumerWidget {
                             if (others.isNotEmpty) ...[
                               const SizedBox(height: 32),
                               Text(
-                                'OTHER COUNTDOWNS',
+                                l10n.otherCountdowns,
                                 style: Theme.of(context).textTheme.labelSmall,
                               ),
                               const SizedBox(height: 12),
@@ -469,7 +472,7 @@ class _HeroHome extends ConsumerWidget {
             child: FilledButton.icon(
               onPressed: () => context.push(Routes.newEvent),
               icon: const Icon(Icons.add_rounded, size: 20),
-              label: const Text('New countdown'),
+              label: Text(l10n.newCountdown),
             ),
           ),
         ),
@@ -497,6 +500,7 @@ class _FeaturedContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -511,7 +515,7 @@ class _FeaturedContent extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              arrived ? 'ARRIVED' : 'COUNTING DOWN',
+              arrived ? l10n.arrived : l10n.countingDown,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: arrived ? colors.accent : colors.subtle,
                   ),
@@ -533,7 +537,11 @@ class _FeaturedContent extends StatelessWidget {
             Icon(Icons.schedule_rounded, size: 14, color: colors.subtle),
             const SizedBox(width: 7),
             Text(
-              formatMomentFull(featured.at, format: timeFormat),
+              formatMomentFull(
+                featured.at,
+                format: timeFormat,
+                localizations: MaterialLocalizations.of(context),
+              ),
               style: TextStyle(fontSize: 13, color: colors.subtle),
             ),
           ],
@@ -561,6 +569,7 @@ class _EventRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final timeFormat = ref.watch(timeFormatProvider);
     final past = event.isPast;
     final remaining = remainingUntil(event.at, now);
@@ -594,8 +603,12 @@ class _EventRow extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       past
-                          ? formatMomentShort(event.at, format: timeFormat)
-                          : '${describeRemaining(remaining, compact: true)} · ${formatMomentShort(event.at, format: timeFormat)}',
+                          ? formatMomentShort(
+                              event.at,
+                              format: timeFormat,
+                              localizations: MaterialLocalizations.of(context),
+                            )
+                          : '${describeRemaining(remaining, compact: true, l10n: context.l10n)} · ${formatMomentShort(event.at, format: timeFormat, localizations: MaterialLocalizations.of(context))}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 12, color: colors.muted),
@@ -609,7 +622,7 @@ class _EventRow extends ConsumerWidget {
               // the list is long enough that a long-press is not discoverable
               // (and impossible on a laptop trackpad).
               IconButton(
-                tooltip: 'Options',
+                tooltip: l10n.options,
                 iconSize: 20,
                 color: colors.subtle,
                 onPressed: () =>
@@ -634,6 +647,7 @@ class _TopBar extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final pendingInvites = ref.watch(pendingInviteCountProvider);
     final unreadResponses = ref.watch(unreadResponseCountProvider);
+    final l10n = context.l10n;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -643,25 +657,25 @@ class _TopBar extends ConsumerWidget {
           children: [
             if (user != null) ...[
               _BadgedIconButton(
-                tooltip: 'Circles',
+                tooltip: l10n.circles,
                 icon: Icons.groups_outlined,
                 onPressed: () => context.go(Routes.circles),
               ),
               _BadgedIconButton(
-                tooltip: 'Invitations',
+                tooltip: l10n.invitations,
                 icon: Icons.mail_outline_rounded,
                 count: pendingInvites,
                 onPressed: () => context.go(Routes.invitations),
               ),
               _BadgedIconButton(
-                tooltip: 'Notifications',
+                tooltip: l10n.notifications,
                 icon: Icons.notifications_none_rounded,
                 count: unreadResponses,
                 onPressed: () => context.go(Routes.notifications),
               ),
             ],
             IconButton(
-              tooltip: 'Settings',
+              tooltip: l10n.settings,
               onPressed: () => context.go(Routes.settings),
               icon: const Icon(Icons.settings_outlined, size: 20),
             ),
@@ -679,7 +693,7 @@ class _TopBar extends ConsumerWidget {
             else
               TextButton(
                 onPressed: () => context.push(Routes.login),
-                child: const Text('Sign in'),
+                child: Text(l10n.signIn),
               ),
           ],
         ),

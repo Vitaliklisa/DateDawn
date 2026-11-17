@@ -91,7 +91,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           content: Text(error.message),
           action: isDuplicateSignup
               ? SnackBarAction(
-                  label: 'Sign in',
+                  label: context.l10n.signIn,
                   onPressed: _toggleAuthMode,
                 )
               : null,
@@ -138,7 +138,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await runAction(
         context,
         () => ref.read(authServiceProvider).sendPasswordReset(email),
-        successMessage: 'Reset link sent to $email. Use the newest email.',
+        successMessage: context.l10n.resetLinkSent(email),
       );
     } finally {
       if (mounted) setState(() => _resettingPassword = false);

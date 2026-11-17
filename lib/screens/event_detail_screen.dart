@@ -6,6 +6,7 @@ import '../core/countdown.dart';
 import '../core/models.dart';
 import '../core/routes.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
 import '../providers/app_providers.dart';
 import '../widgets/arrival_celebration.dart';
 import '../widgets/brand_kit.dart';
@@ -78,6 +79,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final timeFormat = ref.watch(timeFormatProvider);
     final eventsAsync = ref.watch(eventsProvider);
     final event = _find();
@@ -104,10 +106,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               children: [
                 Icon(Icons.search_off_rounded, size: 34, color: colors.subtle),
                 const SizedBox(height: 16),
-                const Text(
-                  'This countdown is no longer available.',
+                Text(
+                  l10n.countdownUnavailable,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 15),
+                  style: const TextStyle(fontSize: 15),
                 ),
               ],
             ),
@@ -136,12 +138,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         title: const BrandMark(),
         actions: [
           IconButton(
-            tooltip: 'Share',
+            tooltip: l10n.share,
             onPressed: () => shareEvent(context, event),
             icon: const Icon(Icons.ios_share_rounded, size: 20),
           ),
           IconButton(
-            tooltip: 'Options',
+            tooltip: l10n.options,
             onPressed: () => showEventActionsSheet(
               context,
               ref,
@@ -170,7 +172,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                arrived ? 'ARRIVED' : 'COUNTING DOWN',
+                arrived ? l10n.arrived : l10n.countingDown,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: arrived ? colors.accent : colors.subtle,
                     ),
@@ -192,7 +194,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               Icon(Icons.schedule_rounded, size: 14, color: colors.subtle),
               const SizedBox(width: 7),
               Text(
-                formatMomentFull(event.at, format: timeFormat),
+                formatMomentFull(
+                  event.at,
+                  format: timeFormat,
+                  localizations: MaterialLocalizations.of(context),
+                ),
                 style: TextStyle(fontSize: 13, color: colors.subtle),
               ),
             ],
@@ -211,8 +217,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   onPressed: () =>
                       context.push('/event/${event.id}/edit', extra: event),
                   icon: const Icon(Icons.edit_outlined, size: 18),
-                  label:
-                      Text(event.canEdit(user?.id) ? 'Edit' : 'View details'),
+                  label: Text(
+                    event.canEdit(user?.id)
+                        ? l10n.editCountdown
+                        : l10n.viewDetails,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -220,14 +229,15 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => shareEvent(context, event),
                   icon: const Icon(Icons.ios_share_rounded, size: 18),
-                  label: const Text('Share'),
+                  label: Text(l10n.share),
                 ),
               ),
             ],
           ),
           if (others.isNotEmpty) ...[
             const SizedBox(height: 32),
-            Text('SHARED WITH', style: Theme.of(context).textTheme.labelSmall),
+            Text(l10n.sharedWith,
+                style: Theme.of(context).textTheme.labelSmall),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -266,11 +276,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             ),
           ],
           const SizedBox(height: 32),
-          Text('NOTES', style: Theme.of(context).textTheme.labelSmall),
+          Text(l10n.notes, style: Theme.of(context).textTheme.labelSmall),
           const SizedBox(height: 12),
           if (notes.isEmpty)
             Text(
-              'Nothing yet. Leave a thought for everyone counting down with you.',
+              l10n.notesEmpty,
               style: TextStyle(fontSize: 13, color: colors.subtle),
             )
           else
@@ -293,7 +303,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                           style: const TextStyle(fontSize: 13.5, height: 1.4)),
                       const SizedBox(height: 6),
                       Text(
-                        formatMomentShort(note.createdAt, format: timeFormat),
+                        formatMomentShort(
+                          note.createdAt,
+                          format: timeFormat,
+                          localizations: MaterialLocalizations.of(context),
+                        ),
                         style: TextStyle(fontSize: 11, color: colors.subtle),
                       ),
                     ],
@@ -308,7 +322,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   child: TextField(
                     controller: _note,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(hintText: 'Add a note'),
+                    decoration: InputDecoration(hintText: l10n.addNote),
                     onSubmitted: (_) => _addNote(event),
                   ),
                 ),

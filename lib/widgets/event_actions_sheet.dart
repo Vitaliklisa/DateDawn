@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/models.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../services/event_repository.dart';
@@ -47,6 +48,7 @@ class _EventActionsSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final l10n = context.l10n;
     final user = ref.watch(currentUserProvider);
     final canEdit = event.canEdit(user?.id);
     debugPrint(
@@ -84,7 +86,7 @@ class _EventActionsSheet extends ConsumerWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    event.isPast ? 'Passed' : 'Counting down',
+                    event.isPast ? l10n.passed : l10n.countingDown,
                     style: TextStyle(fontSize: 12, color: colors.subtle),
                   ),
                 ],
@@ -94,7 +96,7 @@ class _EventActionsSheet extends ConsumerWidget {
             const SizedBox(height: 8),
             _Action(
               icon: Icons.open_in_new_rounded,
-              label: 'Open',
+              label: l10n.openCountdown,
               onTap: () {
                 Navigator.of(context).pop();
                 context.push('/event/${event.id}');
@@ -103,7 +105,7 @@ class _EventActionsSheet extends ConsumerWidget {
             if (canEdit)
               _Action(
                 icon: Icons.edit_outlined,
-                label: 'Edit',
+                label: l10n.editCountdownAction,
                 onTap: () {
                   Navigator.of(context).pop();
                   context.push('/event/${event.id}/edit', extra: event);
@@ -111,7 +113,7 @@ class _EventActionsSheet extends ConsumerWidget {
               ),
             _Action(
               icon: Icons.ios_share_rounded,
-              label: 'Share',
+              label: l10n.share,
               onTap: () {
                 Navigator.of(context).pop();
                 shareEvent(context, event);
@@ -120,7 +122,7 @@ class _EventActionsSheet extends ConsumerWidget {
             if (user != null)
               _Action(
                 icon: Icons.content_copy_rounded,
-                label: 'Duplicate a year later',
+                label: l10n.duplicateYearLater,
                 onTap: () async {
                   Navigator.of(context).pop();
                   await runAction(
@@ -132,7 +134,7 @@ class _EventActionsSheet extends ConsumerWidget {
                           displayName: user.displayName,
                           photoUrl: user.photoUrl,
                         ),
-                    successMessage: 'Duplicated — open it to adjust the date.',
+                    successMessage: l10n.countdownDuplicated,
                   );
                 },
               ),
@@ -141,7 +143,7 @@ class _EventActionsSheet extends ConsumerWidget {
             const SizedBox(height: 6),
             _Action(
               icon: Icons.delete_outline_rounded,
-              label: 'Delete countdown',
+              label: l10n.deleteCountdown,
               destructive: true,
               onTap: () async {
                 final messenger = ScaffoldMessenger.of(
@@ -150,10 +152,8 @@ class _EventActionsSheet extends ConsumerWidget {
                 if (user == null ||
                     (event.createdBy != user.id && !event.canManage(user.id))) {
                   messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Only the owner can delete this countdown.',
-                      ),
+                    SnackBar(
+                      content: Text(l10n.onlyOwnerCanDelete),
                     ),
                   );
                   return;
@@ -170,7 +170,7 @@ class _EventActionsSheet extends ConsumerWidget {
                         userId: user.id,
                       );
                   messenger.showSnackBar(
-                    const SnackBar(content: Text('Countdown deleted.')),
+                    SnackBar(content: Text(l10n.countdownDeleted)),
                   );
                   ref.invalidate(eventsProvider);
                   ref.read(selectedEventIdProvider.notifier).set(null);
@@ -179,8 +179,8 @@ class _EventActionsSheet extends ConsumerWidget {
                   messenger.showSnackBar(SnackBar(content: Text(e.message)));
                 } catch (_) {
                   messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Could not delete. Try again.'),
+                    SnackBar(
+                      content: Text(l10n.countdownDeleteFailed),
                     ),
                   );
                 }
@@ -193,15 +193,16 @@ class _EventActionsSheet extends ConsumerWidget {
   }
 
   Future<bool> _confirmDelete(BuildContext context) async {
+    final l10n = context.l10n;
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete this countdown?'),
-        content: const Text('The countdown cannot be undone.'),
+        title: Text(l10n.deleteCountdownQuestion),
+        content: Text(l10n.countdownDeleteWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Keep'),
+            child: Text(l10n.keep),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -209,7 +210,7 @@ class _EventActionsSheet extends ConsumerWidget {
               minimumSize: const Size(88, 42),
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
