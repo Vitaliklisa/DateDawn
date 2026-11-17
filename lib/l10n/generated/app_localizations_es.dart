@@ -229,15 +229,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get support => 'Soporte';
 
   @override
-  String get homeEmptyTitle => 'Ponle fecha a un d?a.';
+  String get homeEmptyTitle => 'Ponle fecha a un día.';
 
   @override
   String get homeEmptyDescription =>
-      'Elige un momento futuro: una boda, un lanzamiento, un viaje de vuelta a casa. Date Dawn cuenta los a?os, meses, d?as y horas que faltan y lo celebra cuando llega.';
+      'Elige un momento futuro: una boda, un lanzamiento, un viaje de vuelta a casa. Date Dawn cuenta los años, meses, días y horas que faltan y lo celebra cuando llega.';
 
   @override
   String get homeLoadError =>
-      'No se pudieron cargar tus cuentas atr?s. Desliza hacia abajo para volver a intentarlo.';
+      'No se pudieron cargar tus cuentas atrás. Desliza hacia abajo para volver a intentarlo.';
 
   @override
   String get getStarted => 'Empezar';
@@ -247,16 +247,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get homeSyncDescription =>
-      'Inicia sesi?n para sincronizar tus cuentas atr?s en el tel?fono, la tableta y la web, y compartirlas con quienes tambi?n esperan ese momento.';
+      'Inicia sesión para sincronizar tus cuentas atrás en el teléfono, la tableta y la web, y compartirlas con quienes también esperan ese momento.';
 
   @override
-  String get otherCountdowns => 'OTRAS CUENTAS ATR?S';
+  String get otherCountdowns => 'OTRAS CUENTAS ATRÁS';
 
   @override
-  String get arrived => 'LLEG?';
+  String get arrived => 'LLEGÓ';
 
   @override
-  String get countingDown => 'EN CUENTA ATR?S';
+  String get countingDown => 'EN CUENTA ATRÁS';
 
   @override
   String get options => 'Opciones';
@@ -265,28 +265,28 @@ class AppLocalizationsEs extends AppLocalizations {
   String get open => 'Abrir';
 
   @override
-  String get openCountdown => 'Abrir cuenta atr?s';
+  String get openCountdown => 'Abrir cuenta atrás';
 
   @override
-  String get newCountdown => 'Nueva cuenta atr?s';
+  String get newCountdown => 'Nueva cuenta atrás';
 
   @override
-  String get editCountdown => 'Editar cuenta atr?s';
+  String get editCountdown => 'Editar cuenta atrás';
 
   @override
-  String get countdownTitleLabel => 'T?tulo';
+  String get countdownTitleLabel => 'Título';
 
   @override
-  String get countdownDescriptionLabel => 'Descripci?n';
+  String get countdownDescriptionLabel => 'Descripción';
 
   @override
-  String get whenLabel => 'Cu?ndo';
+  String get whenLabel => 'Cuándo';
 
   @override
   String get titleExampleHint => 'Boda, lanzamiento, reencuentro';
 
   @override
-  String get descriptionExampleHint => 'Una breve nota sobre ese d?a';
+  String get descriptionExampleHint => 'Una breve nota sobre ese día';
 
   @override
   String get dateLabel => 'Fecha';
@@ -301,108 +301,108 @@ class AppLocalizationsEs extends AppLocalizations {
   String get presetMonth => '+1 mes';
 
   @override
-  String get presetYear => '+1 a?o';
+  String get presetYear => '+1 año';
 
   @override
-  String get presetFiveYears => '+5 a?os';
+  String get presetFiveYears => '+5 años';
 
   @override
-  String get createCountdown => 'Crear cuenta atr?s';
+  String get createCountdown => 'Crear cuenta atrás';
 
   @override
   String get saveChanges => 'Guardar cambios';
 
   @override
-  String get deleteCountdown => 'Eliminar cuenta atr?s';
+  String get deleteCountdown => 'Eliminar cuenta atrás';
 
   @override
-  String get countdownActions => 'Acciones de la cuenta atr?s';
+  String get countdownActions => 'Acciones de la cuenta atrás';
 
   @override
-  String get deleteCountdownQuestion => '?Eliminar esta cuenta atr?s?';
+  String get deleteCountdownQuestion => '¿Eliminar esta cuenta atrás?';
 
   @override
-  String get countdownCannotUndo => 'No se puede deshacer esta acci?n.';
+  String get countdownCannotUndo => 'No se puede deshacer esta acción.';
 
   @override
-  String get giveCountdownTitle => 'Ponle un t?tulo a esta cuenta atr?s.';
+  String get giveCountdownTitle => 'Ponle un título a esta cuenta atrás.';
 
   @override
-  String get pickFutureMoment => 'Elige un momento que a?n est? por llegar.';
+  String get pickFutureMoment => 'Elige un momento que aún está por llegar.';
 
   @override
   String get signInToSaveCountdown =>
-      'Inicia sesi?n para guardar cuentas atr?s.';
+      'Inicia sesión para guardar cuentas atrás.';
 
   @override
-  String get countdownCreated => 'Cuenta atr?s creada.';
+  String get countdownCreated => 'Cuenta atrás creada.';
 
   @override
   String get changesSaved => 'Cambios guardados.';
 
   @override
-  String get countdownDeleted => 'Cuenta atr?s eliminada.';
+  String get countdownDeleted => 'Cuenta atrás eliminada.';
 
   @override
   String get partnerLabel => 'tu pareja';
 
   @override
   String partnerNotAdded(String partnerName) {
-    return 'Cuenta atr?s creada, pero no se a?adi? a $partnerName. Inv?tale manualmente desde la cuenta atr?s.';
+    return 'Cuenta atrás creada, pero no se añadió a $partnerName. Invítale manualmente desde la cuenta atrás.';
   }
 
   @override
   String partnerAdded(String partnerName) {
-    return 'Cuenta atr?s creada. Se a?adi? a $partnerName.';
+    return 'Cuenta atrás creada. Se añadió a $partnerName.';
   }
 
   @override
   String get noPartnerAdded =>
-      'Cuenta atr?s creada, pero no se a?adi? a tu pareja. Env?a la invitaci?n manualmente.';
+      'Cuenta atrás creada, pero no se añadió a tu pareja. Envía la invitación manualmente.';
 
   @override
   String get chooseFutureDateHint =>
-      'Elige una fecha futura para ver la cuenta atr?s.';
+      'Elige una fecha futura para ver la cuenta atrás.';
 
   @override
   String countingDownRemaining(String remaining) {
-    return 'Cuenta atr?s: $remaining';
+    return 'Cuenta atrás: $remaining';
   }
 
   @override
   String get cannotEditCountdown =>
-      'Puedes ver esta cuenta atr?s, pero no modificarla.';
+      'Puedes ver esta cuenta atrás, pero no modificarla.';
 
   @override
   String get shareWith => 'Compartir con';
 
   @override
   String get circleShareDescription =>
-      'Las cuentas atr?s de un c?rculo de pareja se comparten al instante. En los dem?s c?rculos, se env?a una invitaci?n.';
+      'Las cuentas atrás de un círculo de pareja se comparten al instante. En los demás círculos, se envía una invitación.';
 
   @override
   String get collaborators => 'Colaboradores';
 
   @override
   String get collaboratorsCanFollow =>
-      'Quienes invites podr?n seguir esta cuenta atr?s desde sus propios dispositivos.';
+      'Quienes invites podrán seguir esta cuenta atrás desde sus propios dispositivos.';
 
   @override
-  String get peopleFollowing => 'Personas que siguen esta cuenta atr?s.';
+  String get peopleFollowing => 'Personas que siguen esta cuenta atrás.';
 
   @override
-  String get noCollaboratorsYet => 'Todav?a no hay nadie m?s.';
+  String get noCollaboratorsYet => 'Todavía no hay nadie más.';
 
   @override
   String get nameEmailHint => 'nombre@example.com';
 
   @override
   String get recentContactsCouldNotLoad =>
-      'No se pudieron cargar los contactos recientes. Comprueba tu conexi?n o las reglas de Firestore.';
+      'No se pudieron cargar los contactos recientes. Comprueba tu conexión o las reglas de Firestore.';
 
   @override
   String invitationSentTo(String email) {
-    return 'Invitaci?n enviada a $email.';
+    return 'Invitación enviada a $email.';
   }
 
   @override
@@ -414,11 +414,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inviteAgain => 'Volver a invitar';
 
   @override
-  String get removePersonQuestion => '?Eliminar a esta persona?';
+  String get removePersonQuestion => '¿Eliminar a esta persona?';
 
   @override
   String collaboratorLosesAccess(String email) {
-    return '$email perder? el acceso a esta cuenta atr?s y dejar? de verla en su lista.';
+    return '$email perderá el acceso a esta cuenta atrás y dejará de verla en su lista.';
   }
 
   @override
@@ -431,38 +431,38 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String roleChangeDescription(String role) {
-    return 'Esto cambiar? lo que puede hacer en esta cuenta atr?s a partir de ahora. Actualmente tiene acceso de tipo $role.';
+    return 'Esto cambiará lo que puede hacer en esta cuenta atrás a partir de ahora. Actualmente tiene acceso de tipo $role.';
   }
 
   @override
   String rolesNotAssignable(String roles, String topRole) {
-    return 'No puedes asignar $roles ? tienes el rol $topRole.';
+    return 'No puedes asignar $roles — tienes el rol $topRole.';
   }
 
   @override
   String get circlesDescriptionTitle =>
-      'Grupos con los que compartes cuentas atr?s';
+      'Grupos con los que compartes cuentas atrás';
 
   @override
   String get circlesDescription =>
-      'Invita a alguien a un c?rculo una sola vez y luego comparte cualquier cuenta atr?s con todo el grupo con un solo toque. Las cuentas atr?s de un c?rculo de pareja se comparten autom?ticamente: lo que cree uno, lo ver? el otro.';
+      'Invita a alguien a un círculo una sola vez y luego comparte cualquier cuenta atrás con todo el grupo con un solo toque. Las cuentas atrás de un círculo de pareja se comparten automáticamente: lo que cree uno, lo verá el otro.';
 
   @override
   String get circlesLoadError =>
-      'No se pudieron cargar tus c?rculos. Desliza hacia abajo para volver a intentarlo.';
+      'No se pudieron cargar tus círculos. Desliza hacia abajo para volver a intentarlo.';
 
   @override
-  String get noCircles => 'Todav?a no hay c?rculos';
+  String get noCircles => 'Todavía no hay círculos';
 
   @override
   String get noCirclesDescription =>
-      'Crea uno para las personas con quienes compartes la espera: tu pareja, tu familia o las amistades con quienes viajas cada a?o.';
+      'Crea uno para las personas con quienes compartes la espera: tu pareja, tu familia o las amistades con quienes viajas cada año.';
 
   @override
-  String get newCircle => 'Nuevo c?rculo';
+  String get newCircle => 'Nuevo círculo';
 
   @override
-  String get sharesAutomatically => 'Se comparte autom?ticamente';
+  String get sharesAutomatically => 'Se comparte automáticamente';
 
   @override
   String peopleCount(int count) {
@@ -479,56 +479,56 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inviteSomeone => 'Invitar a alguien';
 
   @override
-  String get you => 'T?';
+  String get you => 'Tú';
 
   @override
-  String get leaveCircle => 'Salir del c?rculo';
+  String get leaveCircle => 'Salir del círculo';
 
   @override
-  String get deleteCircle => 'Eliminar c?rculo';
+  String get deleteCircle => 'Eliminar círculo';
 
   @override
-  String get removeFromCircle => 'Eliminar del c?rculo';
+  String get removeFromCircle => 'Eliminar del círculo';
 
   @override
   String removeMemberQuestion(String personName) {
-    return '?Eliminar a $personName?';
+    return '¿Eliminar a $personName?';
   }
 
   @override
   String get removeMemberExplanation =>
-      'Dejar? de ver las cuentas atr?s compartidas con este c?rculo. No se eliminar? nada de lo que haya creado.';
+      'Dejará de ver las cuentas atrás compartidas con este círculo. No se eliminará nada de lo que haya creado.';
 
   @override
   String leaveCircleQuestion(String circleName) {
-    return '?Salir de ?$circleName??';
+    return '¿Salir de «$circleName»?';
   }
 
   @override
   String get leaveCircleExplanation =>
-      'Las cuentas atr?s compartidas con este c?rculo dejar?n de aparecerte. Podr?n volver a invitarte.';
+      'Las cuentas atrás compartidas con este círculo dejarán de aparecerte. Podrán volver a invitarte.';
 
   @override
   String deleteCircleQuestion(String circleName) {
-    return '?Eliminar ?$circleName??';
+    return '¿Eliminar «$circleName»?';
   }
 
   @override
   String get deleteCircleExplanation =>
-      'El grupo desaparecer?. Las cuentas atr?s compartidas con ?l se conservar?n y seguir?n siendo tuyas, pero ya no se compartir?n con estas personas.';
+      'El grupo desaparecerá. Las cuentas atrás compartidas con él se conservarán y seguirán siendo tuyas, pero ya no se compartirán con estas personas.';
 
   @override
   String get circleNameHint => 'Familia, Tokio 2027, Nosotros';
 
   @override
-  String get coupleCircleTitle => 'Un c?rculo para nosotros, como pareja';
+  String get coupleCircleTitle => 'Un círculo para nosotros, como pareja';
 
   @override
   String get coupleCircleDescription =>
-      'Las cuentas atr?s se comparten autom?ticamente con tu pareja, sin que tenga que aceptar una invitaci?n.';
+      'Las cuentas atrás se comparten automáticamente con tu pareja, sin que tenga que aceptar una invitación.';
 
   @override
-  String get circleCreated => 'C?rculo creado.';
+  String get circleCreated => 'Círculo creado.';
 
   @override
   String get coupleCircleCreated => 'Creado. Ahora invita a tu pareja.';
@@ -538,139 +538,139 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String inviteToCircle(String circleName) {
-    return 'Invitar a ?$circleName?';
+    return 'Invitar a «$circleName»';
   }
 
   @override
   String get coupleInviteExplanation =>
-      'Si ya tiene una cuenta, se a?adir? autom?ticamente. De lo contrario, se a?adir? cuando inicie sesi?n. Las futuras cuentas atr?s compartidas con este c?rculo aparecer?n autom?ticamente.';
+      'Si ya tiene una cuenta, se añadirá automáticamente. De lo contrario, se añadirá cuando inicie sesión. Las futuras cuentas atrás compartidas con este círculo aparecerán automáticamente.';
 
   @override
   String get circleInviteExplanation =>
-      'Recibir? una invitaci?n que podr? aceptar o rechazar. Cuando se una, podr?s compartir cuentas atr?s con este c?rculo con un solo toque.';
+      'Recibirá una invitación que podrá aceptar o rechazar. Cuando se una, podrás compartir cuentas atrás con este círculo con un solo toque.';
 
   @override
   String get inviteEmailHint => 'persona@example.com';
 
   @override
-  String get sendInvitation => 'Enviar invitaci?n';
+  String get sendInvitation => 'Enviar invitación';
 
   @override
   String get partnerAddedAutomatically =>
-      'Tu pareja se a?adir? autom?ticamente.';
+      'Tu pareja se añadirá automáticamente.';
 
   @override
-  String get signInToUseCircles => 'Inicia sesi?n para usar los c?rculos';
+  String get signInToUseCircles => 'Inicia sesión para usar los círculos';
 
   @override
   String get circlesRequireAccounts =>
-      'Como se invita a las personas a los c?rculos por correo electr?nico, necesitan tener una cuenta para recibir una invitaci?n.';
+      'Como se invita a las personas a los círculos por correo electrónico, necesitan tener una cuenta para recibir una invitación.';
 
   @override
   String get waitingOnYou => 'Esperando tu respuesta';
 
   @override
   String get invitationsEmptyDescription =>
-      'No se compartir? nada contigo hasta que aceptes. Si rechazas una invitaci?n, se avisar? a quien te la envi? para que no se quede esperando sin saber qu? pas?.';
+      'No se compartirá nada contigo hasta que aceptes. Si rechazas una invitación, se avisará a quien te la envió para que no se quede esperando sin saber qué pasó.';
 
   @override
   String get signInToSeeInvitations =>
-      'Inicia sesi?n para ver las invitaciones';
+      'Inicia sesión para ver las invitaciones';
 
   @override
   String get invitationsEmailAccount =>
-      'Las invitaciones se env?an a tu correo electr?nico, as? que inicia sesi?n con la direcci?n a la que te invitaron.';
+      'Las invitaciones se envían a tu correo electrónico, así que inicia sesión con la dirección a la que te invitaron.';
 
   @override
   String get invitationsCouldNotLoad =>
-      'No se pudieron cargar las invitaciones. Comprueba tu conexi?n o las reglas de Firestore.';
+      'No se pudieron cargar las invitaciones. Comprueba tu conexión o las reglas de Firestore.';
 
   @override
   String get nothingWaiting => 'No hay nada pendiente';
 
   @override
   String get invitationInboxEmpty =>
-      'Las invitaciones que te env?en aparecer?n aqu?. Las invitaciones a cuentas atr?s y a c?rculos est?ndar requieren una respuesta; a los c?rculos de pareja te unes autom?ticamente.';
+      'Las invitaciones que te envíen aparecerán aquí. Las invitaciones a cuentas atrás y a círculos estándar requieren una respuesta; a los círculos de pareja te unes automáticamente.';
 
   @override
-  String get retryAddingYou => 'Volver a intentar a?adirme';
+  String get retryAddingYou => 'Volver a intentar añadirme';
 
   @override
   String get decline => 'Rechazar';
 
   @override
   String joinInviteQuestion(String eventTitle) {
-    return '?Unirte a ?$eventTitle??';
+    return '¿Unirte a «$eventTitle»?';
   }
 
   @override
   String get joinInviteExplanation =>
-      'Aparecer? en tu lista y podr?s ver la cuenta atr?s en este dispositivo.';
+      'Aparecerá en tu lista y podrás ver la cuenta atrás en este dispositivo.';
 
   @override
   String get join => 'Unirse';
 
   @override
   String alreadyMemberOf(String name) {
-    return 'Ya formas parte de ?$name?.';
+    return 'Ya formas parte de «$name».';
   }
 
   @override
   String youJoined(String name) {
-    return 'Te uniste a ?$name?.';
+    return 'Te uniste a «$name».';
   }
 
   @override
   String youWereAddedTo(String name) {
-    return 'Te a?adieron a ?$name?.';
+    return 'Te añadieron a «$name».';
   }
 
   @override
-  String get invitationDeclined => 'Invitaci?n rechazada.';
+  String get invitationDeclined => 'Invitación rechazada.';
 
   @override
-  String get countdownInvitation => 'Invitaci?n a una cuenta atr?s';
+  String get countdownInvitation => 'Invitación a una cuenta atrás';
 
   @override
-  String get aCountdown => 'Una cuenta atr?s';
+  String get aCountdown => 'Una cuenta atrás';
 
   @override
   String invitedToFollowCountdown(String role) {
-    return 'Te invitaron a seguir esta cuenta atr?s. Si aceptas, se a?adir? a tu lista con el rol $role.';
+    return 'Te invitaron a seguir esta cuenta atrás. Si aceptas, se añadirá a tu lista con el rol $role.';
   }
 
   @override
   String get accept => 'Aceptar';
 
   @override
-  String get partnerInvitation => 'Invitaci?n de pareja';
+  String get partnerInvitation => 'Invitación de pareja';
 
   @override
-  String get circleInvitation => 'Invitaci?n a un c?rculo';
+  String get circleInvitation => 'Invitación a un círculo';
 
   @override
   String partnerCircleAddTitle(String personName) {
-    return 'Te est?n a?adiendo al c?rculo de $personName';
+    return 'Te están añadiendo al círculo de $personName';
   }
 
   @override
   String get partnerCircleAddExplanation =>
-      'Te a?adir?n autom?ticamente. Las cuentas atr?s compartidas con este c?rculo aparecer?n en tu lista.';
+      'Te añadirán automáticamente. Las cuentas atrás compartidas con este círculo aparecerán en tu lista.';
 
   @override
   String circleJoinExplanation(String circleName) {
-    return 'Al unirte a ?$circleName?, las cuentas atr?s que compartan con este c?rculo aparecer?n en tu lista.';
+    return 'Al unirte a «$circleName», las cuentas atrás que compartan con este círculo aparecerán en tu lista.';
   }
 
   @override
   String get becomePartners => 'Convertirse en pareja';
 
   @override
-  String get joinCircle => 'Unirse al c?rculo';
+  String get joinCircle => 'Unirse al círculo';
 
   @override
   String get automaticJoinFailed =>
-      'No se pudo completar la incorporaci?n autom?tica.';
+      'No se pudo completar la incorporación automática.';
 
   @override
   String get notNow => 'Ahora no';
@@ -679,43 +679,43 @@ class AppLocalizationsEs extends AppLocalizations {
   String get notificationsTitle => 'Notificaciones';
 
   @override
-  String get markAllRead => 'Marcar todo como le?do';
+  String get markAllRead => 'Marcar todo como leído';
 
   @override
-  String get markedAllRead => 'Todo marcado como le?do.';
+  String get markedAllRead => 'Todo marcado como leído.';
 
   @override
-  String get moreOptions => 'M?s opciones';
+  String get moreOptions => 'Más opciones';
 
   @override
-  String get noReadMessagesToDelete => 'No hay mensajes le?dos para eliminar.';
+  String get noReadMessagesToDelete => 'No hay mensajes leídos para eliminar.';
 
   @override
-  String get deleteReadMessages => 'Eliminar mensajes le?dos';
+  String get deleteReadMessages => 'Eliminar mensajes leídos';
 
   @override
-  String get deletedReadMessages => 'Mensajes le?dos eliminados.';
+  String get deletedReadMessages => 'Mensajes leídos eliminados.';
 
   @override
-  String get notificationsSignInFirst => 'Inicia sesi?n primero';
+  String get notificationsSignInFirst => 'Inicia sesión primero';
 
   @override
   String get notificationsAccountOnly =>
-      'Las notificaciones est?n vinculadas a tu cuenta.';
+      'Las notificaciones están vinculadas a tu cuenta.';
 
   @override
   String get couldNotLoad => 'No se pudo cargar';
 
   @override
   String get checkConnectionRetry =>
-      'Comprueba tu conexi?n e int?ntalo de nuevo.';
+      'Comprueba tu conexión e inténtalo de nuevo.';
 
   @override
-  String get nothingYet => 'Todav?a no hay nada';
+  String get nothingYet => 'Todavía no hay nada';
 
   @override
   String get notificationsEmptyDescription =>
-      'Cuando ocurra algo con tus cuentas atr?s o invitaciones, aparecer? aqu?.';
+      'Cuando ocurra algo con tus cuentas atrás o invitaciones, aparecerá aquí.';
 
   @override
   String get liveNotificationsCouldNotLoad =>
@@ -732,7 +732,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se pudieron cargar las respuestas a las invitaciones.';
 
   @override
-  String get countdownUnavailable => 'Esta cuenta atr?s ya no est? disponible.';
+  String get countdownUnavailable => 'Esta cuenta atrás ya no está disponible.';
 
   @override
   String get viewDetails => 'Ver detalles';
@@ -745,19 +745,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get notesEmpty =>
-      'Todav?a no hay nada. Deja un comentario para quienes comparten la cuenta atr?s contigo.';
+      'Todavía no hay nada. Deja un comentario para quienes comparten la cuenta atrás contigo.';
 
   @override
-  String get addNote => 'A?adir una nota';
+  String get addNote => 'Añadir una nota';
 
   @override
-  String get years => 'A?os';
+  String get years => 'Años';
 
   @override
   String get months => 'Meses';
 
   @override
-  String get days => 'D?as';
+  String get days => 'Días';
 
   @override
   String get hours => 'Horas';
@@ -800,10 +800,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get share => 'Compartir';
 
   @override
-  String get passed => 'Pas?';
+  String get passed => 'Pasó';
 
   @override
-  String get upcoming => 'Pr?ximo';
+  String get upcoming => 'Próximo';
 
   @override
   String get accepted => 'Aceptada';
@@ -821,7 +821,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get waiting => 'Pendiente';
 
   @override
-  String get itHasArrived => 'Ya lleg?.';
+  String get itHasArrived => 'Ya llegó.';
 
   @override
   String remainingToGo(String remaining) {
@@ -829,7 +829,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get momentHasPassed => 'El momento ya pas?';
+  String get momentHasPassed => 'El momento ya pasó';
 
   @override
   String remainingAnd(String first, String last) {
@@ -837,31 +837,31 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get dayHasCome => 'HA LLEGADO EL D?A';
+  String get dayHasCome => 'HA LLEGADO EL DÍA';
 
   @override
   String eventArrivedWithDescription(String title, String description) {
-    return '$title ya lleg?: $description';
+    return '$title ya llegó: $description';
   }
 
   @override
   String eventArrivedTitleOnly(String title) {
-    return '$title ya lleg?: disfruta cada minuto.';
+    return '$title ya llegó: disfruta cada minuto.';
   }
 
   @override
   String personRemovedFromCircle(String personName, String circleName) {
-    return 'Se elimin? a $personName de ?$circleName?.';
+    return 'Se eliminó a $personName de «$circleName».';
   }
 
   @override
   String youLeftCircle(String circleName) {
-    return 'Saliste de ?$circleName?.';
+    return 'Saliste de «$circleName».';
   }
 
   @override
   String circleDeleted(String circleName) {
-    return 'Se elimin? ?$circleName?.';
+    return 'Se eliminó «$circleName».';
   }
 
   @override
@@ -869,7 +869,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String invitedYouToCircle(String personName, String circleName) {
-    return '$personName te invit? a ?$circleName?';
+    return '$personName te invitó a «$circleName»';
   }
 
   @override
@@ -883,23 +883,23 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get roleAdminDescription =>
-      'Puede administrar la cuenta atr?s y a sus participantes.';
+      'Puede administrar la cuenta atrás y a sus participantes.';
 
   @override
   String get roleEditorDescription =>
-      'Puede editar la cuenta atr?s e invitar a otras personas.';
+      'Puede editar la cuenta atrás e invitar a otras personas.';
 
   @override
   String get roleViewerDescription =>
-      'Puede ver la cuenta atr?s y dejar notas.';
+      'Puede ver la cuenta atrás y dejar notas.';
 
   @override
   String remainingYears(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count a?os',
-      one: '$count a?o',
+      other: '$count años',
+      one: '$count año',
     );
     return '$_temp0';
   }
@@ -920,8 +920,8 @@ class AppLocalizationsEs extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count d?as',
-      one: '$count d?a',
+      other: '$count días',
+      one: '$count día',
     );
     return '$_temp0';
   }
@@ -960,7 +960,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get moreActions => 'M?s acciones';
+  String get moreActions => 'Más acciones';
 
   @override
   String get block => 'Bloquear';
@@ -972,70 +972,70 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String personRemoved(String personName) {
-    return 'Se elimin? a $personName.';
+    return 'Se eliminó a $personName.';
   }
 
   @override
-  String get signInToSaveIt => 'Inicia sesi?n para guardarlo';
+  String get signInToSaveIt => 'Inicia sesión para guardarlo';
 
   @override
   String get countdownsFollowYou =>
-      'Tus cuentas atr?s se guardan en tu cuenta, as? que est?n disponibles en todos tus dispositivos y puedes compartirlas con otras personas.';
+      'Tus cuentas atrás se guardan en tu cuenta, así que están disponibles en todos tus dispositivos y puedes compartirlas con otras personas.';
 
   @override
   String get savePermissionError =>
-      'Firestore rechaz? el guardado. Si sigue ocurriendo, las reglas de seguridad implementadas son anteriores a la aplicaci?n ? ejecuta `firebase deploy --only firestore:rules`.';
+      'Firestore rechazó el guardado. Si sigue ocurriendo, las reglas de seguridad implementadas son anteriores a la aplicación — ejecuta `firebase deploy --only firestore:rules`.';
 
   @override
   String get saveNetworkError =>
-      'No se pudo conectar con Firestore. Comprueba tu conexi?n e int?ntalo de nuevo.';
+      'No se pudo conectar con Firestore. Comprueba tu conexión e inténtalo de nuevo.';
 
   @override
-  String get saveFailed => 'No se pudo guardar. Int?ntalo de nuevo.';
+  String get saveFailed => 'No se pudo guardar. Inténtalo de nuevo.';
 
   @override
-  String get momentPassed => 'El momento ya pas?';
+  String get momentPassed => 'El momento ya pasó';
 
   @override
   String get and => 'y';
 
   @override
-  String get back => 'Atr?s';
+  String get back => 'Atrás';
 
   @override
   String get policyLastUpdated =>
-      '?ltima actualizaci?n: febrero de 2026 ? Cumple con el RGPD de la UE y la PIPEDA de Canad?';
+      'Última actualización: febrero de 2026 · Cumple con el RGPD de la UE y la PIPEDA de Canadá';
 
   @override
   String get privacyIntroTitle =>
-      '1. Introducci?n y responsable del tratamiento';
+      '1. Introducción y responsable del tratamiento';
 
   @override
   String privacyIntroBody(String supportEmail) {
-    return 'Date Dawn (?nosotros?, ?nuestro? o ?nos?) respeta tu privacidad y se compromete a proteger tus datos personales. Esta Pol?tica de privacidad explica c?mo recopilamos, usamos y protegemos tu informaci?n cuando utilizas nuestras aplicaciones m?viles y web, en pleno cumplimiento del Reglamento General de Protecci?n de Datos (RGPD) de la Uni?n Europea y de la Ley de Protecci?n de la Informaci?n Personal y los Documentos Electr?nicos (PIPEDA) de Canad?.\n\nContacto del responsable del tratamiento: $supportEmail';
+    return 'Date Dawn («nosotros», «nuestro» o «nos») respeta tu privacidad y se compromete a proteger tus datos personales. Esta Política de privacidad explica cómo recopilamos, usamos y protegemos tu información cuando utilizas nuestras aplicaciones móviles y web, en pleno cumplimiento del Reglamento General de Protección de Datos (RGPD) de la Unión Europea y de la Ley de Protección de la Información Personal y los Documentos Electrónicos (PIPEDA) de Canadá.\n\nContacto del responsable del tratamiento: $supportEmail';
   }
 
   @override
-  String get privacyCollectTitle => '2. Informaci?n que recopilamos';
+  String get privacyCollectTitle => '2. Información que recopilamos';
 
   @override
   String get privacyCollectBody =>
-      '? Datos de la cuenta: direcci?n de correo electr?nico y nombre visible que proporcionas durante la autenticaci?n (Firebase Auth).\n? Contenido del usuario: cuentas atr?s, t?tulos, fechas, descripciones y pertenencia a c?rculos que creas o compartes expresamente.\n? Datos del dispositivo y las notificaciones: tokens de notificaciones push para enviarte recordatorios de cuentas atr?s y avisos de invitaciones.\n\nNO recopilamos el historial de navegaci?n, identificadores publicitarios ni datos de ubicaci?n, ni vendemos informaci?n personal a terceros.';
+      '• Datos de la cuenta: dirección de correo electrónico y nombre visible que proporcionas durante la autenticación (Firebase Auth).\n• Contenido del usuario: cuentas atrás, títulos, fechas, descripciones y pertenencia a círculos que creas o compartes expresamente.\n• Datos del dispositivo y las notificaciones: tokens de notificaciones push para enviarte recordatorios de cuentas atrás y avisos de invitaciones.\n\nNO recopilamos el historial de navegación, identificadores publicitarios ni datos de ubicación, ni vendemos información personal a terceros.';
 
   @override
   String get privacyBasisTitle =>
-      '3. Base jur?dica del tratamiento (RGPD de la UE)';
+      '3. Base jurídica del tratamiento (RGPD de la UE)';
 
   @override
   String get privacyBasisBody =>
-      'Tratamos tus datos conforme a las siguientes bases jur?dicas:\n? Necesidad contractual: prestar las funciones de sincronizaci?n de cuentas atr?s, compartir c?rculos y enviar invitaciones.\n? Consentimiento: cuando autorizas las notificaciones push o aceptas participar en c?rculos compartidos.\n? Intereses leg?timos: garantizar la seguridad y fiabilidad de la aplicaci?n y prevenir abusos.';
+      'Tratamos tus datos conforme a las siguientes bases jurídicas:\n• Necesidad contractual: prestar las funciones de sincronización de cuentas atrás, compartir círculos y enviar invitaciones.\n• Consentimiento: cuando autorizas las notificaciones push o aceptas participar en círculos compartidos.\n• Intereses legítimos: garantizar la seguridad y fiabilidad de la aplicación y prevenir abusos.';
 
   @override
   String get privacySharingTitle => '4. Compartir y bloquear';
 
   @override
   String get privacySharingBody =>
-      'Date Dawn permite que las personas interact?en entre s?: puedes invitar a alguien a una cuenta atr?s y ambos pueden dejar notas en una que compartan. Ese contenido solo est? visible para las personas incluidas en esa cuenta atr?s; nunca es p?blico ni se muestra a nadie m?s.\n\nPuedes bloquear a otra persona en cualquier momento: abre una cuenta atr?s que compartas con ella y mant?n pulsado su nombre (o haz clic secundario en el ordenador). Al bloquearla, ambos dejar?n de aparecer en las cuentas atr?s del otro, se cancelar?n las invitaciones entre ustedes y esa persona ya no podr? volver a invitarte. No se le avisar?. La lista de personas que has bloqueado es privada y puedes desbloquear a cualquiera desde Ajustes ? Personas bloqueadas.';
+      'Date Dawn permite que las personas interactúen entre sí: puedes invitar a alguien a una cuenta atrás y ambos pueden dejar notas en una que compartan. Ese contenido solo está visible para las personas incluidas en esa cuenta atrás; nunca es público ni se muestra a nadie más.\n\nPuedes bloquear a otra persona en cualquier momento: abre una cuenta atrás que compartas con ella y mantén pulsado su nombre (o haz clic secundario en el ordenador). Al bloquearla, ambos dejarán de aparecer en las cuentas atrás del otro, se cancelarán las invitaciones entre ustedes y esa persona ya no podrá volver a invitarte. No se le avisará. La lista de personas que has bloqueado es privada y puedes desbloquear a cualquiera desde Ajustes → Personas bloqueadas.';
 
   @override
   String get privacyStorageTitle =>
@@ -1043,130 +1043,130 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get privacyStorageBody =>
-      'Tus datos se almacenan y procesan de forma segura mediante la infraestructura de Firebase (Google Cloud Platform), que cumple altos est?ndares de seguridad del sector. Los datos que se transmiten entre tu dispositivo y nuestros servidores se cifran en tr?nsito mediante TLS.';
+      'Tus datos se almacenan y procesan de forma segura mediante la infraestructura de Firebase (Google Cloud Platform), que cumple altos estándares de seguridad del sector. Los datos que se transmiten entre tu dispositivo y nuestros servidores se cifran en tránsito mediante TLS.';
 
   @override
   String get privacyRightsTitle =>
-      '6. Tus derechos (acceso, rectificaci?n y supresi?n)';
+      '6. Tus derechos (acceso, rectificación y supresión)';
 
   @override
   String privacyRightsBody(String supportEmail) {
-    return 'En virtud del RGPD y la PIPEDA, tienes derecho a:\n? Acceso: solicitar una copia de los datos personales que tenemos sobre ti.\n? Rectificaci?n: actualizar o corregir la informaci?n de tu perfil en Ajustes.\n? Supresi?n (derecho al olvido): solicitar en cualquier momento la eliminaci?n completa de tu cuenta y de todas las cuentas atr?s y notificaciones asociadas escribiendo a $supportEmail.';
+    return 'En virtud del RGPD y la PIPEDA, tienes derecho a:\n• Acceso: solicitar una copia de los datos personales que tenemos sobre ti.\n• Rectificación: actualizar o corregir la información de tu perfil en Ajustes.\n• Supresión (derecho al olvido): solicitar en cualquier momento la eliminación completa de tu cuenta y de todas las cuentas atrás y notificaciones asociadas escribiendo a $supportEmail.';
   }
 
   @override
-  String get termsAcceptanceTitle => '1. Aceptaci?n de los t?rminos';
+  String get termsAcceptanceTitle => '1. Aceptación de los términos';
 
   @override
   String get termsAcceptanceBody =>
-      'Al acceder a Date Dawn o utilizarlo, aceptas someterte a estos T?rminos del servicio. Si no est?s de acuerdo con estos t?rminos, no utilices la aplicaci?n.';
+      'Al acceder a Date Dawn o utilizarlo, aceptas someterte a estos Términos del servicio. Si no estás de acuerdo con estos términos, no utilices la aplicación.';
 
   @override
   String get termsUseTitle => '2. Uso del servicio';
 
   @override
   String get termsUseBody =>
-      'Date Dawn se ofrece para el seguimiento personal y no comercial de cuentas atr?s y momentos compartidos. Aceptas no hacer un uso indebido del servicio, subir contenido malicioso, acosar a otras personas mediante c?rculos compartidos o invitaciones, ni intentar eludir los controles de seguridad.';
+      'Date Dawn se ofrece para el seguimiento personal y no comercial de cuentas atrás y momentos compartidos. Aceptas no hacer un uso indebido del servicio, subir contenido malicioso, acosar a otras personas mediante círculos compartidos o invitaciones, ni intentar eludir los controles de seguridad.';
 
   @override
   String get termsOwnershipTitle => '3. Contenido del usuario y titularidad';
 
   @override
   String get termsOwnershipBody =>
-      'Conservas todos los derechos de titularidad sobre los eventos de cuenta atr?s, t?tulos y contenido que crees. Concedes a Date Dawn una licencia limitada, ?nicamente para almacenar y sincronizar tu contenido en tus dispositivos autenticados y con los miembros de los c?rculos con quienes lo compartas.';
+      'Conservas todos los derechos de titularidad sobre los eventos de cuenta atrás, títulos y contenido que crees. Concedes a Date Dawn una licencia limitada, únicamente para almacenar y sincronizar tu contenido en tus dispositivos autenticados y con los miembros de los círculos con quienes lo compartas.';
 
   @override
   String get termsTerminationTitle =>
-      '4. Cancelaci?n y eliminaci?n de la cuenta';
+      '4. Cancelación y eliminación de la cuenta';
 
   @override
   String get termsTerminationBody =>
-      'Puedes dejar de usar Date Dawn en cualquier momento y solicitar que se elimine tu cuenta escribiendo al soporte. Nos reservamos el derecho de suspender o cancelar las cuentas que infrinjan estos t?rminos o hagan un uso abusivo de la infraestructura de la plataforma.';
+      'Puedes dejar de usar Date Dawn en cualquier momento y solicitar que se elimine tu cuenta escribiendo al soporte. Nos reservamos el derecho de suspender o cancelar las cuentas que infrinjan estos términos o hagan un uso abusivo de la infraestructura de la plataforma.';
 
   @override
-  String get termsLiabilityTitle => '5. Limitaci?n de responsabilidad';
+  String get termsLiabilityTitle => '5. Limitación de responsabilidad';
 
   @override
   String get termsLiabilityBody =>
-      'Date Dawn se proporciona ?tal cual?, sin garant?as de ning?n tipo. No seremos responsables de ning?n da?o indirecto, incidental o consecuente derivado del uso de la aplicaci?n.';
+      'Date Dawn se proporciona «tal cual», sin garantías de ningún tipo. No seremos responsables de ningún daño indirecto, incidental o consecuente derivado del uso de la aplicación.';
 
   @override
-  String get privacyPolicyTitle => 'Pol?tica de privacidad';
+  String get privacyPolicyTitle => 'Política de privacidad';
 
   @override
-  String get termsOfServiceTitle => 'T?rminos del servicio';
+  String get termsOfServiceTitle => 'Términos del servicio';
 
   @override
   String get supportHeading => 'Leemos todos los mensajes';
 
   @override
   String supportIntro(String responseTime) {
-    return 'Date Dawn es una aplicaci?n independiente y peque?a. El correo electr?nico es la forma m?s r?pida de contactar con quien la desarrolla: no hay un servicio de atenci?n intermediario. Normalmente respondemos $responseTime.';
+    return 'Date Dawn es una aplicación independiente y pequeña. El correo electrónico es la forma más rápida de contactar con quien la desarrolla: no hay un servicio de atención intermediario. Normalmente respondemos $responseTime.';
   }
 
   @override
-  String get supportResponseTime => 'en un plazo de 2 d?as laborables';
+  String get supportResponseTime => 'en un plazo de 2 días laborables';
 
   @override
   String get supportCommonQuestions => 'Preguntas frecuentes';
 
   @override
   String get supportFaqGoogleQuestion =>
-      'Inici? sesi?n con Google y no aparecen mis cuentas atr?s.';
+      'Inició sesión con Google y no aparecen mis cuentas atrás.';
 
   @override
   String get supportFaqGoogleAnswer =>
-      'Usa el mismo m?todo que utilizaste al crear tu cuenta. Google y el correo electr?nico con contrase?a no se vinculan autom?ticamente. Si necesitas cambiar de m?todo o crees que tienes datos en dos cuentas, ponte en contacto con nosotros antes de crear otra cuenta.';
+      'Usa el mismo método que utilizaste al crear tu cuenta. Google y el correo electrónico con contraseña no se vinculan automáticamente. Si necesitas cambiar de método o crees que tienes datos en dos cuentas, ponte en contacto con nosotros antes de crear otra cuenta.';
 
   @override
   String get supportFaqSharingQuestion =>
-      'La persona con quien compart? la cuenta atr?s no puede verla.';
+      'La persona con quien compartí la cuenta atrás no puede verla.';
 
   @override
   String get supportFaqSharingAnswer =>
-      'Compartir una cuenta atr?s con un c?rculo env?a una invitaci?n; no a?ade personas autom?ticamente. La otra persona debe abrir Invitaciones en la aplicaci?n y aceptarla. Los c?rculos de pareja son la excepci?n: se comparten al instante.';
+      'Compartir una cuenta atrás con un círculo envía una invitación; no añade personas automáticamente. La otra persona debe abrir Invitaciones en la aplicación y aceptarla. Los círculos de pareja son la excepción: se comparten al instante.';
 
   @override
-  String get supportFaqDeclinedQuestion => 'Rechac? una invitaci?n por error.';
+  String get supportFaqDeclinedQuestion => 'Rechacé una invitación por error.';
 
   @override
   String get supportFaqDeclinedAnswer =>
-      'P?dele a quien te invit? que vuelva a invitarte: puede hacerlo desde la cuenta atr?s tocando el icono de actualizaci?n junto a tu nombre. Mientras tanto, no se pierde nada.';
+      'Pídele a quien te invitó que vuelva a invitarte: puede hacerlo desde la cuenta atrás tocando el icono de actualización junto a tu nombre. Mientras tanto, no se pierde nada.';
 
   @override
-  String get supportFaqDeleteQuestion => '?C?mo elimino mi cuenta y mis datos?';
+  String get supportFaqDeleteQuestion => '¿Cómo elimino mi cuenta y mis datos?';
 
   @override
   String get supportFaqDeleteAnswer =>
-      'Escr?benos desde la direcci?n con la que te registraste y solicita la eliminaci?n. Se eliminar?n todas las cuentas atr?s, invitaciones y notificaciones vinculadas a la cuenta, y te confirmaremos cuando se haya completado.';
+      'Escríbenos desde la dirección con la que te registraste y solicita la eliminación. Se eliminarán todas las cuentas atrás, invitaciones y notificaciones vinculadas a la cuenta, y te confirmaremos cuando se haya completado.';
 
   @override
-  String get supportFaqBlockQuestion => '?C?mo bloqueo a alguien?';
+  String get supportFaqBlockQuestion => '¿Cómo bloqueo a alguien?';
 
   @override
   String get supportFaqBlockAnswer =>
-      'Abre una cuenta atr?s que compartas con esa persona y mant?n pulsado su nombre en la lista de personas (o haz clic secundario en el ordenador). Se eliminar? de las cuentas atr?s que compartan y no podr? volver a invitarte. Para deshacerlo, ve a Ajustes ? Personas bloqueadas.';
+      'Abre una cuenta atrás que compartas con esa persona y mantén pulsado su nombre en la lista de personas (o haz clic secundario en el ordenador). Se eliminará de las cuentas atrás que compartan y no podrá volver a invitarte. Para deshacerlo, ve a Ajustes → Personas bloqueadas.';
 
   @override
-  String get supportFaqAdsQuestion => '?Venden mis datos o muestran anuncios?';
+  String get supportFaqAdsQuestion => '¿Venden mis datos o muestran anuncios?';
 
   @override
   String get supportFaqAdsAnswer =>
-      'No. No hay anuncios, perfiles anal?ticos ni seguimiento de terceros. Lo que esperas con ilusi?n solo te incumbe a ti, as? que se guarda en tu propia cuenta para que nadie m?s lo lea.';
+      'No. No hay anuncios, perfiles analíticos ni seguimiento de terceros. Lo que esperas con ilusión solo te incumbe a ti, así que se guarda en tu propia cuenta para que nadie más lo lea.';
 
   @override
-  String get supportLegal => 'Informaci?n legal';
+  String get supportLegal => 'Información legal';
 
   @override
   String get supportNotice =>
-      'Las solicitudes de reembolso, las preguntas sobre pagos y los informes de fallos se atienden en la misma direcci?n. Si la aplicaci?n no funciona bien, lo m?s ?til que puedes incluir es el modelo de tu dispositivo y lo que estabas haciendo cuando ocurri?.';
+      'Las solicitudes de reembolso, las preguntas sobre pagos y los informes de fallos se atienden en la misma dirección. Si la aplicación no funciona bien, lo más útil que puedes incluir es el modelo de tu dispositivo y lo que estabas haciendo cuando ocurrió.';
 
   @override
   String get supportEmailLabel => 'Contactar con soporte';
 
   @override
   String supportEmailCopied(String email) {
-    return 'Se copi? $email';
+    return 'Se copió $email';
   }
 
   @override
@@ -1176,41 +1176,41 @@ class AppLocalizationsEs extends AppLocalizations {
   String get linkCopiedClipboard => 'Enlace copiado al portapapeles.';
 
   @override
-  String get verifyEmailTitle => 'Verifica tu correo electr?nico';
+  String get verifyEmailTitle => 'Verifica tu correo electrónico';
 
   @override
   String verifyEmailInstructions(String email) {
-    return 'Enviamos un enlace de verificaci?n a $email. Verifica tu direcci?n para continuar.';
+    return 'Enviamos un enlace de verificación a $email. Verifica tu dirección para continuar.';
   }
 
   @override
-  String get yourEmailAddress => 'tu direcci?n de correo electr?nico';
+  String get yourEmailAddress => 'tu dirección de correo electrónico';
 
   @override
   String resetLinkSent(String email) {
-    return 'Enviamos un enlace para restablecer la contrase?a a $email. Abre el correo m?s reciente.';
+    return 'Enviamos un enlace para restablecer la contraseña a $email. Abre el correo más reciente.';
   }
 
   @override
-  String get verificationEmailSent => 'Correo de verificaci?n enviado.';
+  String get verificationEmailSent => 'Correo de verificación enviado.';
 
   @override
   String get verificationNotComplete =>
-      'A?n no se ha verificado. Revisa tu bandeja de entrada.';
+      'Aún no se ha verificado. Revisa tu bandeja de entrada.';
 
   @override
   String get verifiedSignInToContinue =>
-      'Tu correo est? verificado. Si es necesario, inicia sesi?n para continuar.';
+      'Tu correo está verificado. Si es necesario, inicia sesión para continuar.';
 
   @override
   String get checkSpamFolder =>
-      '?No encuentras el correo? Revisa la carpeta de correo no deseado o spam.';
+      '¿No encuentras el correo? Revisa la carpeta de correo no deseado o spam.';
 
   @override
-  String get confirmEmailVerified => 'He verificado mi correo electr?nico';
+  String get confirmEmailVerified => 'He verificado mi correo electrónico';
 
   @override
-  String get sendingEmail => 'Enviando?';
+  String get sendingEmail => 'Enviando…';
 
   @override
   String get resendEmail => 'Volver a enviar el correo';
@@ -1221,82 +1221,82 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get resetCodeMissing =>
-      'A este enlace para restablecer la contrase?a le falta el c?digo de seguridad.';
+      'A este enlace para restablecer la contraseña le falta el código de seguridad.';
 
   @override
   String get passwordUpdatedSignIn =>
-      'Contrase?a actualizada. Inicia sesi?n de nuevo.';
+      'Contraseña actualizada. Inicia sesión de nuevo.';
 
   @override
   String get resetLinkInvalidTitle => 'No se puede usar este enlace';
 
   @override
   String get resetLinkInvalidBody =>
-      'Es posible que el enlace haya caducado o ya se haya usado. Vuelve a la pantalla de inicio de sesi?n y solicita un nuevo correo para restablecer la contrase?a.';
+      'Es posible que el enlace haya caducado o ya se haya usado. Vuelve a la pantalla de inicio de sesión y solicita un nuevo correo para restablecer la contraseña.';
 
   @override
-  String get backToSignIn => 'Volver a iniciar sesi?n';
+  String get backToSignIn => 'Volver a iniciar sesión';
 
   @override
-  String get chooseNewPassword => 'Elige una contrase?a nueva';
+  String get chooseNewPassword => 'Elige una contraseña nueva';
 
   @override
-  String get newPassword => 'Contrase?a nueva';
+  String get newPassword => 'Contraseña nueva';
 
   @override
-  String get confirmNewPassword => 'Confirma la contrase?a nueva';
+  String get confirmNewPassword => 'Confirma la contraseña nueva';
 
   @override
   String get passwordMinLength => 'Usa al menos 6 caracteres.';
 
   @override
-  String get passwordsDoNotMatch => 'Las contrase?as no coinciden.';
+  String get passwordsDoNotMatch => 'Las contraseñas no coinciden.';
 
   @override
-  String get updatePassword => 'Actualizar contrase?a';
+  String get updatePassword => 'Actualizar contraseña';
 
   @override
   String get editCountdownAction => 'Editar';
 
   @override
-  String get duplicateYearLater => 'Duplicar para el a?o siguiente';
+  String get duplicateYearLater => 'Duplicar para el año siguiente';
 
   @override
-  String get countdownDuplicated => 'Duplicada ? ?brela para ajustar la fecha.';
+  String get countdownDuplicated => 'Duplicada. Ábrela para ajustar la fecha.';
 
   @override
   String get onlyOwnerCanDelete =>
-      'Solo quien cre? esta cuenta atr?s puede eliminarla.';
+      'Solo quien creó esta cuenta atrás puede eliminarla.';
 
   @override
   String get countdownDeleteFailed =>
-      'No se pudo eliminar. Int?ntalo de nuevo.';
+      'No se pudo eliminar. Inténtalo de nuevo.';
 
   @override
-  String get countdownDeleteWarning => 'No se puede deshacer esta acci?n.';
+  String get countdownDeleteWarning => 'No se puede deshacer esta acción.';
 
   @override
   String blockPersonQuestion(String personName) {
-    return '?Bloquear a $personName?';
+    return '¿Bloquear a $personName?';
   }
 
   @override
   String get blockExplanation =>
-      'Dejar?n de verse. Se eliminar?n mutuamente de todas las cuentas atr?s que compartan, se cancelar?n las invitaciones entre ustedes y esa persona ya no podr? volver a invitarte. No se le avisar?.';
+      'Dejarán de verse. Se eliminarán mutuamente de todas las cuentas atrás que compartan, se cancelarán las invitaciones entre ustedes y esa persona ya no podrá volver a invitarte. No se le avisará.';
 
   @override
   String get undoBlockInSettings =>
-      'Puedes deshacerlo cuando quieras desde Ajustes ? Personas bloqueadas.';
+      'Puedes deshacerlo cuando quieras desde Ajustes → Personas bloqueadas.';
 
   @override
-  String get blocking => 'Bloqueando?';
+  String get blocking => 'Bloqueando…';
 
   @override
   String get blockAction => 'Bloquear';
 
   @override
   String personBlocked(String personName) {
-    return 'Se bloque? a $personName.';
+    return 'Se bloqueó a $personName.';
   }
 
   @override
@@ -1304,28 +1304,28 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String personUnblocked(String personName) {
-    return 'Se desbloque? a $personName.';
+    return 'Se desbloqueó a $personName.';
   }
 
   @override
   String get blockAccessNotRestored =>
-      'No se restaur? el acceso a las cuentas atr?s.';
+      'No se restauró el acceso a las cuentas atrás.';
 
   @override
   String get undoBlockFailed =>
-      'No se pudo deshacer el bloqueo. Int?ntalo de nuevo.';
+      'No se pudo deshacer el bloqueo. Inténtalo de nuevo.';
 
   @override
   String get blockSaveFailed =>
-      'No se pudo guardar el bloqueo. Inicia sesi?n de nuevo e int?ntalo otra vez.';
+      'No se pudo guardar el bloqueo. Inicia sesión de nuevo e inténtalo otra vez.';
 
   @override
   String get noConnectionRetry =>
-      'No hay conexi?n. Comprueba tu red e int?ntalo de nuevo.';
+      'No hay conexión. Comprueba tu red e inténtalo de nuevo.';
 
   @override
   String blockPersonFailed(String personName) {
-    return 'No se pudo bloquear a $personName. Int?ntalo de nuevo.';
+    return 'No se pudo bloquear a $personName. Inténtalo de nuevo.';
   }
 
   @override
@@ -1336,11 +1336,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get howToBlockPerson =>
-      'Para bloquear a alguien, abre una cuenta atr?s que compartas con esa persona, abre el men? ? de su fila y toca Bloquear.';
+      'Para bloquear a alguien, abre una cuenta atrás que compartas con esa persona, abre el menú ⋮ de su fila y toca Bloquear.';
 
   @override
   String get blockedPeopleDescription =>
-      'Estas personas no pueden invitarte y no compartes ninguna cuenta atr?s con ellas. No se les avisa de que est?n bloqueadas.';
+      'Estas personas no pueden invitarte y no compartes ninguna cuenta atrás con ellas. No se les avisa de que están bloqueadas.';
 
   @override
   String get unblock => 'Desbloquear';
@@ -1351,5 +1351,5 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get blockedListPermissionError =>
-      'Tu cuenta no tiene permiso para leer esta lista. Si el problema contin?a, actualiza la aplicaci?n.';
+      'Tu cuenta no tiene permiso para leer esta lista. Si el problema continúa, actualiza la aplicación.';
 }

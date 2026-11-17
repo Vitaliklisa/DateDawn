@@ -221,4 +221,71 @@ void main() {
     expect(find.text('ДНІ'), findsOneWidget);
     expect(find.text('ГОДИНИ'), findsOneWidget);
   });
+
+  testWidgets('Spanish and French policy and countdown labels are localized',
+      (tester) async {
+    final localeExpectations = [
+      (
+        locale: const Locale('es'),
+        policyTitle: 'Política de privacidad',
+        introTitle: '1. Introducción y responsable del tratamiento',
+        countdownLabels: ['AÑOS', 'MESES', 'DÍAS', 'HORAS'],
+      ),
+      (
+        locale: const Locale('fr'),
+        policyTitle: 'Politique de confidentialité',
+        introTitle: '1. Introduction et responsable du traitement',
+        countdownLabels: ['ANNÉES', 'MOIS', 'JOURS', 'HEURES'],
+      ),
+    ];
+
+    for (final expected in localeExpectations) {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: expected.locale,
+          supportedLocales: supportedAppLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: const PolicyScreen(isPrivacy: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(expected.policyTitle), findsOneWidget);
+      expect(find.text(expected.introTitle), findsOneWidget);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: expected.locale,
+          supportedLocales: supportedAppLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 340,
+                child: CountdownFace(
+                  target: DateTime(2027, 1, 1),
+                  now: DateTime(2026, 1, 1),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      for (final label in expected.countdownLabels) {
+        expect(find.text(label), findsOneWidget);
+      }
+    }
+  });
 }
