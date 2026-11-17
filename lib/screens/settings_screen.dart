@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../core/theme.dart';
 import '../core/time_format.dart';
+import '../l10n/app_localizations_context.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../widgets/brand_kit.dart';
+import '../widgets/language_selector.dart';
 
 /// Account and appearance. Appearance is a device preference, so it is
 /// reachable signed in or out — needing an account to pick dark mode would be
@@ -21,10 +23,11 @@ class SettingsScreen extends ConsumerWidget {
     final timeFormat = ref.watch(timeFormatProvider);
     final themeMode = ref.watch(themeModeProvider);
     final eventCount = ref.watch(eventsProvider).value?.length ?? 0;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(l10n.settings),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
@@ -53,13 +56,13 @@ class SettingsScreen extends ConsumerWidget {
                         Text(
                           user.displayName?.trim().isNotEmpty == true
                               ? user.displayName!.trim()
-                              : 'Date Dawn user',
+                              : l10n.dateDawnUser,
                           style: const TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          user.isAnonymous ? 'Guest account' : user.email,
+                          user.isAnonymous ? l10n.guestAccount : user.email,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 12.5, color: colors.muted),
@@ -75,7 +78,7 @@ class SettingsScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      '$eventCount ${eventCount == 1 ? 'countdown' : 'countdowns'}',
+                      l10n.countdownsCount(eventCount),
                       style: TextStyle(fontSize: 11.5, color: colors.muted),
                     ),
                   ),
@@ -93,38 +96,42 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'You are not signed in',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  Text(
+                    l10n.notSignedIn,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Sign in to sync your countdowns across every device and share '
-                    'them with other people.',
+                    l10n.syncAndShareDescription,
                     style: TextStyle(
                         fontSize: 13, height: 1.45, color: colors.muted),
                   ),
                   const SizedBox(height: 14),
                   FilledButton(
                     onPressed: () => context.push(Routes.login),
-                    child: const Text('Sign in'),
+                    child: Text(l10n.signIn),
                   ),
                 ],
               ),
             ),
           const SizedBox(height: 28),
-          Text('APPEARANCE', style: Theme.of(context).textTheme.labelSmall),
+          Text(l10n.language.toUpperCase(),
+              style: Theme.of(context).textTheme.labelSmall),
+          const SizedBox(height: 12),
+          const LanguageSelector(),
+          const SizedBox(height: 28),
+          Text(l10n.appearance, style: Theme.of(context).textTheme.labelSmall),
           const SizedBox(height: 12),
           _ThemeSelector(
             value: themeMode,
             onChanged: (mode) => ref.read(themeModeProvider.notifier).set(mode),
           ),
           const SizedBox(height: 28),
-          Text('TIME', style: Theme.of(context).textTheme.labelSmall),
+          Text(l10n.time, style: Theme.of(context).textTheme.labelSmall),
           const SizedBox(height: 6),
           Text(
-            'How clock times are written. Your countdowns are stored as exact '
-            'moments either way — this only changes how they read.',
+            l10n.timeFormatDescription,
             style: TextStyle(fontSize: 13, height: 1.45, color: colors.muted),
           ),
           const SizedBox(height: 12),
@@ -134,41 +141,41 @@ class SettingsScreen extends ConsumerWidget {
                 ref.read(timeFormatProvider.notifier).set(format),
           ),
           const SizedBox(height: 28),
-          Text('ABOUT', style: Theme.of(context).textTheme.labelSmall),
+          Text(l10n.about, style: Theme.of(context).textTheme.labelSmall),
           const SizedBox(height: 12),
-          const _InfoRow(
+          _InfoRow(
             icon: Icons.info_outline_rounded,
-            label: 'Version',
+            label: l10n.version,
             value: '1.0.0',
           ),
           const SizedBox(height: 8),
-          const _InfoRow(
+          _InfoRow(
             icon: Icons.cloud_outlined,
-            label: 'Sync',
+            label: l10n.sync,
             value: 'Firebase',
           ),
           const SizedBox(height: 28),
           // Blocking is required by Google Play's UGC policy, and a block is
           // only honest if the person can see it and undo it.
-          Text('SAFETY', style: Theme.of(context).textTheme.labelSmall),
+          Text(l10n.safety, style: Theme.of(context).textTheme.labelSmall),
           const SizedBox(height: 12),
           _SettingsLink(
             icon: Icons.block_outlined,
-            label: 'Blocked people',
+            label: l10n.blockedPeople,
             onTap: () => context.go(Routes.blocked),
           ),
           const SizedBox(height: 28),
-          Text('LEGAL', style: Theme.of(context).textTheme.labelSmall),
+          Text(l10n.legal, style: Theme.of(context).textTheme.labelSmall),
           const SizedBox(height: 12),
           _SettingsLink(
             icon: Icons.privacy_tip_outlined,
-            label: 'Privacy policy',
+            label: l10n.privacyPolicy,
             onTap: () => openLegalPage(context, LegalDocument.privacy),
           ),
           const SizedBox(height: 8),
           _SettingsLink(
             icon: Icons.description_outlined,
-            label: 'Terms of service',
+            label: l10n.termsOfService,
             onTap: () => openLegalPage(context, LegalDocument.terms),
           ),
           const SizedBox(height: 20),
@@ -178,7 +185,7 @@ class SettingsScreen extends ConsumerWidget {
           OutlinedButton.icon(
             onPressed: () => context.push(Routes.support),
             icon: const Icon(Icons.help_outline_rounded, size: 18),
-            label: const Text('Help & support'),
+            label: Text(l10n.helpAndSupport),
           ),
           if (user != null) ...[
             const SizedBox(height: 32),
@@ -187,12 +194,12 @@ class SettingsScreen extends ConsumerWidget {
                 await runAction(
                   context,
                   () => ref.read(authServiceProvider).signOut(),
-                  successMessage: 'Signed out.',
+                  successMessage: l10n.signedOut,
                 );
                 if (context.mounted) context.go(Routes.home);
               },
               icon: const Icon(Icons.logout_rounded, size: 18),
-              label: const Text('Sign out'),
+              label: Text(l10n.signOut),
             ),
           ],
         ],
@@ -245,6 +252,7 @@ class _TimeFormatSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = context.l10n;
     // Two entries in a fixed order; a plain list keeps the "last one" check
     // below honest, which a map's iteration order would not.
     const options = <TimeFormat>[
@@ -283,7 +291,9 @@ class _TimeFormatSelector extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      option.label,
+                      option == TimeFormat.twelveHour
+                          ? l10n.twelveHourTime
+                          : l10n.twentyFourHourTime,
                       style: TextStyle(
                         fontSize: 12,
                         color: value == option ? colors.accent : colors.muted,
@@ -310,10 +320,11 @@ class _ThemeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    const options = <(ThemeMode, String, IconData)>[
-      (ThemeMode.dark, 'Dark', Icons.dark_mode_outlined),
-      (ThemeMode.light, 'Light', Icons.light_mode_outlined),
-      (ThemeMode.system, 'System', Icons.brightness_auto_outlined),
+    final l10n = context.l10n;
+    final options = <(ThemeMode, String, IconData)>[
+      (ThemeMode.dark, l10n.darkTheme, Icons.dark_mode_outlined),
+      (ThemeMode.light, l10n.lightTheme, Icons.light_mode_outlined),
+      (ThemeMode.system, l10n.systemTheme, Icons.brightness_auto_outlined),
     ];
 
     return Row(

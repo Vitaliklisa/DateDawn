@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../core/routes.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../screens/policy_screen.dart';
@@ -20,13 +22,13 @@ class AppNavigationShell extends ConsumerWidget {
   final String location;
   final Widget child;
 
-  static const _destinations = <(String, String, IconData)>[
-    ('Home', Routes.home, Icons.hourglass_bottom_rounded),
-    ('Invitations', Routes.invitations, Icons.mail_outline_rounded),
-    ('Circles', Routes.circles, Icons.groups_outlined),
-    ('Notifications', Routes.notifications, Icons.notifications_none_rounded),
-    ('Settings', Routes.settings, Icons.settings_outlined),
-    ('Support', Routes.support, Icons.help_outline_rounded),
+  static const _destinations = <(String, IconData)>[
+    (Routes.home, Icons.hourglass_bottom_rounded),
+    (Routes.invitations, Icons.mail_outline_rounded),
+    (Routes.circles, Icons.groups_outlined),
+    (Routes.notifications, Icons.notifications_none_rounded),
+    (Routes.settings, Icons.settings_outlined),
+    (Routes.support, Icons.help_outline_rounded),
   ];
 
   /// Destinations shown in the mobile bottom bar.
@@ -38,10 +40,20 @@ class AppNavigationShell extends ConsumerWidget {
   /// room and shows all six.
   static const _bottomBarCount = 5;
 
+  String _destinationLabel(AppLocalizations l10n, int index) => switch (index) {
+        0 => l10n.home,
+        1 => l10n.invitations,
+        2 => l10n.circles,
+        3 => l10n.notifications,
+        4 => l10n.settings,
+        5 => l10n.support,
+        _ => throw RangeError.index(index, _destinations),
+      };
+
   int get _selectedIndex {
     for (var i = 1; i < _destinations.length; i++) {
-      if (location == _destinations[i].$2 ||
-          location.startsWith('${_destinations[i].$2}/')) {
+      if (location == _destinations[i].$1 ||
+          location.startsWith('${_destinations[i].$1}/')) {
         return i;
       }
     }
@@ -49,7 +61,7 @@ class AppNavigationShell extends ConsumerWidget {
   }
 
   void _goTo(BuildContext context, int index) {
-    final destination = _destinations[index].$2;
+    final destination = _destinations[index].$1;
     if (location != destination) context.go(destination);
   }
 
@@ -58,6 +70,7 @@ class AppNavigationShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
+    final l10n = context.l10n;
     // A legal page opened from Settings/Support is drawn as a layer over the
     // shell rather than pushed as a Flutter route. Inside this `ShellRoute` a
     // sibling-route `push` is ignored outright — the tap changed nothing — and
@@ -72,8 +85,13 @@ class AppNavigationShell extends ConsumerWidget {
       child: child,
     );
 
-    final destination =
-        _buildShell(context, user, desktop: isDesktop, keyedChild: keyedChild);
+    final destination = _buildShell(
+      context,
+      user,
+      l10n: l10n,
+      desktop: isDesktop,
+      keyedChild: keyedChild,
+    );
     if (legal == null) return destination;
 
     // The policy sits in an `Offstage` sibling rather than a `Stack`: it is
@@ -109,6 +127,7 @@ class AppNavigationShell extends ConsumerWidget {
   Widget _buildShell(
     BuildContext context,
     AppUser? user, {
+    required AppLocalizations l10n,
     required bool desktop,
     required Widget keyedChild,
   }) {
@@ -119,10 +138,10 @@ class AppNavigationShell extends ConsumerWidget {
           selectedIndex: _selectedIndex,
           onDestinationSelected: (index) => _goTo(context, index),
           destinations: [
-            for (final destination in _destinations.take(_bottomBarCount))
+            for (var index = 0; index < _bottomBarCount; index++)
               NavigationDestination(
-                icon: Icon(destination.$3),
-                label: destination.$1,
+                icon: Icon(_destinations[index].$2),
+                label: _destinationLabel(l10n, index),
               ),
           ],
         ),
@@ -152,8 +171,8 @@ class AppNavigationShell extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 3),
                       child: _SidebarDestination(
-                        label: _destinations[i].$1,
-                        icon: _destinations[i].$3,
+                        label: _destinationLabel(l10n, i),
+                        icon: _destinations[i].$2,
                         selected: _selectedIndex == i,
                         onTap: () => _goTo(context, i),
                       ),

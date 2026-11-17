@@ -3,17 +3,21 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Riverpod 3 moved `Override` out of the main entrypoint; it lives in `misc`.
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'core/theme.dart';
+import 'core/locale_settings.dart';
 import 'firebase_config.dart';
 import 'providers/app_providers.dart';
+import 'providers/locale_provider.dart';
 import 'router.dart';
 import 'services/auth_service.dart';
 import 'services/event_repository.dart';
+import 'l10n/generated/app_localizations.dart';
 
 Future<void> main() async {
   // Launch breadcrumbs.
@@ -31,12 +35,25 @@ Future<void> main() async {
   usePathUrlStrategy();
   _trace('binding ready');
 
+  final localePreference = await loadLocalePreference();
+
   // On web the config must be supplied in code; on Android/iOS the native files
   // cover it. If web is missing its keys, show a page that says exactly what to
   // run rather than letting Firebase throw an opaque "API key not valid".
   if (kIsWeb && !hasWebFirebaseConfig) {
     _trace('web config missing: showing setup page');
-    runApp(const _MissingConfigApp());
+    runApp(
+      ProviderScope(
+        overrides: [
+          localePreferenceProvider.overrideWith(
+            () => LocalePreferenceController(
+              initialPreference: localePreference,
+            ),
+          ),
+        ],
+        child: const _MissingConfigApp(),
+      ),
+    );
     return;
   }
 
@@ -65,7 +82,18 @@ Future<void> main() async {
   }
 
   _trace('calling runApp');
-  runApp(const ProviderScope(child: DateDawnApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        localePreferenceProvider.overrideWith(
+          () => LocalePreferenceController(
+            initialPreference: localePreference,
+          ),
+        ),
+      ],
+      child: const DateDawnApp(),
+    ),
+  );
   _trace('runApp returned (Dart frame scheduled)');
 }
 
@@ -76,13 +104,22 @@ void _trace(String message) {
 }
 
 /// Shown on web when `flutterfire configure` has not been run yet.
-class _MissingConfigApp extends StatelessWidget {
+class _MissingConfigApp extends ConsumerWidget {
   const _MissingConfigApp();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     const palette = AppPalette.dark;
+    final locale = ref.watch(localeProvider);
     return MaterialApp(
+      locale: locale,
+      supportedLocales: supportedAppLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       debugShowCheckedModeBanner: false,
       theme: AppTheme.build(brightness: Brightness.dark),
       home: Scaffold(
@@ -146,17 +183,52 @@ class _MissingConfigApp extends StatelessWidget {
   }
 }
 
-class DateDawnApp extends ConsumerWidget {
+class DateDawnApp extends ConsumerStatefulWidget {
   const DateDawnApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DateDawnApp> createState() => _DateDawnAppState();
+}
+
+class _DateDawnAppState extends ConsumerState<DateDawnApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeLocales(List<Locale>? locales) {
+    ref.read(localePreferenceProvider.notifier).updateSystemLocale(
+          locales == null || locales.isEmpty ? null : locales.first,
+        );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
 
     return MaterialApp.router(
+      key: ValueKey(locale),
       title: 'Date Dawn',
       debugShowCheckedModeBanner: false,
+      locale: locale,
+      supportedLocales: supportedAppLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: AppTheme.build(brightness: Brightness.light),
       darkTheme: AppTheme.build(brightness: Brightness.dark),
       themeMode: themeMode,

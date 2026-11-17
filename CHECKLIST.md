@@ -580,8 +580,8 @@ submission — a store reviewer will open them.
 | `.symbols` | 7.3 MB | 0 |
 | **Total** | **38.6 MB** | **11.7 MB** |
 
-- `web/index.html` pins `renderer: 'canvaskit'` in `flutterConfiguration`, so
-  the app can only ever load one renderer.
+- `web/flutter_bootstrap.js` pins `renderer: 'canvaskit'` in the supported
+  engine initialization config, so the app can only ever load one renderer.
 - `scripts/prune-web-build.mjs` then deletes the rest: `skwasm`, `skwasm_heavy`,
   `wimp` (WebGPU), every `*.symbols`, and the `chromium/` + `webparagraph/`
   shims. It **refuses to delete anything** if `canvaskit.wasm`/`canvaskit.js`

@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../core/routes.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_context.dart';
 import '../providers/app_providers.dart';
 import '../services/auth_service.dart';
+import '../widgets/language_selector.dart';
 
 /// Sign in / create account across Android, iOS and web with Firebase Auth.
 ///
@@ -72,9 +74,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
       }
       if (mounted) {
+        final l10n = context.l10n;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_creating ? 'Account created.' : 'Welcome back.'),
+            content: Text(_creating ? l10n.accountCreated : l10n.welcomeBack),
           ),
         );
         context.go(Routes.home);
@@ -97,9 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not complete sign in. Please try again.'),
-        ),
+        SnackBar(content: Text(context.l10n.signInFailed)),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -112,7 +113,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final error = await runAction(
         context,
         () => ref.read(authServiceProvider).signInWithGoogle(),
-        successMessage: 'Signed in with Google.',
+        successMessage: context.l10n.signedInWithGoogle,
       );
       if (error == null && mounted) {
         context.go(Routes.home);
@@ -126,10 +127,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_busy || _resettingPassword) return;
     final email = _email.text.trim();
     if (email.isEmpty || !email.contains('@')) {
+      final l10n = context.l10n;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content:
-                Text('Enter your email first, then tap “Forgot password”.')),
+        SnackBar(content: Text(l10n.forgotPasswordPrompt)),
       );
       return;
     }
@@ -149,6 +149,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final authError = ref.watch(activeAuthStateProvider).error;
+    final l10n = context.l10n;
 
     return Scaffold(
       body: SafeArea(
@@ -162,17 +163,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: LanguageSelector(compact: true),
+                    ),
+                    const SizedBox(height: 18),
                     Text(
                       _creating
-                          ? 'Create your account'
-                          : 'Welcome to Date Dawn',
+                          ? l10n.createYourAccount
+                          : l10n.welcomeToDateDawn,
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 10),
                     Text(
                       _creating
-                          ? 'Your countdowns sync to every device you sign in on.'
-                          : 'Count down to the moments that matter — on phone, tablet and web.',
+                          ? l10n.countdownsSyncDescription
+                          : l10n.welcomeDescription,
                       style: TextStyle(
                           fontSize: 14, height: 1.5, color: colors.muted),
                     ),
@@ -180,27 +186,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     if (_creating) ...[
                       _Field(
                         controller: _name,
-                        label: 'Name',
-                        hint: 'Alex Rivera',
+                        label: l10n.name,
+                        hint: l10n.nameHint,
                         textInputAction: TextInputAction.next,
                         validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Tell us what to call you.'
+                            ? l10n.nameRequired
                             : null,
                       ),
                       const SizedBox(height: 14),
                     ],
                     _Field(
                       controller: _email,
-                      label: 'Email',
-                      hint: 'you@example.com',
+                      label: l10n.email,
+                      hint: l10n.emailHint,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.email],
                       validator: (v) {
                         final value = v?.trim() ?? '';
-                        if (value.isEmpty) return 'Enter your email.';
+                        if (value.isEmpty) return l10n.emailRequired;
                         if (!value.contains('@') || !value.contains('.')) {
-                          return 'That does not look like an email.';
+                          return l10n.emailInvalid;
                         }
                         return null;
                       },
@@ -208,7 +214,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 14),
                     _Field(
                       controller: _password,
-                      label: 'Password',
+                      label: l10n.password,
                       hint: '••••••••',
                       obscure: _obscure,
                       keyboardType: TextInputType.visiblePassword,
@@ -228,9 +234,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       validator: (v) {
-                        if ((v ?? '').isEmpty) return 'Enter your password.';
+                        if ((v ?? '').isEmpty) return l10n.passwordRequired;
                         if (_creating && (v ?? '').length < 6) {
-                          return 'Use at least 6 characters.';
+                          return l10n.passwordTooShort;
                         }
                         return null;
                       },
@@ -250,8 +256,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Text('Forgot password?',
-                                  style: TextStyle(fontSize: 13)),
+                              : Text(
+                                  l10n.forgotPassword,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
                         ),
                       )
                     else
@@ -259,7 +267,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     if (authError != null) ...[
                       const SizedBox(height: 6),
                       Text(
-                        'Could not reach the sign-in service. Check your connection.',
+                        l10n.signInConnectionError,
                         style: TextStyle(fontSize: 13, color: colors.danger),
                       ),
                     ],
@@ -268,7 +276,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: _busy ? null : _submit,
                       child: _busy
                           ? const _ButtonSpinner()
-                          : Text(_creating ? 'Create account' : 'Sign in'),
+                          : Text(
+                              _creating ? l10n.createAccount : l10n.signIn,
+                            ),
                     ),
                     const SizedBox(height: 18),
                     Row(
@@ -277,7 +287,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
-                            'OR',
+                            l10n.or,
                             style: TextStyle(
                                 fontSize: 11,
                                 letterSpacing: 1.4,
@@ -291,7 +301,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     OutlinedButton.icon(
                       onPressed: _busy ? null : _google,
                       icon: const _GoogleGlyph(),
-                      label: const Text('Continue with Google'),
+                      label: Text(l10n.continueWithGoogle),
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
@@ -302,12 +312,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           key: const ValueKey('auth-mode-switch'),
                           TextSpan(
                             text: _creating
-                                ? 'Already have an account? '
-                                : 'New here? ',
+                                ? l10n.alreadyHaveAccount
+                                : l10n.newHere,
                             style: TextStyle(fontSize: 13, color: colors.muted),
                             children: [
                               TextSpan(
-                                text: _creating ? 'Sign in' : 'Create one',
+                                text: _creating ? l10n.signIn : l10n.createOne,
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   color: colors.accent,
@@ -332,7 +342,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     TextButton(
                       onPressed: () => context.push(Routes.support),
                       child: Text(
-                        'Trouble signing in? Get help',
+                        l10n.troubleSigningIn,
                         style: TextStyle(fontSize: 12.5, color: colors.subtle),
                       ),
                     ),
