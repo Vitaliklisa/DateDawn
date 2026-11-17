@@ -8,6 +8,7 @@ import 'package:intl/intl.dart' as intl;
 import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
 import 'app_localizations_fr.dart';
+import 'app_localizations_uk.dart';
 
 // ignore_for_file: type=lint
 
@@ -97,7 +98,8 @@ abstract class AppLocalizations {
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('es'),
-    Locale('fr')
+    Locale('fr'),
+    Locale('uk')
   ];
 
   /// The app's display name.
@@ -147,6 +149,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Español'**
   String get languageSpanish;
+
+  /// Display name of Ukrainian in the language picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Українська'**
+  String get languageUkrainian;
 
   /// Settings screen title.
   ///
@@ -301,7 +309,7 @@ abstract class AppLocalizations {
   /// Number of countdowns associated with the account.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{# countdown} other{# countdowns}}'**
+  /// **'{count, plural, one{{count} countdown} other{{count} countdowns}}'**
   String countdownsCount(int count);
 
   /// Login headline.
@@ -514,7 +522,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'es', 'fr'].contains(locale.languageCode);
+      <String>['en', 'es', 'fr', 'uk'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -529,6 +537,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsEs();
     case 'fr':
       return AppLocalizationsFr();
+    case 'uk':
+      return AppLocalizationsUk();
   }
 
   throw FlutterError(

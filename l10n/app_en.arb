@@ -16,6 +16,8 @@
   "@languageFrench": { "description": "Display name of French in the language picker." },
   "languageSpanish": "Español",
   "@languageSpanish": { "description": "Display name of Spanish in the language picker." },
+  "languageUkrainian": "Українська",
+  "@languageUkrainian": { "description": "Display name of Ukrainian in the language picker." },
   "settings": "Settings",
   "@settings": { "description": "Settings screen title." },
   "dateDawnUser": "Date Dawn user",
@@ -66,7 +68,7 @@
   "@signOut": { "description": "Action to sign out." },
   "signedOut": "Signed out.",
   "@signedOut": { "description": "Confirmation after signing out." },
-  "countdownsCount": "{count, plural, one{# countdown} other{# countdowns}}",
+  "countdownsCount": "{count, plural, one{{count} countdown} other{{count} countdowns}}",
   "@countdownsCount": {
     "description": "Number of countdowns associated with the account.",
     "placeholders": { "count": { "type": "int" } }

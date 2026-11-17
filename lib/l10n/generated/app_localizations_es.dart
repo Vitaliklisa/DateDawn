@@ -34,6 +34,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get languageSpanish => 'Español';
 
   @override
+  String get languageUkrainian => 'Українська';
+
+  @override
   String get settings => 'Ajustes';
 
   @override
@@ -115,8 +118,8 @@ class AppLocalizationsEs extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '# cuentas atrás',
-      one: '# cuenta atrás',
+      other: '$count cuentas atrás',
+      one: '$count cuenta atrás',
     );
     return '$_temp0';
   }

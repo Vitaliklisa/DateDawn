@@ -46,6 +46,22 @@ void main() {
       expect(result.selectedLocale, const Locale('es'));
     });
 
+    test('supports Ukrainian as a saved and device language', () {
+      final savedLanguage = resolveLocalePreference(
+        savedLanguageCode: 'uk',
+        deviceLocale: const Locale('en'),
+      );
+      final deviceLanguage = resolveLocalePreference(
+        savedLanguageCode: 'de',
+        deviceLocale: const Locale('uk', 'UA'),
+      );
+
+      expect(savedLanguage.activeLocale, const Locale('uk'));
+      expect(savedLanguage.selectedLocale, const Locale('uk'));
+      expect(deviceLanguage.activeLocale, const Locale('uk'));
+      expect(deviceLanguage.selectedLocale, isNull);
+    });
+
     test('falls through unsupported saved language to device then English', () {
       final deviceLanguage = resolveLocalePreference(
         savedLanguageCode: 'de',
@@ -124,5 +140,43 @@ void main() {
     expect(find.text('Langue'), findsOneWidget);
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.getString(localePreferenceKey), 'fr');
+  });
+
+  testWidgets('Ukrainian can be selected and updates settings strings',
+      (tester) async {
+    final initialPreference = resolveLocalePreference(
+      savedLanguageCode: null,
+      deviceLocale: const Locale('en'),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          localePreferenceProvider.overrideWith(
+            () => LocalePreferenceController(
+              initialPreference: initialPreference,
+            ),
+          ),
+          currentUserProvider.overrideWith((ref) => null),
+          eventsProvider.overrideWith((ref) => Stream.value(const [])),
+        ],
+        child: const _SettingsTestApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('language-selector')));
+    await tester.pumpAndSettle();
+    expect(find.text('Українська'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('locale-option-uk')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Налаштування'), findsOneWidget);
+    expect(find.text('Мова'), findsOneWidget);
+    final localizations =
+        AppLocalizations.of(tester.element(find.text('Налаштування')))!;
+    expect(localizations.countdownsCount(2), '2 відліки');
+    expect(localizations.countdownsCount(5), '5 відліків');
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getString(localePreferenceKey), 'uk');
   });
 }

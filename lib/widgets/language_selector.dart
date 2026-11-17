@@ -126,6 +126,7 @@ class LanguageSelector extends ConsumerWidget {
     return switch (locale.languageCode) {
       'fr' => l10n.languageFrench,
       'es' => l10n.languageSpanish,
+      'uk' => l10n.languageUkrainian,
       _ => l10n.languageEnglish,
     };
   }
