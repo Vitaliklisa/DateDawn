@@ -17,7 +17,7 @@ class LanguageSelector extends ConsumerWidget {
     final selectedLocale = ref.watch(selectedLocaleProvider);
     final label = selectedLocale == null
         ? l10n.followSystemLanguage
-        : _localeName(l10n, selectedLocale);
+        : '${_localeFlag(selectedLocale)} ${_localeName(l10n, selectedLocale)}';
 
     if (compact) {
       return OutlinedButton.icon(
@@ -70,6 +70,12 @@ class LanguageSelector extends ConsumerWidget {
             for (final locale in supportedAppLocales)
               ListTile(
                 key: ValueKey('locale-option-${locale.languageCode}'),
+                leading: ExcludeSemantics(
+                  child: Text(
+                    _localeFlag(locale),
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                ),
                 title: Text(_localeName(l10n, locale)),
                 trailing: selectedLocale == locale
                     ? const Icon(Icons.check_rounded)
@@ -84,6 +90,7 @@ class LanguageSelector extends ConsumerWidget {
               ),
             ListTile(
               key: const ValueKey('locale-option-system'),
+              leading: const Icon(Icons.language_rounded),
               title: Text(l10n.followSystemLanguage),
               trailing: selectedLocale == null
                   ? const Icon(Icons.check_rounded)
@@ -129,6 +136,16 @@ class LanguageSelector extends ConsumerWidget {
       'uk' => l10n.languageUkrainian,
       'de' => l10n.languageGerman,
       _ => l10n.languageEnglish,
+    };
+  }
+
+  String _localeFlag(Locale locale) {
+    return switch (locale.languageCode) {
+      'fr' => '🇫🇷',
+      'es' => '🇪🇸',
+      'uk' => '🇺🇦',
+      'de' => '🇩🇪',
+      _ => '🇺🇸',
     };
   }
 }

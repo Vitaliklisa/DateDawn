@@ -151,11 +151,15 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('language-selector')));
     await tester.pumpAndSettle();
+    for (final flag in ['🇺🇸', '🇫🇷', '🇪🇸', '🇺🇦', '🇩🇪']) {
+      expect(find.text(flag), findsOneWidget);
+    }
     await tester.tap(find.byKey(const ValueKey('locale-option-fr')));
     await tester.pumpAndSettle();
 
     expect(find.text('Réglages'), findsOneWidget);
     expect(find.text('Langue'), findsOneWidget);
+    expect(find.text('🇫🇷 Français'), findsOneWidget);
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.getString(localePreferenceKey), 'fr');
   });
@@ -338,6 +342,7 @@ void main() {
 
     expect(find.text('Einstellungen'), findsOneWidget);
     expect(find.text('Sprache'), findsOneWidget);
+    expect(find.text('🇩🇪 Deutsch'), findsOneWidget);
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.getString(localePreferenceKey), 'de');
 
