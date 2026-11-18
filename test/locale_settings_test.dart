@@ -2,6 +2,7 @@ import 'package:datedawn/core/locale_settings.dart';
 import 'package:datedawn/l10n/generated/app_localizations.dart';
 import 'package:datedawn/providers/app_providers.dart';
 import 'package:datedawn/providers/locale_provider.dart';
+import 'package:datedawn/screens/login_screen.dart';
 import 'package:datedawn/screens/policy_screen.dart';
 import 'package:datedawn/screens/settings_screen.dart';
 import 'package:datedawn/widgets/countdown_face.dart';
@@ -162,6 +163,32 @@ void main() {
     expect(find.text('🇫🇷 Français'), findsOneWidget);
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.getString(localePreferenceKey), 'fr');
+  });
+
+  testWidgets('mobile login keeps language selection out of the form',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAuthStateProvider.overrideWith((ref) => Stream.value(null)),
+        ],
+        child: const MaterialApp(
+          locale: Locale('en'),
+          supportedLocales: supportedAppLocales,
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: LoginScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome to Date Dawn'), findsOneWidget);
+    expect(find.byKey(const ValueKey('language-selector')), findsNothing);
   });
 
   testWidgets('Ukrainian can be selected and updates settings strings',

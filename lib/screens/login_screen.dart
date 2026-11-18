@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -152,6 +153,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final l10n = context.l10n;
 
     return Scaffold(
+      appBar: kIsWeb
+          ? AppBar(
+              toolbarHeight: 56,
+              automaticallyImplyLeading: false,
+              elevation: 0,
+              backgroundColor: colors.canvas,
+              actions: const [
+                Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: LanguageSelector(iconOnly: true),
+                ),
+              ],
+            )
+          : null,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -163,10 +178,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Align(
-                      alignment: Alignment.centerRight,
-                      child: LanguageSelector(compact: true),
-                    ),
                     const SizedBox(height: 18),
                     Text(
                       _creating

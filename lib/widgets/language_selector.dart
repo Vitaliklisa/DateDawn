@@ -7,9 +7,9 @@ import '../l10n/generated/app_localizations.dart';
 import '../providers/locale_provider.dart';
 
 class LanguageSelector extends ConsumerWidget {
-  const LanguageSelector({this.compact = false, super.key});
+  const LanguageSelector({this.iconOnly = false, super.key});
 
-  final bool compact;
+  final bool iconOnly;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,12 +19,12 @@ class LanguageSelector extends ConsumerWidget {
         ? l10n.followSystemLanguage
         : '${_localeFlag(selectedLocale)} ${_localeName(l10n, selectedLocale)}';
 
-    if (compact) {
-      return OutlinedButton.icon(
+    if (iconOnly) {
+      return IconButton(
         key: const ValueKey('language-selector'),
+        tooltip: l10n.language,
         onPressed: () => _showChoices(context, ref, l10n),
-        icon: const Icon(Icons.language_rounded, size: 18),
-        label: Text('$label · ${l10n.language}'),
+        icon: const Icon(Icons.language_rounded),
       );
     }
 
