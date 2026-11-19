@@ -1375,5 +1375,33 @@ class AppLocalizationsEs extends AppLocalizations {
   String get permanentlyDeleteAccount => 'Eliminar cuenta permanentemente';
 
   @override
-  String get accountDeleted => 'Tu cuenta y tus datos se han eliminado.';
+  String get deleteAccountProfileConsequence =>
+      'Tu perfil se eliminará permanentemente.';
+
+  @override
+  String get deleteAccountAccessConsequence =>
+      'Perderás el acceso a todos tus eventos y círculos.';
+
+  @override
+  String get deleteAccountIrreversibleConsequence =>
+      'Esta acción no se puede deshacer.';
+
+  @override
+  String get deleteAccountPermanentlyAction =>
+      'Eliminar cuenta permanentemente';
+
+  @override
+  String get accountDeleted => 'Cuenta eliminada correctamente';
+
+  @override
+  String get serverTimedOutTryAgain =>
+      'El servidor agotó el tiempo de espera. Inténtalo de nuevo más tarde.';
+
+  @override
+  String get accountDeletionFailed =>
+      'No se pudo completar la eliminación de la cuenta. Inténtalo de nuevo.';
+
+  @override
+  String get accountDeletedCleanupWarning =>
+      'La cuenta se eliminó, pero no se pudieron borrar algunos ajustes locales. Reinicia la aplicación antes de usar otra cuenta.';
 }

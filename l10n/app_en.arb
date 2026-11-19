@@ -751,6 +751,20 @@
   "@deleteAccountConfirmationLabel": { "description": "Account deletion confirmation input label." },
   "permanentlyDeleteAccount": "Permanently Delete Account",
   "@permanentlyDeleteAccount": { "description": "Final account deletion confirmation button." },
-  "accountDeleted": "Your account and data have been deleted.",
-  "@accountDeleted": { "description": "Success message after account deletion." }
+  "deleteAccountProfileConsequence": "Your profile will be permanently deleted.",
+  "@deleteAccountProfileConsequence": { "description": "Account deletion consequence about the profile." },
+  "deleteAccountAccessConsequence": "You will lose access to all your events and circles.",
+  "@deleteAccountAccessConsequence": { "description": "Account deletion consequence about events and circles." },
+  "deleteAccountIrreversibleConsequence": "This action cannot be undone.",
+  "@deleteAccountIrreversibleConsequence": { "description": "Account deletion consequence about irreversibility." },
+  "deleteAccountPermanentlyAction": "Delete Account Permanently",
+  "@deleteAccountPermanentlyAction": { "description": "Final account deletion screen button." },
+  "accountDeleted": "Account deleted successfully",
+  "@accountDeleted": { "description": "Success message after account deletion." },
+  "serverTimedOutTryAgain": "Server timed out. Please try again later.",
+  "@serverTimedOutTryAgain": { "description": "Error shown when account deletion returns a server timeout." },
+  "accountDeletionFailed": "Account deletion could not be completed. Please try again.",
+  "@accountDeletionFailed": { "description": "Unexpected account deletion failure." },
+  "accountDeletedCleanupWarning": "The account was deleted, but some local settings could not be cleared. Restart the app before using another account.",
+  "@accountDeletedCleanupWarning": { "description": "Warning shown when local settings could not be cleared after account deletion." }
 }

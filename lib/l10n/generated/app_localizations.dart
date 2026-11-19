@@ -2348,11 +2348,53 @@ abstract class AppLocalizations {
   /// **'Permanently Delete Account'**
   String get permanentlyDeleteAccount;
 
+  /// Account deletion consequence about the profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Your profile will be permanently deleted.'**
+  String get deleteAccountProfileConsequence;
+
+  /// Account deletion consequence about events and circles.
+  ///
+  /// In en, this message translates to:
+  /// **'You will lose access to all your events and circles.'**
+  String get deleteAccountAccessConsequence;
+
+  /// Account deletion consequence about irreversibility.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get deleteAccountIrreversibleConsequence;
+
+  /// Final account deletion screen button.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account Permanently'**
+  String get deleteAccountPermanentlyAction;
+
   /// Success message after account deletion.
   ///
   /// In en, this message translates to:
-  /// **'Your account and data have been deleted.'**
+  /// **'Account deleted successfully'**
   String get accountDeleted;
+
+  /// Error shown when account deletion returns a server timeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Server timed out. Please try again later.'**
+  String get serverTimedOutTryAgain;
+
+  /// Unexpected account deletion failure.
+  ///
+  /// In en, this message translates to:
+  /// **'Account deletion could not be completed. Please try again.'**
+  String get accountDeletionFailed;
+
+  /// Warning shown when local settings could not be cleared after account deletion.
+  ///
+  /// In en, this message translates to:
+  /// **'The account was deleted, but some local settings could not be cleared. Restart the app before using another account.'**
+  String get accountDeletedCleanupWarning;
 }
 
 class _AppLocalizationsDelegate

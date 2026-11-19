@@ -32,6 +32,7 @@ class Routes {
   static const passwordReset = '/reset-password';
   static const firebaseAuthAction = '/__/auth/action';
   static const settings = '/settings';
+  static const deleteAccount = '/delete-account';
   static const newEvent = '/event/new';
   static const eventDetail = '/event';
   static const invitations = '/invitations';

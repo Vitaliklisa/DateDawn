@@ -1384,5 +1384,33 @@ class AppLocalizationsUk extends AppLocalizations {
   String get permanentlyDeleteAccount => 'Видалити обліковий запис назавжди';
 
   @override
-  String get accountDeleted => 'Ваш обліковий запис і дані видалено.';
+  String get deleteAccountProfileConsequence =>
+      'Ваш профіль буде видалено назавжди.';
+
+  @override
+  String get deleteAccountAccessConsequence =>
+      'Ви втратите доступ до всіх своїх подій і кіл.';
+
+  @override
+  String get deleteAccountIrreversibleConsequence =>
+      'Цю дію неможливо скасувати.';
+
+  @override
+  String get deleteAccountPermanentlyAction =>
+      'Видалити обліковий запис назавжди';
+
+  @override
+  String get accountDeleted => 'Обліковий запис успішно видалено';
+
+  @override
+  String get serverTimedOutTryAgain =>
+      'Час очікування відповіді сервера минув. Спробуйте ще раз пізніше.';
+
+  @override
+  String get accountDeletionFailed =>
+      'Не вдалося видалити обліковий запис. Спробуйте ще раз.';
+
+  @override
+  String get accountDeletedCleanupWarning =>
+      'Обліковий запис видалено, але не вдалося очистити деякі локальні налаштування. Перезапустіть застосунок, перш ніж увійти в інший обліковий запис.';
 }

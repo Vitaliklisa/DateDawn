@@ -8,6 +8,7 @@ import 'core/routes.dart';
 import 'providers/app_providers.dart';
 import 'screens/blocked_people_screen.dart';
 import 'screens/circles_screen.dart';
+import 'screens/delete_account_screen.dart';
 import 'screens/event_detail_screen.dart';
 import 'screens/event_editor_screen.dart';
 import 'screens/home_screen.dart';
@@ -173,6 +174,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: Routes.settings,
             name: 'settings',
             builder: (context, state) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: Routes.deleteAccount,
+            name: 'deleteAccount',
+            builder: (context, state) => const DeleteAccountScreen(),
           ),
           GoRoute(
             path: Routes.invitations,

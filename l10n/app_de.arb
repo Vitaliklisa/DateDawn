@@ -1754,6 +1754,20 @@
   "@deleteAccountConfirmationLabel": { "description": "Account deletion confirmation input label." },
   "permanentlyDeleteAccount": "Konto endgültig löschen",
   "@permanentlyDeleteAccount": { "description": "Final account deletion confirmation button." },
-  "accountDeleted": "Dein Konto und deine Daten wurden gelöscht.",
-  "@accountDeleted": { "description": "Success message after account deletion." }
+  "deleteAccountProfileConsequence": "Dein Profil wird dauerhaft gelöscht.",
+  "@deleteAccountProfileConsequence": { "description": "Account deletion consequence about the profile." },
+  "deleteAccountAccessConsequence": "Du verlierst den Zugriff auf alle deine Ereignisse und Kreise.",
+  "@deleteAccountAccessConsequence": { "description": "Account deletion consequence about events and circles." },
+  "deleteAccountIrreversibleConsequence": "Diese Aktion kann nicht rückgängig gemacht werden.",
+  "@deleteAccountIrreversibleConsequence": { "description": "Account deletion consequence about irreversibility." },
+  "deleteAccountPermanentlyAction": "Konto endgültig löschen",
+  "@deleteAccountPermanentlyAction": { "description": "Final account deletion screen button." },
+  "accountDeleted": "Konto erfolgreich gelöscht",
+  "@accountDeleted": { "description": "Success message after account deletion." },
+  "serverTimedOutTryAgain": "Zeitüberschreitung beim Server. Bitte versuche es später erneut.",
+  "@serverTimedOutTryAgain": { "description": "Error shown when account deletion returns a server timeout." },
+  "accountDeletionFailed": "Das Konto konnte nicht gelöscht werden. Bitte versuche es erneut.",
+  "@accountDeletionFailed": { "description": "Unexpected account deletion failure." },
+  "accountDeletedCleanupWarning": "Das Konto wurde gelöscht, aber einige lokale Einstellungen konnten nicht entfernt werden. Starte die App neu, bevor du ein anderes Konto verwendest.",
+  "@accountDeletedCleanupWarning": { "description": "Warning shown when local settings could not be cleared after account deletion." }
 }

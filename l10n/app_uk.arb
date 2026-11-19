@@ -751,6 +751,20 @@
   "@deleteAccountConfirmationLabel": { "description": "Account deletion confirmation input label." },
   "permanentlyDeleteAccount": "Видалити обліковий запис назавжди",
   "@permanentlyDeleteAccount": { "description": "Final account deletion confirmation button." },
-  "accountDeleted": "Ваш обліковий запис і дані видалено.",
-  "@accountDeleted": { "description": "Success message after account deletion." }
+  "deleteAccountProfileConsequence": "Ваш профіль буде видалено назавжди.",
+  "@deleteAccountProfileConsequence": { "description": "Account deletion consequence about the profile." },
+  "deleteAccountAccessConsequence": "Ви втратите доступ до всіх своїх подій і кіл.",
+  "@deleteAccountAccessConsequence": { "description": "Account deletion consequence about events and circles." },
+  "deleteAccountIrreversibleConsequence": "Цю дію неможливо скасувати.",
+  "@deleteAccountIrreversibleConsequence": { "description": "Account deletion consequence about irreversibility." },
+  "deleteAccountPermanentlyAction": "Видалити обліковий запис назавжди",
+  "@deleteAccountPermanentlyAction": { "description": "Final account deletion screen button." },
+  "accountDeleted": "Обліковий запис успішно видалено",
+  "@accountDeleted": { "description": "Success message after account deletion." },
+  "serverTimedOutTryAgain": "Час очікування відповіді сервера минув. Спробуйте ще раз пізніше.",
+  "@serverTimedOutTryAgain": { "description": "Error shown when account deletion returns a server timeout." },
+  "accountDeletionFailed": "Не вдалося видалити обліковий запис. Спробуйте ще раз.",
+  "@accountDeletionFailed": { "description": "Unexpected account deletion failure." },
+  "accountDeletedCleanupWarning": "Обліковий запис видалено, але не вдалося очистити деякі локальні налаштування. Перезапустіть застосунок, перш ніж увійти в інший обліковий запис.",
+  "@accountDeletedCleanupWarning": { "description": "Warning shown when local settings could not be cleared after account deletion." }
 }

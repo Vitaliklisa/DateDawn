@@ -61,4 +61,32 @@ void main() {
     );
     service.close();
   });
+
+  test('retains the HTTP status code for account deletion failures', () async {
+    final service = DeletionService(
+      auth: _MockFirebaseAuth(),
+      client: MockClient(
+        (_) async => http.Response(
+          '{"success":false,"error":"Deletion timed out."}',
+          504,
+        ),
+      ),
+      apiBase: Uri.parse('https://date-dawn.vercel.app'),
+      tokenProvider: () async => 'firebase-id-token',
+    );
+
+    await expectLater(
+      service.deleteAccount('Alex@example.com'),
+      throwsA(
+        isA<DeletionFailure>()
+            .having((failure) => failure.statusCode, 'statusCode', 504)
+            .having(
+              (failure) => failure.message,
+              'message',
+              'Deletion timed out.',
+            ),
+      ),
+    );
+    service.close();
+  });
 }

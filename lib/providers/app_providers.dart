@@ -527,14 +527,23 @@ final clockProvider = StreamProvider<DateTime>((ref) {
       const Duration(seconds: 1), (_) => DateTime.now()).asBroadcastStream();
 });
 
+const _themeModePreferenceKey = 'theme_mode';
+const _timeFormatPreferenceKey = 'time_format';
+
+/// Clears preferences that are scoped to the deleted account. The selected app
+/// language is a device preference and intentionally remains unchanged.
+Future<void> clearLocalAccountPreferences() async {
+  final preferences = await SharedPreferences.getInstance();
+  await preferences.remove(_themeModePreferenceKey);
+  await preferences.remove(_timeFormatPreferenceKey);
+}
+
 /// Theme mode loads from device storage immediately, then syncs to the signed-in
 /// account's `users/{uid}.themeMode` so it follows them between devices.
 ///
 /// Riverpod 3 retired `StateNotifierProvider`; `Notifier` is its successor and
 /// removes the `state`-vs-`super` split that used to bite here.
 class ThemeModeController extends Notifier<ThemeMode> {
-  static const _preferenceKey = 'theme_mode';
-
   String? _userId;
   int _accountRevision = 0;
   int _choiceRevision = 0;
@@ -584,7 +593,7 @@ class ThemeModeController extends Notifier<ThemeMode> {
     try {
       final preferences = await SharedPreferences.getInstance();
       final localMode =
-          themeModeFromWire(preferences.getString(_preferenceKey));
+          themeModeFromWire(preferences.getString(_themeModePreferenceKey));
       if (accountRevision != _accountRevision) return;
 
       if (localMode != null && choiceRevision == _choiceRevision) {
@@ -632,7 +641,8 @@ class ThemeModeController extends Notifier<ThemeMode> {
     try {
       final preferences = await SharedPreferences.getInstance();
       if (choiceRevision != _choiceRevision) return;
-      await preferences.setString(_preferenceKey, themeModeToWire(mode));
+      await preferences.setString(
+          _themeModePreferenceKey, themeModeToWire(mode));
     } catch (error, stackTrace) {
       debugPrint('[datedawn] Could not save local theme preference: $error');
       debugPrintStack(stackTrace: stackTrace);
@@ -665,8 +675,6 @@ final themeModeProvider =
 /// The initial value follows the device locale rather than a hard-coded default,
 /// so a phone set to a 24-hour region reads correctly before anything is chosen.
 class TimeFormatController extends Notifier<TimeFormat> {
-  static const _preferenceKey = 'time_format';
-
   String? _userId;
   bool _hasExplicitChoice = false;
   int _accountRevision = 0;
@@ -718,7 +726,7 @@ class TimeFormatController extends Notifier<TimeFormat> {
     try {
       final preferences = await SharedPreferences.getInstance();
       final localFormat =
-          timeFormatFromWire(preferences.getString(_preferenceKey));
+          timeFormatFromWire(preferences.getString(_timeFormatPreferenceKey));
       if (accountRevision != _accountRevision) return;
       // A local choice wins until the account is known to disagree; the remote
       // read below is what settles that.
@@ -739,7 +747,7 @@ class TimeFormatController extends Notifier<TimeFormat> {
         state = remoteFormat;
         _hasExplicitChoice = true;
         await preferences.setString(
-            _preferenceKey, timeFormatToWire(remoteFormat));
+            _timeFormatPreferenceKey, timeFormatToWire(remoteFormat));
       } else if (_hasExplicitChoice) {
         // Nothing on the account yet — push whatever this device has.
         _queueRemoteSave(userId, state, accountRevision);
@@ -753,7 +761,8 @@ class TimeFormatController extends Notifier<TimeFormat> {
   Future<void> _saveLocally(TimeFormat format) async {
     try {
       final preferences = await SharedPreferences.getInstance();
-      await preferences.setString(_preferenceKey, timeFormatToWire(format));
+      await preferences.setString(
+          _timeFormatPreferenceKey, timeFormatToWire(format));
     } catch (error, stackTrace) {
       debugPrint('[datedawn] Could not save local time format: $error');
       debugPrintStack(stackTrace: stackTrace);

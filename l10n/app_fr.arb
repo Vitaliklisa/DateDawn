@@ -1754,6 +1754,20 @@
   "@deleteAccountConfirmationLabel": { "description": "Account deletion confirmation input label." },
   "permanentlyDeleteAccount": "Supprimer définitivement le compte",
   "@permanentlyDeleteAccount": { "description": "Final account deletion confirmation button." },
-  "accountDeleted": "Votre compte et vos données ont été supprimés.",
-  "@accountDeleted": { "description": "Success message after account deletion." }
+  "deleteAccountProfileConsequence": "Votre profil sera supprimé définitivement.",
+  "@deleteAccountProfileConsequence": { "description": "Account deletion consequence about the profile." },
+  "deleteAccountAccessConsequence": "Vous perdrez l’accès à tous vos événements et cercles.",
+  "@deleteAccountAccessConsequence": { "description": "Account deletion consequence about events and circles." },
+  "deleteAccountIrreversibleConsequence": "Cette action est irréversible.",
+  "@deleteAccountIrreversibleConsequence": { "description": "Account deletion consequence about irreversibility." },
+  "deleteAccountPermanentlyAction": "Supprimer définitivement le compte",
+  "@deleteAccountPermanentlyAction": { "description": "Final account deletion screen button." },
+  "accountDeleted": "Compte supprimé avec succès",
+  "@accountDeleted": { "description": "Success message after account deletion." },
+  "serverTimedOutTryAgain": "Le délai d’attente du serveur a expiré. Veuillez réessayer plus tard.",
+  "@serverTimedOutTryAgain": { "description": "Error shown when account deletion returns a server timeout." },
+  "accountDeletionFailed": "La suppression du compte n’a pas abouti. Veuillez réessayer.",
+  "@accountDeletionFailed": { "description": "Unexpected account deletion failure." },
+  "accountDeletedCleanupWarning": "Le compte a été supprimé, mais certains réglages locaux n’ont pas pu être effacés. Redémarrez l’application avant d’utiliser un autre compte.",
+  "@accountDeletedCleanupWarning": { "description": "Warning shown when local settings could not be cleared after account deletion." }
 }

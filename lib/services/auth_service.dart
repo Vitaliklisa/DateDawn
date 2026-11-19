@@ -122,6 +122,8 @@ class AuthService {
     return user == null ? null : AppUser.fromFirebase(user);
   }
 
+  String? get currentEmail => _auth.currentUser?.email;
+
   Future<AppUser> signInWithEmail({
     required String email,
     required String password,

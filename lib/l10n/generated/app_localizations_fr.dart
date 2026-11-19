@@ -1377,5 +1377,33 @@ class AppLocalizationsFr extends AppLocalizations {
   String get permanentlyDeleteAccount => 'Supprimer définitivement le compte';
 
   @override
-  String get accountDeleted => 'Votre compte et vos données ont été supprimés.';
+  String get deleteAccountProfileConsequence =>
+      'Votre profil sera supprimé définitivement.';
+
+  @override
+  String get deleteAccountAccessConsequence =>
+      'Vous perdrez l’accès à tous vos événements et cercles.';
+
+  @override
+  String get deleteAccountIrreversibleConsequence =>
+      'Cette action est irréversible.';
+
+  @override
+  String get deleteAccountPermanentlyAction =>
+      'Supprimer définitivement le compte';
+
+  @override
+  String get accountDeleted => 'Compte supprimé avec succès';
+
+  @override
+  String get serverTimedOutTryAgain =>
+      'Le délai d’attente du serveur a expiré. Veuillez réessayer plus tard.';
+
+  @override
+  String get accountDeletionFailed =>
+      'La suppression du compte n’a pas abouti. Veuillez réessayer.';
+
+  @override
+  String get accountDeletedCleanupWarning =>
+      'Le compte a été supprimé, mais certains réglages locaux n’ont pas pu être effacés. Redémarrez l’application avant d’utiliser un autre compte.';
 }
