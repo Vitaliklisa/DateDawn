@@ -91,17 +91,8 @@ if (existsSync(canvaskitDir)) {
     consider(join(canvaskitDir, entry.name), entry.name);
   }
 
-  // `chromium/` and `webparagraph/` are per-engine shims for the renderers
-  // being removed. They hold nothing the canvaskit build reads.
-  for (const dir of ['chromium', 'webparagraph']) {
-    const target = join(canvaskitDir, dir);
-    if (!existsSync(target)) continue;
-    const size = du(target);
-    rmSync(target, { recursive: true, force: true });
-    removed += 1;
-    freed += size;
-    removedNames.push(`${dir}/`);
-  }
+  // `chromium/` and `webparagraph/` are required by Flutter Web 3.22+ for CanvasKit
+  // on Chromium browsers and WebParagraph text rendering. Do not delete them.
 }
 
 function du(path) {
