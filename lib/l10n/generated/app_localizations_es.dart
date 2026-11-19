@@ -1365,11 +1365,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmationPrompt =>
-      'Escribe exactamente el correo electrónico o nombre visible de tu cuenta para continuar.';
+      'Escribe exactamente el correo electrónico de tu cuenta para continuar.';
 
   @override
   String get deleteAccountConfirmationLabel =>
-      'Correo electrónico o nombre visible';
+      'Correo electrónico de la cuenta';
 
   @override
   String get permanentlyDeleteAccount => 'Eliminar cuenta permanentemente';

@@ -1373,11 +1373,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmationPrompt =>
-      'Gib deine genaue Konto-E-Mail-Adresse oder deinen Anzeigenamen ein, um fortzufahren.';
+      'Gib deine genaue Konto-E-Mail-Adresse ein, um fortzufahren.';
 
   @override
-  String get deleteAccountConfirmationLabel =>
-      'E-Mail-Adresse oder Anzeigename';
+  String get deleteAccountConfirmationLabel => 'Konto-E-Mail-Adresse';
 
   @override
   String get permanentlyDeleteAccount => 'Konto endgültig löschen';

@@ -4,9 +4,9 @@ import '../core/theme.dart';
 import '../l10n/app_localizations_context.dart';
 
 class DeleteAccountDialog extends StatefulWidget {
-  const DeleteAccountDialog({super.key, required this.expectedValue});
+  const DeleteAccountDialog({super.key, required this.expectedEmail});
 
-  final String expectedValue;
+  final String expectedEmail;
 
   @override
   State<DeleteAccountDialog> createState() => _DeleteAccountDialogState();
@@ -41,6 +41,7 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
             autofocus: true,
             autocorrect: false,
             enableSuggestions: false,
+            keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
               labelText: l10n.deleteAccountConfirmationLabel,
             ),
@@ -55,8 +56,8 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
         ),
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: colors.danger),
-          onPressed: widget.expectedValue.isNotEmpty &&
-                  _confirmation.text == widget.expectedValue
+          onPressed: widget.expectedEmail.isNotEmpty &&
+                  _confirmation.text == widget.expectedEmail
               ? () => Navigator.of(context).pop(_confirmation.text)
               : null,
           child: Text(l10n.permanentlyDeleteAccount),

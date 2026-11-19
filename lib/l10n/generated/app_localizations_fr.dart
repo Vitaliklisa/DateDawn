@@ -1368,10 +1368,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmationPrompt =>
-      'Saisissez exactement l’adresse e-mail ou le nom affiché de votre compte pour continuer.';
+      'Saisissez exactement l’adresse e-mail de votre compte pour continuer.';
 
   @override
-  String get deleteAccountConfirmationLabel => 'E-mail ou nom affiché';
+  String get deleteAccountConfirmationLabel => 'E-mail du compte';
 
   @override
   String get permanentlyDeleteAccount => 'Supprimer définitivement le compte';

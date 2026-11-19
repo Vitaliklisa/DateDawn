@@ -20,7 +20,7 @@ void main() {
                 result = await showDialog<String>(
                   context: context,
                   builder: (_) => const DeleteAccountDialog(
-                      expectedValue: 'Alex@example.com'),
+                      expectedEmail: 'Alex@example.com'),
                 );
               },
               child: const Text('Open confirmation'),
@@ -40,6 +40,10 @@ void main() {
     );
     final confirmButton =
         find.widgetWithText(FilledButton, 'Permanently Delete Account');
+    expect(tester.widget<FilledButton>(confirmButton).onPressed, isNull);
+
+    await tester.enterText(find.byType(TextField), 'Alex');
+    await tester.pump();
     expect(tester.widget<FilledButton>(confirmButton).onPressed, isNull);
 
     await tester.enterText(find.byType(TextField), 'alex@example.com');

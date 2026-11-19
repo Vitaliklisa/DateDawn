@@ -209,12 +209,11 @@ class SettingsScreen extends ConsumerWidget {
                 side: BorderSide(color: colors.danger.withValues(alpha: 0.6)),
               ),
               onPressed: () async {
-                final expected = user.email.isNotEmpty
-                    ? user.email
-                    : (user.displayName ?? '');
+                final expectedEmail = user.email.trim();
                 final confirmation = await showDialog<String>(
                   context: context,
-                  builder: (_) => DeleteAccountDialog(expectedValue: expected),
+                  builder: (_) =>
+                      DeleteAccountDialog(expectedEmail: expectedEmail),
                 );
                 if (confirmation == null || !context.mounted) return;
                 final failure = await runAction(

@@ -459,10 +459,11 @@ firebase deploy --only hosting
 The Flutter shell is static, with three small Vercel API handlers for
 authenticated account, event, and circle deletion. Those handlers verify the
 Firebase ID token and use the Admin SDK; the app never includes Admin
-credentials. Google sign-in uses Firebase's redirect flow on mobile web
-browsers (popup on desktop); this is not a cookie-backed SSR session. Set these
-Vercel environment variables for Production, Preview,
-and Development:
+credentials. Account deletion confirmation requires the exact Firebase Auth
+email; display names are not accepted. Google sign-in uses Firebase's redirect
+flow on mobile web browsers (popup on desktop); this is not a cookie-backed SSR
+session. Set these Vercel environment variables for Production, Preview, and
+Development:
 
 - `FIREBASE_ADMIN_PROJECT_ID` — Firebase project ID (`datedawn`).
 - `FIREBASE_ADMIN_CLIENT_EMAIL` — service-account client email.

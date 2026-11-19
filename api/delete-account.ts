@@ -1,3 +1,3 @@
-import { deleteAccountHandler } from "../server/deletions";
+import { deleteAccountHandler } from "../server/deletions.ts";
 
 export default deleteAccountHandler;

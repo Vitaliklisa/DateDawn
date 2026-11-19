@@ -21,11 +21,11 @@ type DeletionContext = {
 type DeletionAction = (context: DeletionContext) => Promise<void>;
 
 class HttpError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
     super(message);
+    this.status = status;
   }
 }
 
@@ -34,7 +34,10 @@ function getAdmin() {
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
   if (!projectId || !clientEmail || !privateKey) {
-    throw new Error("Firebase Admin credentials are not configured.");
+    throw new HttpError(
+      503,
+      "The account deletion service is not configured. Please contact support.",
+    );
   }
 
   const app =
@@ -222,11 +225,12 @@ async function deleteOwnedEvent(db: Firestore, event: QueryDocumentSnapshot): Pr
 async function deleteAccount({ uid, input, db, auth }: DeletionContext): Promise<void> {
   const confirmation = requiredString(input, "confirmation");
   const user = await auth.getUser(uid);
-  const expectedValues = [user.email, user.displayName].filter(
-    (value): value is string => typeof value === "string" && value.length > 0,
-  );
-  if (!expectedValues.includes(confirmation)) {
-    throw new HttpError(400, "The confirmation value does not match your account.");
+  const accountEmail = user.email;
+  if (!accountEmail) {
+    throw new HttpError(400, "Your account has no email address to confirm deletion.");
+  }
+  if (confirmation !== accountEmail) {
+    throw new HttpError(400, "The confirmation value does not match your account email.");
   }
 
   const ownedEvents = await db.collection("events").where("createdBy", "==", uid).get();
@@ -257,19 +261,17 @@ async function deleteAccount({ uid, input, db, auth }: DeletionContext): Promise
     await circle.ref.collection("members").doc(uid).delete();
   }
 
-  const email = user.email?.toLowerCase();
+  const email = accountEmail.toLowerCase();
   const invitationQueries = [
     db.collection("invitations").where("invitedBy", "==", uid),
     db.collection("circle_invitations").where("invitedBy", "==", uid),
     db.collection("responses").where("recipientId", "==", uid),
   ];
-  if (email) {
-    invitationQueries.push(
-      db.collection("invitations").where("inviteeEmail", "==", email),
-      db.collection("circle_invitations").where("inviteeEmail", "==", email),
-      db.collection("responses").where("responderEmail", "==", email),
-    );
-  }
+  invitationQueries.push(
+    db.collection("invitations").where("inviteeEmail", "==", email),
+    db.collection("circle_invitations").where("inviteeEmail", "==", email),
+    db.collection("responses").where("responderEmail", "==", email),
+  );
   await Promise.all(invitationQueries.map((query) => deleteQuery(db, query)));
 
   while (true) {

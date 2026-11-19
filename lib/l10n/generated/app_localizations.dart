@@ -2333,13 +2333,13 @@ abstract class AppLocalizations {
   /// Instructions for confirming account deletion.
   ///
   /// In en, this message translates to:
-  /// **'Type your exact account email or display name to continue.'**
+  /// **'Type your exact account email to continue.'**
   String get deleteAccountConfirmationPrompt;
 
   /// Account deletion confirmation input label.
   ///
   /// In en, this message translates to:
-  /// **'Email or display name'**
+  /// **'Account email'**
   String get deleteAccountConfirmationLabel;
 
   /// Final account deletion confirmation button.

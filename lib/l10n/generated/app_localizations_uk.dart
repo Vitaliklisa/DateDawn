@@ -1374,11 +1374,11 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmationPrompt =>
-      'Введіть точну електронну адресу або ім’я профілю, щоб продовжити.';
+      'Введіть точну електронну адресу облікового запису, щоб продовжити.';
 
   @override
   String get deleteAccountConfirmationLabel =>
-      'Електронна адреса або ім’я профілю';
+      'Електронна адреса облікового запису';
 
   @override
   String get permanentlyDeleteAccount => 'Видалити обліковий запис назавжди';

@@ -1,3 +1,3 @@
-import { deleteCircleHandler } from "../server/deletions";
+import { deleteCircleHandler } from "../server/deletions.ts";
 
 export default deleteCircleHandler;
