@@ -31,7 +31,8 @@ fi
 cd "$ROOT_DIR"
 flutter config --no-analytics --enable-web
 flutter pub get
-flutter build web --release --base-href /
+flutter build web --release --base-href / \
+  --dart-define=FIREBASE_AUTH_DOMAIN=date-dawn.vercel.app
 
 # Prune the renderers Flutter stages but the app never loads.
 #

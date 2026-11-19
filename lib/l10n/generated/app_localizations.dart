@@ -2317,6 +2317,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your account is not allowed to read this list. If this keeps happening, update the app.'**
   String get blockedListPermissionError;
+
+  /// Destructive account deletion action in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccount;
+
+  /// Permanent account deletion warning.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is permanent. All your events, circles, and data will be deleted forever.'**
+  String get deleteAccountWarning;
+
+  /// Instructions for confirming account deletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Type your exact account email or display name to continue.'**
+  String get deleteAccountConfirmationPrompt;
+
+  /// Account deletion confirmation input label.
+  ///
+  /// In en, this message translates to:
+  /// **'Email or display name'**
+  String get deleteAccountConfirmationLabel;
+
+  /// Final account deletion confirmation button.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently Delete Account'**
+  String get permanentlyDeleteAccount;
+
+  /// Success message after account deletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account and data have been deleted.'**
+  String get accountDeleted;
 }
 
 class _AppLocalizationsDelegate

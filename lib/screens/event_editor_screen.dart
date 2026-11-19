@@ -13,6 +13,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../services/event_repository.dart';
+import '../services/deletion_service.dart';
 import '../widgets/block_user.dart';
 import '../widgets/brand_kit.dart';
 
@@ -302,9 +303,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
 
     setState(() => _busy = true);
     try {
-      await ref
-          .read(eventRepositoryProvider)
-          .deleteEvent(event: existing, userId: user.id);
+      await ref.read(deletionServiceProvider).deleteEvent(existing.id);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.l10n.countdownDeleted)),
@@ -316,6 +315,12 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       context.go(Routes.home);
     } on DataFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
+    } on DeletionFailure catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = context.l10n.countdownDeleteFailed);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -377,7 +382,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         ),
         title: Text(editing ? l10n.editCountdown : l10n.newCountdown),
         actions: [
-          if (editing && (widget.event?.canManage(user.id) ?? false))
+          if (editing && widget.event?.createdBy == user.id)
             PopupMenuButton<String>(
               tooltip: l10n.countdownActions,
               enabled: !_busy,

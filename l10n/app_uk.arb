@@ -740,5 +740,17 @@
   "blockedListLoadFailed": "Не вдалося завантажити список заблокованих людей",
   "@blockedListLoadFailed": { "description": "Заголовок помилки завантаження списку заблокованих людей." },
   "blockedListPermissionError": "Ваш обліковий запис не має доступу до цього списку. Якщо проблема не зникне, оновіть застосунок.",
-  "@blockedListPermissionError": { "description": "Помилка доступу під час читання списку заблокованих людей." }
+  "@blockedListPermissionError": { "description": "Помилка доступу під час читання списку заблокованих людей." },
+  "deleteAccount": "Видалити обліковий запис",
+  "@deleteAccount": { "description": "Destructive account deletion action in Settings." },
+  "deleteAccountWarning": "Цю дію неможливо скасувати. Усі ваші події, кола та дані буде видалено назавжди.",
+  "@deleteAccountWarning": { "description": "Permanent account deletion warning." },
+  "deleteAccountConfirmationPrompt": "Введіть точну електронну адресу або ім’я профілю, щоб продовжити.",
+  "@deleteAccountConfirmationPrompt": { "description": "Instructions for confirming account deletion." },
+  "deleteAccountConfirmationLabel": "Електронна адреса або ім’я профілю",
+  "@deleteAccountConfirmationLabel": { "description": "Account deletion confirmation input label." },
+  "permanentlyDeleteAccount": "Видалити обліковий запис назавжди",
+  "@permanentlyDeleteAccount": { "description": "Final account deletion confirmation button." },
+  "accountDeleted": "Ваш обліковий запис і дані видалено.",
+  "@accountDeleted": { "description": "Success message after account deletion." }
 }

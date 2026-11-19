@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../firebase_config.dart';
+import 'deletion_service.dart';
 
 ActionCodeSettings _actionCodeSettings(String url) => ActionCodeSettings(
       url: url,
@@ -84,9 +85,14 @@ class AuthFailure implements Exception {
 /// is exactly the free-tier surface this app targets. No server code is
 /// involved: Firebase Auth issues and refreshes the tokens itself.
 class AuthService {
-  AuthService({FirebaseAuth? auth, GoogleSignIn? googleSignIn})
-      : _auth = auth ?? FirebaseAuth.instance,
-        _googleSignIn = googleSignIn ?? _defaultGoogleSignIn();
+  AuthService({
+    FirebaseAuth? auth,
+    GoogleSignIn? googleSignIn,
+    DeletionService? deletionService,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _googleSignIn = googleSignIn ?? _defaultGoogleSignIn(),
+        _deletionService = deletionService ??
+            DeletionService(auth: auth ?? FirebaseAuth.instance);
 
   /// Builds the Google client.
   ///
@@ -103,6 +109,7 @@ class AuthService {
 
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
+  final DeletionService _deletionService;
   Future<void>? _googleSignInInitialization;
 
   /// Fires when the user signs in/out or their profile is reloaded or updated.
@@ -201,9 +208,9 @@ class AuthService {
   /// Google sign-in.
   ///
   /// The flow differs per platform but the credential shape is the same:
-  /// - **web**: `signInWithPopup` is the only option — `google_sign_in` on web
-  ///   routes through it under the hood, and Firebase rejects a manual
-  ///   `signInWithCredential` from a popup origin.
+  /// - **desktop web**: `signInWithPopup` is used directly. Mobile web calls
+  ///   [signInWithGoogleRedirect] instead because mobile browsers restrict
+  ///   popup-based OAuth.
   /// - **mobile**: the native picker returns an idToken, which is exchanged for
   ///   a Firebase credential.
   Future<AppUser> signInWithGoogle() async {
@@ -259,6 +266,17 @@ class AuthService {
     }
   }
 
+  Future<void> signInWithGoogleRedirect() async {
+    try {
+      final provider = GoogleAuthProvider()
+        ..addScope('email')
+        ..addScope('profile');
+      await _auth.signInWithRedirect(provider);
+    } on FirebaseAuthException catch (e) {
+      throw _mapException(e);
+    }
+  }
+
   Future<void> sendPasswordReset(String email) async {
     try {
       await _auth.sendPasswordResetEmail(
@@ -310,18 +328,15 @@ class AuthService {
     await _auth.signOut();
   }
 
-  Future<void> deleteAccount() async {
+  Future<void> deleteAccount({required String confirmation}) async {
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      throw const AuthFailure('Sign in before deleting your account.');
+    }
     try {
-      await user.delete();
+      await _deletionService.deleteAccount(confirmation);
+      await signOut();
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'requires-recent-login') {
-        throw const AuthFailure(
-          'For security, please sign in again before deleting your account.',
-          code: 'requires-recent-login',
-        );
-      }
       throw _mapException(e);
     }
   }

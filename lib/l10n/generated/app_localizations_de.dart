@@ -1363,4 +1363,25 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get blockedListPermissionError =>
       'Sie können die Liste der blockierten Personen nicht laden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.';
+
+  @override
+  String get deleteAccount => 'Konto löschen';
+
+  @override
+  String get deleteAccountWarning =>
+      'Diese Aktion ist endgültig. Alle deine Ereignisse, Kreise und Daten werden für immer gelöscht.';
+
+  @override
+  String get deleteAccountConfirmationPrompt =>
+      'Gib deine genaue Konto-E-Mail-Adresse oder deinen Anzeigenamen ein, um fortzufahren.';
+
+  @override
+  String get deleteAccountConfirmationLabel =>
+      'E-Mail-Adresse oder Anzeigename';
+
+  @override
+  String get permanentlyDeleteAccount => 'Konto endgültig löschen';
+
+  @override
+  String get accountDeleted => 'Dein Konto und deine Daten wurden gelöscht.';
 }

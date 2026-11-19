@@ -1,10 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "true",
+  "installCommand": "npm ci",
   "buildCommand": "bash scripts/build-vercel-web.sh",
   "outputDirectory": "build/web",
   "rewrites": [
+    {
+      "source": "/__/auth/(.*)",
+      "destination": "https://datedawn.firebaseapp.com/__/auth/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/"

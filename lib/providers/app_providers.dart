@@ -13,11 +13,19 @@ import '../core/recent_contacts.dart';
 import '../core/time_format.dart';
 import '../router.dart';
 import '../services/auth_service.dart';
+import '../services/deletion_service.dart';
 import '../services/event_repository.dart';
 import '../services/notification_service.dart';
 
 /// Overridden in `main()` (and in tests) with a ready-to-use instance.
-final authServiceProvider = Provider<AuthService>((ref) => AuthService());
+final deletionServiceProvider = Provider<DeletionService>((ref) {
+  final service = DeletionService();
+  ref.onDispose(service.close);
+  return service;
+});
+final authServiceProvider = Provider<AuthService>((ref) {
+  return AuthService(deletionService: ref.watch(deletionServiceProvider));
+});
 
 /// The Firestore-backed data layer: countdowns, circles, invitations, notes.
 final eventRepositoryProvider = Provider<EventRepository>((ref) {
@@ -790,6 +798,9 @@ Future<String?> runAction(
     }
     return null;
   } on AuthFailure catch (e) {
+    messenger?.showSnackBar(SnackBar(content: Text(e.message)));
+    return e.message;
+  } on DeletionFailure catch (e) {
     messenger?.showSnackBar(SnackBar(content: Text(e.message)));
     return e.message;
   } on DataFailure catch (e) {

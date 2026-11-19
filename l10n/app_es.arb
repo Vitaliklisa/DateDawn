@@ -737,5 +737,17 @@
   "blockedListLoadFailed": "No se pudo cargar tu lista de personas bloqueadas",
   "@blockedListLoadFailed": {"description": "Title for a blocked people list loading error."},
   "blockedListPermissionError": "Tu cuenta no tiene permiso para leer esta lista. Si el problema continúa, actualiza la aplicación.",
-  "@blockedListPermissionError": {"description": "Permission error when reading the blocked people list."}
+  "@blockedListPermissionError": {"description": "Permission error when reading the blocked people list."},
+  "deleteAccount": "Eliminar cuenta",
+  "@deleteAccount": {"description": "Destructive account deletion action in Settings."},
+  "deleteAccountWarning": "Esta acción es permanente. Todos tus eventos, círculos y datos se eliminarán para siempre.",
+  "@deleteAccountWarning": {"description": "Permanent account deletion warning."},
+  "deleteAccountConfirmationPrompt": "Escribe exactamente el correo electrónico o nombre visible de tu cuenta para continuar.",
+  "@deleteAccountConfirmationPrompt": {"description": "Instructions for confirming account deletion."},
+  "deleteAccountConfirmationLabel": "Correo electrónico o nombre visible",
+  "@deleteAccountConfirmationLabel": {"description": "Account deletion confirmation input label."},
+  "permanentlyDeleteAccount": "Eliminar cuenta permanentemente",
+  "@permanentlyDeleteAccount": {"description": "Final account deletion confirmation button."},
+  "accountDeleted": "Tu cuenta y tus datos se han eliminado.",
+  "@accountDeleted": {"description": "Success message after account deletion."}
 }

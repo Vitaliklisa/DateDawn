@@ -1743,5 +1743,17 @@
   "blockedListPermissionError": "Votre compte n’est pas autorisé à lire cette liste. Si cela continue, mettez à jour l’application.",
   "@blockedListPermissionError": {
     "description": "Permission error when reading the blocked people list."
-  }
+  },
+  "deleteAccount": "Supprimer le compte",
+  "@deleteAccount": { "description": "Destructive account deletion action in Settings." },
+  "deleteAccountWarning": "Cette action est irréversible. Tous vos événements, cercles et données seront supprimés définitivement.",
+  "@deleteAccountWarning": { "description": "Permanent account deletion warning." },
+  "deleteAccountConfirmationPrompt": "Saisissez exactement l’adresse e-mail ou le nom affiché de votre compte pour continuer.",
+  "@deleteAccountConfirmationPrompt": { "description": "Instructions for confirming account deletion." },
+  "deleteAccountConfirmationLabel": "E-mail ou nom affiché",
+  "@deleteAccountConfirmationLabel": { "description": "Account deletion confirmation input label." },
+  "permanentlyDeleteAccount": "Supprimer définitivement le compte",
+  "@permanentlyDeleteAccount": { "description": "Final account deletion confirmation button." },
+  "accountDeleted": "Votre compte et vos données ont été supprimés.",
+  "@accountDeleted": { "description": "Success message after account deletion." }
 }

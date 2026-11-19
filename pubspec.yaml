@@ -1,7 +1,7 @@
 name: datedawn
 description: "Date Dawn — count down to the moments that matter. Flutter + Firebase, for Android, iOS and web."
 publish_to: "none"
-version: 1.0.0+6
+version: 1.0.0+7
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -43,6 +43,7 @@ dependencies:
   flutter_local_notifications: ^22.3.1
 
   cupertino_icons: ^2.0.0
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

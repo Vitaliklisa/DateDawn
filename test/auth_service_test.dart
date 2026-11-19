@@ -11,9 +11,22 @@ class _MockUser extends Mock implements User {}
 
 class _FakeActionCodeSettings extends Fake implements ActionCodeSettings {}
 
+class _FakeAuthProvider extends Fake implements AuthProvider {}
+
 void main() {
   setUpAll(() {
     registerFallbackValue(_FakeActionCodeSettings());
+    registerFallbackValue(_FakeAuthProvider());
+  });
+
+  test('mobile-web Google sign-in starts Firebase redirect authentication',
+      () async {
+    final auth = _MockFirebaseAuth();
+    when(() => auth.signInWithRedirect(any())).thenAnswer((_) async {});
+
+    await AuthService(auth: auth).signInWithGoogleRedirect();
+
+    verify(() => auth.signInWithRedirect(any())).called(1);
   });
 
   group('AuthService email sign-in', () {

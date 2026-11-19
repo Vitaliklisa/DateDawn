@@ -51,7 +51,10 @@ class DefaultFirebaseOptions {
     appId: '1:255395342604:web:225f0e20966a0c39f10129',
     messagingSenderId: '255395342604',
     projectId: 'datedawn',
-    authDomain: 'datedawn.firebaseapp.com',
+    authDomain: const String.fromEnvironment(
+      'FIREBASE_AUTH_DOMAIN',
+      defaultValue: 'datedawn.firebaseapp.com',
+    ),
     storageBucket: 'datedawn.firebasestorage.app',
     measurementId: 'G-GF48EGQGFF',
   );

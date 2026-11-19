@@ -1355,4 +1355,25 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get blockedListPermissionError =>
       'Tu cuenta no tiene permiso para leer esta lista. Si el problema continúa, actualiza la aplicación.';
+
+  @override
+  String get deleteAccount => 'Eliminar cuenta';
+
+  @override
+  String get deleteAccountWarning =>
+      'Esta acción es permanente. Todos tus eventos, círculos y datos se eliminarán para siempre.';
+
+  @override
+  String get deleteAccountConfirmationPrompt =>
+      'Escribe exactamente el correo electrónico o nombre visible de tu cuenta para continuar.';
+
+  @override
+  String get deleteAccountConfirmationLabel =>
+      'Correo electrónico o nombre visible';
+
+  @override
+  String get permanentlyDeleteAccount => 'Eliminar cuenta permanentemente';
+
+  @override
+  String get accountDeleted => 'Tu cuenta y tus datos se han eliminado.';
 }

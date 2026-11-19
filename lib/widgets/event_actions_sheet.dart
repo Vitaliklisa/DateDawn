@@ -7,6 +7,7 @@ import '../core/theme.dart';
 import '../l10n/app_localizations_context.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
+import '../services/deletion_service.dart';
 import '../services/event_repository.dart';
 import '../widgets/share_event.dart';
 
@@ -149,8 +150,7 @@ class _EventActionsSheet extends ConsumerWidget {
                 final messenger = ScaffoldMessenger.of(
                   rootNavigatorKey.currentContext ?? context,
                 );
-                if (user == null ||
-                    (event.createdBy != user.id && !event.canManage(user.id))) {
+                if (user == null || event.createdBy != user.id) {
                   messenger.showSnackBar(
                     SnackBar(
                       content: Text(l10n.onlyOwnerCanDelete),
@@ -165,16 +165,15 @@ class _EventActionsSheet extends ConsumerWidget {
                 navigator.pop();
 
                 try {
-                  await ref.read(eventRepositoryProvider).deleteEvent(
-                        event: event,
-                        userId: user.id,
-                      );
+                  await ref.read(deletionServiceProvider).deleteEvent(event.id);
                   messenger.showSnackBar(
                     SnackBar(content: Text(l10n.countdownDeleted)),
                   );
                   ref.invalidate(eventsProvider);
                   ref.read(selectedEventIdProvider.notifier).set(null);
                   onDeleted?.call();
+                } on DeletionFailure catch (e) {
+                  messenger.showSnackBar(SnackBar(content: Text(e.message)));
                 } on DataFailure catch (e) {
                   messenger.showSnackBar(SnackBar(content: Text(e.message)));
                 } catch (_) {

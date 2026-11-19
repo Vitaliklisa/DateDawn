@@ -75,6 +75,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.0.0",
+    "firebase-admin": "^14.5.1",
     "jose": "6.2.9",
     "kysely": "^0.28.5",
     "lucide-animated": "^1.0.5",

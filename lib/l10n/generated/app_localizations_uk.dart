@@ -1364,4 +1364,25 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String get blockedListPermissionError =>
       'Ваш обліковий запис не має доступу до цього списку. Якщо проблема не зникне, оновіть застосунок.';
+
+  @override
+  String get deleteAccount => 'Видалити обліковий запис';
+
+  @override
+  String get deleteAccountWarning =>
+      'Цю дію неможливо скасувати. Усі ваші події, кола та дані буде видалено назавжди.';
+
+  @override
+  String get deleteAccountConfirmationPrompt =>
+      'Введіть точну електронну адресу або ім’я профілю, щоб продовжити.';
+
+  @override
+  String get deleteAccountConfirmationLabel =>
+      'Електронна адреса або ім’я профілю';
+
+  @override
+  String get permanentlyDeleteAccount => 'Видалити обліковий запис назавжди';
+
+  @override
+  String get accountDeleted => 'Ваш обліковий запис і дані видалено.';
 }

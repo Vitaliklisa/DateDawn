@@ -300,10 +300,8 @@ class _CircleCard extends ConsumerWidget {
                 if (!context.mounted) return;
                 await runAction(
                   context,
-                  () => ref.read(eventRepositoryProvider).deleteCircle(
-                        circleId: circle.id,
-                        userId: userId,
-                      ),
+                  () =>
+                      ref.read(deletionServiceProvider).deleteCircle(circle.id),
                   successMessage: l10n.circleDeleted(circle.name),
                 );
               },

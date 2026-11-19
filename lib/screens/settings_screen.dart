@@ -8,6 +8,7 @@ import '../l10n/app_localizations_context.dart';
 import '../providers/app_providers.dart';
 import '../router.dart';
 import '../widgets/brand_kit.dart';
+import '../widgets/delete_account_dialog.dart';
 import '../widgets/language_selector.dart';
 
 /// Account and appearance. Appearance is a device preference, so it is
@@ -200,6 +201,35 @@ class SettingsScreen extends ConsumerWidget {
               },
               icon: const Icon(Icons.logout_rounded, size: 18),
               label: Text(l10n.signOut),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colors.danger,
+                side: BorderSide(color: colors.danger.withValues(alpha: 0.6)),
+              ),
+              onPressed: () async {
+                final expected = user.email.isNotEmpty
+                    ? user.email
+                    : (user.displayName ?? '');
+                final confirmation = await showDialog<String>(
+                  context: context,
+                  builder: (_) => DeleteAccountDialog(expectedValue: expected),
+                );
+                if (confirmation == null || !context.mounted) return;
+                final failure = await runAction(
+                  context,
+                  () => ref.read(authServiceProvider).deleteAccount(
+                        confirmation: confirmation,
+                      ),
+                  successMessage: l10n.accountDeleted,
+                );
+                if (failure == null && context.mounted) {
+                  context.go(Routes.home);
+                }
+              },
+              icon: const Icon(Icons.delete_forever_outlined, size: 18),
+              label: Text(l10n.deleteAccount),
             ),
           ],
         ],

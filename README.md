@@ -456,9 +456,28 @@ flutter build web --release
 firebase deploy --only hosting
 ```
 
-Or host `build/web` on any static host. Because the app is a client-side
-Firebase app, no server runtime is needed — but note that the Firebase web
-config is public by design, which is why the security rules matter.
+The Flutter shell is static, with three small Vercel API handlers for
+authenticated account, event, and circle deletion. Those handlers verify the
+Firebase ID token and use the Admin SDK; the app never includes Admin
+credentials. Google sign-in uses Firebase's redirect flow on mobile web
+browsers (popup on desktop); this is not a cookie-backed SSR session. Set these
+Vercel environment variables for Production, Preview,
+and Development:
+
+- `FIREBASE_ADMIN_PROJECT_ID` — Firebase project ID (`datedawn`).
+- `FIREBASE_ADMIN_CLIENT_EMAIL` — service-account client email.
+- `FIREBASE_ADMIN_PRIVATE_KEY` — service-account private key; preserve the
+  `\n` line breaks or enter them as escaped `\\n`.
+
+Create a dedicated service account with the minimum Firestore and Firebase
+Authentication privileges needed for deletion. Do not commit its key or add it
+to Flutter build variables. Firebase web configuration remains public by
+design, which is why Firestore rules stay restrictive. The Vercel build sets
+`authDomain` to `date-dawn.vercel.app` and proxies `/__/auth/*` to Firebase to
+support redirect sign-in when third-party storage is blocked. Add
+`https://date-dawn.vercel.app/__/auth/handler` to Google's authorized redirect
+URIs in the Firebase project's Google OAuth client. The Firebase Hosting build
+keeps the default `datedawn.firebaseapp.com` auth domain.
 
 ---
 
@@ -520,9 +539,11 @@ subcollection query, so membership is checked against a plain array on the
 circle document — one `get()` instead of a scan. The array and the `members`
 subcollection are written in the same batch, so they cannot drift.
 
-**Soft delete.** Deleting stamps `deletedAt` rather than removing the document,
-so an accidental delete is recoverable and participant/note history is not
-orphaned. Every read filters `deletedAt == null`.
+**Deletion.** Owner-initiated event and circle deletion, and account deletion,
+run through authenticated Vercel Admin SDK handlers. Event participants/notes
+and circle members are recursively removed; event invitations/responses are
+deleted as well. Deleting a circle unlinks it from events rather than deleting
+those events. Older events with `deletedAt` remain hidden from feeds.
 
 **Inviting by email.** If the email already has an account, a participant row is
 written immediately (pending) and an inbox notification is sent. If not, the
