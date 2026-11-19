@@ -473,12 +473,14 @@ Development:
 Create a dedicated service account with the minimum Firestore and Firebase
 Authentication privileges needed for deletion. Do not commit its key or add it
 to Flutter build variables. Firebase web configuration remains public by
-design, which is why Firestore rules stay restrictive. The Vercel build sets
-`authDomain` to `date-dawn.vercel.app` and proxies `/__/auth/*` to Firebase to
-support redirect sign-in when third-party storage is blocked. Add
+design, which is why Firestore rules stay restrictive. The Vercel build
+defaults to the existing `datedawn.firebaseapp.com` auth domain to keep its
+current Google OAuth callback working. The `/__/auth/*` proxy is configured for
+an optional same-origin setup: only set the Vercel build environment variable
+`FIREBASE_AUTH_DOMAIN=date-dawn.vercel.app` after adding
 `https://date-dawn.vercel.app/__/auth/handler` to Google's authorized redirect
 URIs in the Firebase project's Google OAuth client. The Firebase Hosting build
-keeps the default `datedawn.firebaseapp.com` auth domain.
+continues to use `datedawn.firebaseapp.com`.
 
 ---
 
