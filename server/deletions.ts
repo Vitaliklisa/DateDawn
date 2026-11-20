@@ -21,6 +21,7 @@ type DeletionContext = {
   auth: ReturnType<typeof getAuth>;
 };
 type DeletionAction = (context: DeletionContext) => Promise<void>;
+type CircleToUnlink = { id: string; memberIds: string[] };
 
 class HttpError extends Error {
   readonly status: number;
@@ -173,7 +174,7 @@ async function deleteQuery(db: Firestore, query: Query): Promise<void> {
 async function finishBulkWriter(
   writer: BulkWriter,
   writes: Promise<unknown>[],
-  operation: "delete" | "update",
+  operation: "delete" | "update" | "write",
 ): Promise<void> {
   // close() flushes a partial batch; await the individual results afterward.
   const resultsPromise = Promise.allSettled(writes);
@@ -182,6 +183,28 @@ async function finishBulkWriter(
   const failures = results.filter((result) => result.status === "rejected");
   if (failures.length > 0) {
     throw new Error(`Failed to ${operation} ${failures.length} Firestore documents.`);
+  }
+}
+
+async function runInBatches<T>(
+  items: T[],
+  batchSize: number,
+  operation: (item: T) => Promise<void>,
+  description: string,
+): Promise<void> {
+  for (let offset = 0; offset < items.length; offset += batchSize) {
+    const results = await Promise.allSettled(
+      items.slice(offset, offset + batchSize).map(operation),
+    );
+    const failures = results.filter(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (failures.length > 0) {
+      throw new AggregateError(
+        failures.map((failure) => failure.reason),
+        `Failed to ${description} (${failures.length} operations).`,
+      );
+    }
   }
 }
 
@@ -207,78 +230,118 @@ async function unlinkCircleEvents(
   circleId: string,
   memberIds: string[],
 ): Promise<void> {
+  await unlinkCirclesFromEvents(db, [{ id: circleId, memberIds }]);
+}
+
+async function unlinkCirclesFromEvents(
+  db: Firestore,
+  circlesToUnlink: CircleToUnlink[],
+): Promise<void> {
+  const circlesById = new Map(circlesToUnlink.map(({ id, memberIds }) => [id, new Set(memberIds)]));
+  const circleIdsToUnlink = [...circlesById.keys()];
+  if (circleIdsToUnlink.length === 0) return;
+
+  const circleIdsToUnlinkSet = new Set(circleIdsToUnlink);
   const events = db.collection("events");
-  while (true) {
-    const page = await events
-      .where("sharedWithCircleIds", "array-contains", circleId)
-      .limit(300)
-      .get();
-    if (page.empty) return;
+  const circleQueryBatchSize = 30;
+  for (
+    let circleOffset = 0;
+    circleOffset < circleIdsToUnlink.length;
+    circleOffset += circleQueryBatchSize
+  ) {
+    const targetCircleIds = circleIdsToUnlink.slice(
+      circleOffset,
+      circleOffset + circleQueryBatchSize,
+    );
+    while (true) {
+      const page = await events
+        .where("sharedWithCircleIds", "array-contains-any", targetCircleIds)
+        .limit(300)
+        .get();
+      if (page.empty) break;
 
-    const eventEntries = page.docs.map((event) => {
-      const data = event.data();
-      const circleIds = Array.isArray(data.sharedWithCircleIds)
-        ? data.sharedWithCircleIds.filter((id): id is string => typeof id === "string")
-        : [];
-      const otherCircleIds = [...new Set(circleIds.filter((id) => id !== circleId))];
-      return { event, data, otherCircleIds };
-    });
-    const otherCircleIds = [...new Set(eventEntries.flatMap((entry) => entry.otherCircleIds))];
-    const membersByCircleId = new Map<string, Set<string>>();
+      const eventEntries = page.docs.map((event) => {
+        const data = event.data();
+        const circleIds = Array.isArray(data.sharedWithCircleIds)
+          ? data.sharedWithCircleIds.filter((id): id is string => typeof id === "string")
+          : [];
+        return {
+          event,
+          data,
+          removedCircleIds: [...new Set(circleIds.filter((id) => circleIdsToUnlinkSet.has(id)))],
+          otherCircleIds: [...new Set(circleIds.filter((id) => !circleIdsToUnlinkSet.has(id)))],
+        };
+      });
+      const otherCircleIds = [...new Set(eventEntries.flatMap((entry) => entry.otherCircleIds))];
+      const membersByCircleId = new Map<string, Set<string>>();
 
-    const queryBatchSize = 30;
-    const concurrentBatches = 5;
-    for (
-      let offset = 0;
-      offset < otherCircleIds.length;
-      offset += queryBatchSize * concurrentBatches
-    ) {
-      const batches: string[][] = [];
-      const batchEnd = Math.min(offset + queryBatchSize * concurrentBatches, otherCircleIds.length);
-      for (let batchOffset = offset; batchOffset < batchEnd; batchOffset += queryBatchSize) {
-        batches.push(otherCircleIds.slice(batchOffset, batchOffset + queryBatchSize));
-      }
+      const circleQueryConcurrency = 5;
+      for (
+        let offset = 0;
+        offset < otherCircleIds.length;
+        offset += circleQueryBatchSize * circleQueryConcurrency
+      ) {
+        const batches: string[][] = [];
+        const batchEnd = Math.min(
+          offset + circleQueryBatchSize * circleQueryConcurrency,
+          otherCircleIds.length,
+        );
+        for (
+          let batchOffset = offset;
+          batchOffset < batchEnd;
+          batchOffset += circleQueryBatchSize
+        ) {
+          batches.push(otherCircleIds.slice(batchOffset, batchOffset + circleQueryBatchSize));
+        }
 
-      const snapshots = await Promise.all(
-        batches.map((batch) =>
-          db.collection("circles").where(FieldPath.documentId(), "in", batch).get(),
-        ),
-      );
-      for (const snapshot of snapshots) {
-        for (const otherCircle of snapshot.docs) {
-          const ids = otherCircle.data().memberIds;
-          membersByCircleId.set(
-            otherCircle.id,
-            new Set(
-              Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [],
-            ),
-          );
+        const snapshots = await Promise.all(
+          batches.map((batch) =>
+            db.collection("circles").where(FieldPath.documentId(), "in", batch).get(),
+          ),
+        );
+        for (const snapshot of snapshots) {
+          for (const otherCircle of snapshot.docs) {
+            const ids = otherCircle.data().memberIds;
+            membersByCircleId.set(
+              otherCircle.id,
+              new Set(
+                Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [],
+              ),
+            );
+          }
         }
       }
+
+      const writer = db.bulkWriter();
+      writer.onWriteError((error) => error.failedAttempts < 3);
+      const writes = eventEntries.map(({ event, data, removedCircleIds, otherCircleIds }) => {
+        const remainingMembers = new Set<string>();
+        for (const otherId of otherCircleIds) {
+          for (const memberId of membersByCircleId.get(otherId) ?? []) {
+            remainingMembers.add(memberId);
+          }
+        }
+
+        const circleMemberIds = new Set<string>();
+        for (const removedCircleId of removedCircleIds) {
+          for (const memberId of circlesById.get(removedCircleId) ?? []) {
+            circleMemberIds.add(memberId);
+          }
+        }
+        const removeMembers = [...circleMemberIds].filter(
+          (id) => id !== data.createdBy && !remainingMembers.has(id),
+        );
+        const updates: Record<string, unknown> = {
+          sharedWithCircleIds: FieldValue.arrayRemove(...removedCircleIds),
+          updatedAt: FieldValue.serverTimestamp(),
+        };
+        if (removeMembers.length > 0) {
+          updates.sharedWithMemberIds = FieldValue.arrayRemove(...removeMembers);
+        }
+        return writer.update(event.ref, updates);
+      });
+      await finishBulkWriter(writer, writes, "update");
     }
-
-    const writer = db.bulkWriter();
-    writer.onWriteError((error) => error.failedAttempts < 3);
-    const writes = eventEntries.map(({ event, data, otherCircleIds }) => {
-      const remainingMembers = new Set<string>();
-      for (const otherId of otherCircleIds) {
-        for (const memberId of membersByCircleId.get(otherId) ?? []) {
-          remainingMembers.add(memberId);
-        }
-      }
-
-      const createdBy = data.createdBy;
-      const removeMembers = memberIds.filter((id) => id !== createdBy && !remainingMembers.has(id));
-      const updates: Record<string, unknown> = {
-        sharedWithCircleIds: FieldValue.arrayRemove(circleId),
-        updatedAt: FieldValue.serverTimestamp(),
-      };
-      if (removeMembers.length > 0) {
-        updates.sharedWithMemberIds = FieldValue.arrayRemove(...removeMembers);
-      }
-      return writer.update(event.ref, updates);
-    });
-    await finishBulkWriter(writer, writes, "update");
   }
 }
 
@@ -299,31 +362,46 @@ async function deleteAccount({ uid, input, db, auth }: DeletionContext): Promise
   }
 
   const ownedEvents = await db.collection("events").where("createdBy", "==", uid).get();
-  for (const event of ownedEvents.docs) {
-    await deleteOwnedEvent(db, event);
-  }
+  await runInBatches(
+    ownedEvents.docs,
+    10,
+    (event) => deleteOwnedEvent(db, event),
+    "delete owned events",
+  );
 
   const ownedCircles = await db.collection("circles").where("ownerId", "==", uid).get();
-  for (const circle of ownedCircles.docs) {
+  const circlesToUnlink = ownedCircles.docs.map((circle) => {
     const memberIds = circle.data().memberIds;
-    await unlinkCircleEvents(
-      db,
-      circle.id,
-      Array.isArray(memberIds)
+    return {
+      id: circle.id,
+      memberIds: Array.isArray(memberIds)
         ? memberIds.filter((id): id is string => typeof id === "string")
         : [],
-    );
-    await deleteQuery(db, db.collection("circle_invitations").where("circleId", "==", circle.id));
-    await db.recursiveDelete(circle.ref);
-  }
+    };
+  });
+  await unlinkCirclesFromEvents(db, circlesToUnlink);
+  await runInBatches(
+    ownedCircles.docs,
+    5,
+    async (circle) => {
+      await deleteQuery(db, db.collection("circle_invitations").where("circleId", "==", circle.id));
+      await db.recursiveDelete(circle.ref);
+    },
+    "delete owned circles",
+  );
 
   const circlesContainingUser = await db
     .collection("circles")
     .where("memberIds", "array-contains", uid)
     .get();
-  for (const circle of circlesContainingUser.docs) {
-    await circle.ref.update({ memberIds: FieldValue.arrayRemove(uid) });
-    await circle.ref.collection("members").doc(uid).delete();
+  if (!circlesContainingUser.empty) {
+    const writer = db.bulkWriter();
+    writer.onWriteError((error) => error.failedAttempts < 3);
+    const writes = circlesContainingUser.docs.flatMap((circle) => [
+      writer.update(circle.ref, { memberIds: FieldValue.arrayRemove(uid) }),
+      writer.delete(circle.ref.collection("members").doc(uid)),
+    ]);
+    await finishBulkWriter(writer, writes, "write");
   }
 
   const email = accountEmail.toLowerCase();
