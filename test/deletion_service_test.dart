@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:datedawn/services/deletion_service.dart';
@@ -84,6 +85,30 @@ void main() {
               (failure) => failure.message,
               'message',
               'Deletion timed out.',
+            ),
+      ),
+    );
+    service.close();
+  });
+
+  test('times out a stalled account deletion request', () async {
+    final service = DeletionService(
+      auth: _MockFirebaseAuth(),
+      client: MockClient((_) => Completer<http.Response>().future),
+      apiBase: Uri.parse('https://date-dawn.vercel.app'),
+      requestTimeout: const Duration(milliseconds: 1),
+      tokenProvider: () async => 'firebase-id-token',
+    );
+
+    await expectLater(
+      service.deleteAccount('Alex@example.com'),
+      throwsA(
+        isA<DeletionFailure>()
+            .having((failure) => failure.statusCode, 'statusCode', 504)
+            .having(
+              (failure) => failure.message,
+              'message',
+              'The deletion request timed out. Please try again.',
             ),
       ),
     );

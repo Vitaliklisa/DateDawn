@@ -87,9 +87,19 @@ async function parseInput(req: Request): Promise<Input> {
 export function deletionHandler(action: DeletionAction) {
   return async (req: Request, res: ServerResponse) => {
     res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Max-Age", "86400");
+    if (req.method === "OPTIONS") {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+
     res.setHeader("Content-Type", "application/json");
     if (req.method !== "POST") {
-      res.setHeader("Allow", "POST");
+      res.setHeader("Allow", "POST, OPTIONS");
       res.statusCode = 405;
       res.end(JSON.stringify({ success: false, error: "Method not allowed." }));
       return;

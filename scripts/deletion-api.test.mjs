@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import test from "node:test";
 
-import deleteAccountHandler from "../api/delete-account.ts";
-import deleteCircleHandler from "../api/delete-circle.ts";
-import deleteEventHandler from "../api/delete-event.ts";
+import {
+  deleteAccountHandler,
+  deleteCircleHandler,
+  deleteEventHandler,
+} from "../server/deletions.ts";
 
 async function getResponse(handler, method = "GET") {
   const server = createServer((request, response) => {
@@ -29,10 +31,25 @@ async function getResponse(handler, method = "GET") {
 test("account deletion rejects requests without a Firebase token", async () => {
   const response = await getResponse(deleteAccountHandler, "POST");
   assert.equal(response.status, 401);
+  assert.equal(response.headers.get("access-control-allow-origin"), "*");
   assert.deepEqual(await response.json(), {
     success: false,
     error: "Sign in to continue.",
   });
+});
+
+test("account deletion handles CORS preflight requests", async () => {
+  const response = await getResponse(deleteAccountHandler, "OPTIONS");
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("access-control-allow-origin"), "*");
+  assert.equal(
+    response.headers.get("access-control-allow-methods"),
+    "POST, OPTIONS",
+  );
+  assert.equal(
+    response.headers.get("access-control-allow-headers"),
+    "Authorization, Content-Type",
+  );
 });
 
 for (const [name, handler] of [
@@ -40,9 +57,10 @@ for (const [name, handler] of [
   ["circle", deleteCircleHandler],
   ["event", deleteEventHandler],
 ]) {
-  test(`Vercel ${name} deletion handler loads and rejects GET`, async () => {
+  test(`${name} deletion handler rejects GET with CORS headers`, async () => {
     const response = await getResponse(handler);
     assert.equal(response.status, 405);
+    assert.equal(response.headers.get("access-control-allow-origin"), "*");
     assert.deepEqual(await response.json(), {
       success: false,
       error: "Method not allowed.",

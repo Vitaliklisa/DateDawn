@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,16 +22,19 @@ class DeletionService {
     FirebaseAuth? auth,
     http.Client? client,
     Uri? apiBase,
+    Duration requestTimeout = const Duration(seconds: 30),
     Future<String?> Function()? tokenProvider,
   })  : _auth = auth ?? FirebaseAuth.instance,
         _client = client ?? http.Client(),
         _apiBase = apiBase ??
             (kIsWeb ? Uri.base : Uri.parse('https://date-dawn.vercel.app')),
+        _requestTimeout = requestTimeout,
         _tokenProvider = tokenProvider;
 
   final FirebaseAuth _auth;
   final http.Client _client;
   final Uri _apiBase;
+  final Duration _requestTimeout;
   final Future<String?> Function()? _tokenProvider;
 
   Future<void> deleteAccount(String confirmation) =>
@@ -45,22 +49,38 @@ class DeletionService {
   void close() => _client.close();
 
   Future<void> _post(String path, Map<String, String> body) async {
-    final token = await (_tokenProvider?.call() ??
-        _auth.currentUser?.getIdToken() ??
-        Future<String?>.value(null));
+    late final String? token;
+    try {
+      token = await (_tokenProvider?.call() ??
+              _auth.currentUser?.getIdToken() ??
+              Future<String?>.value(null))
+          .timeout(_requestTimeout);
+    } on TimeoutException {
+      throw const DeletionFailure(
+        'The deletion request timed out. Please try again.',
+        statusCode: 504,
+      );
+    }
     if (token == null || token.isEmpty) {
       throw const DeletionFailure('Sign in again before deleting data.');
     }
 
     late final http.Response response;
     try {
-      response = await _client.post(
-        _apiBase.resolve('/$path'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(body),
+      response = await _client
+          .post(
+            _apiBase.resolve('/$path'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(_requestTimeout);
+    } on TimeoutException {
+      throw const DeletionFailure(
+        'The deletion request timed out. Please try again.',
+        statusCode: 504,
       );
     } on http.ClientException {
       throw const DeletionFailure(

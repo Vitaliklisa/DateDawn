@@ -95,6 +95,10 @@ void main() {
     await tester.pumpWidget(_buildApp(authService));
     await tester.pumpAndSettle();
 
+    expect(
+      find.text('Instructions on how to delete account'),
+      findsNWidgets(2),
+    );
     expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
     expect(
       find.text('Your profile will be permanently deleted.'),
@@ -165,6 +169,7 @@ void main() {
     expect(
         find.text('Your session is invalid. Sign in again.'), findsOneWidget);
     expect(find.text('Login screen'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
   for (final statusCode in [500, 504]) {
@@ -195,6 +200,7 @@ void main() {
 
       expect(find.text('Server timed out. Please try again later.'),
           findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
   }
 }

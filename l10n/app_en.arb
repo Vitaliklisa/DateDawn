@@ -741,7 +741,7 @@
   "@blockedListLoadFailed": { "description": "Title for a blocked people list loading error." },
   "blockedListPermissionError": "Your account is not allowed to read this list. If this keeps happening, update the app.",
   "@blockedListPermissionError": { "description": "Permission error when reading the blocked people list." },
-  "deleteAccount": "Delete Account",
+  "deleteAccount": "Instructions on how to delete account",
   "@deleteAccount": { "description": "Destructive account deletion action in Settings." },
   "deleteAccountWarning": "This action is permanent. All your events, circles, and data will be deleted forever.",
   "@deleteAccountWarning": { "description": "Permanent account deletion warning." },

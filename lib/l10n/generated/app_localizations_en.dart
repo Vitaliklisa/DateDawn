@@ -1340,7 +1340,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your account is not allowed to read this list. If this keeps happening, update the app.';
 
   @override
-  String get deleteAccount => 'Delete Account';
+  String get deleteAccount => 'Instructions on how to delete account';
 
   @override
   String get deleteAccountWarning =>

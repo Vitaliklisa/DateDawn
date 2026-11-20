@@ -2321,7 +2321,7 @@ abstract class AppLocalizations {
   /// Destructive account deletion action in Settings.
   ///
   /// In en, this message translates to:
-  /// **'Delete Account'**
+  /// **'Instructions on how to delete account'**
   String get deleteAccount;
 
   /// Permanent account deletion warning.
