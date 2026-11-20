@@ -1,8 +1,10 @@
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import {
+  FieldPath,
   FieldValue,
   getFirestore,
+  type BulkWriter,
   type Firestore,
   type DocumentReference,
   type Query,
@@ -168,18 +170,28 @@ async function deleteQuery(db: Firestore, query: Query): Promise<void> {
   }
 }
 
+async function finishBulkWriter(
+  writer: BulkWriter,
+  writes: Promise<unknown>[],
+  operation: "delete" | "update",
+): Promise<void> {
+  // close() flushes a partial batch; await the individual results afterward.
+  const resultsPromise = Promise.allSettled(writes);
+  await writer.close();
+  const results = await resultsPromise;
+  const failures = results.filter((result) => result.status === "rejected");
+  if (failures.length > 0) {
+    throw new Error(`Failed to ${operation} ${failures.length} Firestore documents.`);
+  }
+}
+
 async function deleteReferences(db: Firestore, references: DocumentReference[]): Promise<void> {
   for (let offset = 0; offset < references.length; offset += 400) {
     const writer = db.bulkWriter();
     const page = references.slice(offset, offset + 400);
     writer.onWriteError((error) => error.failedAttempts < 3);
     const writes = page.map((reference) => writer.delete(reference));
-    const results = await Promise.allSettled(writes);
-    await writer.close();
-    const failures = results.filter((result) => result.status === "rejected");
-    if (failures.length > 0) {
-      throw new Error(`Failed to delete ${failures.length} Firestore documents.`);
-    }
+    await finishBulkWriter(writer, writes, "delete");
   }
 }
 
@@ -203,20 +215,55 @@ async function unlinkCircleEvents(
       .get();
     if (page.empty) return;
 
-    for (const event of page.docs) {
+    const eventEntries = page.docs.map((event) => {
       const data = event.data();
       const circleIds = Array.isArray(data.sharedWithCircleIds)
         ? data.sharedWithCircleIds.filter((id): id is string => typeof id === "string")
         : [];
-      const otherCircleIds = circleIds.filter((id) => id !== circleId);
+      const otherCircleIds = [...new Set(circleIds.filter((id) => id !== circleId))];
+      return { event, data, otherCircleIds };
+    });
+    const otherCircleIds = [...new Set(eventEntries.flatMap((entry) => entry.otherCircleIds))];
+    const membersByCircleId = new Map<string, Set<string>>();
+
+    const queryBatchSize = 30;
+    const concurrentBatches = 5;
+    for (
+      let offset = 0;
+      offset < otherCircleIds.length;
+      offset += queryBatchSize * concurrentBatches
+    ) {
+      const batches: string[][] = [];
+      const batchEnd = Math.min(offset + queryBatchSize * concurrentBatches, otherCircleIds.length);
+      for (let batchOffset = offset; batchOffset < batchEnd; batchOffset += queryBatchSize) {
+        batches.push(otherCircleIds.slice(batchOffset, batchOffset + queryBatchSize));
+      }
+
+      const snapshots = await Promise.all(
+        batches.map((batch) =>
+          db.collection("circles").where(FieldPath.documentId(), "in", batch).get(),
+        ),
+      );
+      for (const snapshot of snapshots) {
+        for (const otherCircle of snapshot.docs) {
+          const ids = otherCircle.data().memberIds;
+          membersByCircleId.set(
+            otherCircle.id,
+            new Set(
+              Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [],
+            ),
+          );
+        }
+      }
+    }
+
+    const writer = db.bulkWriter();
+    writer.onWriteError((error) => error.failedAttempts < 3);
+    const writes = eventEntries.map(({ event, data, otherCircleIds }) => {
       const remainingMembers = new Set<string>();
       for (const otherId of otherCircleIds) {
-        const otherCircle = await db.collection("circles").doc(otherId).get();
-        const ids = otherCircle.data()?.memberIds;
-        if (Array.isArray(ids)) {
-          ids
-            .filter((id): id is string => typeof id === "string")
-            .forEach((id) => remainingMembers.add(id));
+        for (const memberId of membersByCircleId.get(otherId) ?? []) {
+          remainingMembers.add(memberId);
         }
       }
 
@@ -229,8 +276,9 @@ async function unlinkCircleEvents(
       if (removeMembers.length > 0) {
         updates.sharedWithMemberIds = FieldValue.arrayRemove(...removeMembers);
       }
-      await event.ref.update(updates);
-    }
+      return writer.update(event.ref, updates);
+    });
+    await finishBulkWriter(writer, writes, "update");
   }
 }
 
@@ -298,12 +346,15 @@ async function deleteAccount({ uid, input, db, auth }: DeletionContext): Promise
       .limit(300)
       .get();
     if (sharedEvents.empty) break;
-    for (const event of sharedEvents.docs) {
-      await event.ref.update({
+    const writer = db.bulkWriter();
+    writer.onWriteError((error) => error.failedAttempts < 3);
+    const writes = sharedEvents.docs.map((event) =>
+      writer.update(event.ref, {
         sharedWithMemberIds: FieldValue.arrayRemove(uid),
         updatedAt: FieldValue.serverTimestamp(),
-      });
-    }
+      }),
+    );
+    await finishBulkWriter(writer, writes, "update");
   }
 
   const participantRows = await db.collectionGroup("participants").where("userId", "==", uid).get();
