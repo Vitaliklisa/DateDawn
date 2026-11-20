@@ -97,6 +97,7 @@ void main() {
       client: MockClient((_) => Completer<http.Response>().future),
       apiBase: Uri.parse('https://date-dawn.vercel.app'),
       requestTimeout: const Duration(milliseconds: 1),
+      accountDeletionTimeout: const Duration(milliseconds: 1),
       tokenProvider: () async => 'firebase-id-token',
     );
 

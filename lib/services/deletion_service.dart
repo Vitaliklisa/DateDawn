@@ -23,22 +23,28 @@ class DeletionService {
     http.Client? client,
     Uri? apiBase,
     Duration requestTimeout = const Duration(seconds: 30),
+    Duration accountDeletionTimeout = const Duration(seconds: 120),
     Future<String?> Function()? tokenProvider,
   })  : _auth = auth ?? FirebaseAuth.instance,
         _client = client ?? http.Client(),
         _apiBase = apiBase ??
             (kIsWeb ? Uri.base : Uri.parse('https://date-dawn.vercel.app')),
         _requestTimeout = requestTimeout,
+        _accountDeletionTimeout = accountDeletionTimeout,
         _tokenProvider = tokenProvider;
 
   final FirebaseAuth _auth;
   final http.Client _client;
   final Uri _apiBase;
   final Duration _requestTimeout;
+  final Duration _accountDeletionTimeout;
   final Future<String?> Function()? _tokenProvider;
 
-  Future<void> deleteAccount(String confirmation) =>
-      _post('api/delete-account', {'confirmation': confirmation});
+  Future<void> deleteAccount(String confirmation) => _post(
+        'api/delete-account',
+        {'confirmation': confirmation},
+        responseTimeout: _accountDeletionTimeout,
+      );
 
   Future<void> deleteEvent(String eventId) =>
       _post('api/delete-event', {'eventId': eventId});
@@ -48,7 +54,11 @@ class DeletionService {
 
   void close() => _client.close();
 
-  Future<void> _post(String path, Map<String, String> body) async {
+  Future<void> _post(
+    String path,
+    Map<String, String> body, {
+    Duration? responseTimeout,
+  }) async {
     late final String? token;
     try {
       token = await (_tokenProvider?.call() ??
@@ -76,7 +86,7 @@ class DeletionService {
             },
             body: jsonEncode(body),
           )
-          .timeout(_requestTimeout);
+          .timeout(responseTimeout ?? _requestTimeout);
     } on TimeoutException {
       throw const DeletionFailure(
         'The deletion request timed out. Please try again.',
