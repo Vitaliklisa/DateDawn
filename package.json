@@ -1,9 +1,6 @@
 {
   "name": "app-builder-workspace",
   "private": true,
-  "engines": {
-    "node": "22.x"
-  },
   "sideEffects": false,
   "type": "module",
   "overrides": {
@@ -113,6 +110,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "lightningcss": "^1.28.0",
+    "lru-cache": "^11.5.3",
     "nitro": "3.0.260610-beta",
     "playwright": "^1.62.0",
     "prettier": "^3.4.0",
