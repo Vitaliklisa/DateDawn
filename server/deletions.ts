@@ -30,6 +30,13 @@ class HttpError extends Error {
 }
 
 function getAdmin() {
+  if (process.env.VERCEL === "1" && process.env.FIRESTORE_EMULATOR_HOST) {
+    throw new HttpError(
+      503,
+      "Firestore emulator configuration is set in this Vercel deployment. Remove FIRESTORE_EMULATOR_HOST and redeploy.",
+    );
+  }
+
   const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");

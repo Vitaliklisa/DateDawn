@@ -8,7 +8,7 @@ import {
   deleteEventHandler,
 } from "../server/deletions.ts";
 
-async function getResponse(handler, method = "GET") {
+async function getResponse(handler, method = "GET", headers) {
   const server = createServer((request, response) => {
     void handler(request, response);
   });
@@ -20,7 +20,10 @@ async function getResponse(handler, method = "GET") {
   try {
     const address = server.address();
     assert.ok(address && typeof address !== "string");
-    return await fetch(`http://127.0.0.1:${address.port}/api`, { method });
+    return await fetch(`http://127.0.0.1:${address.port}/api`, {
+      method,
+      headers,
+    });
   } finally {
     await new Promise((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));
@@ -50,6 +53,36 @@ test("account deletion handles CORS preflight requests", async () => {
     response.headers.get("access-control-allow-headers"),
     "Authorization, Content-Type",
   );
+});
+
+test("account deletion fails fast if Vercel has the Firestore emulator set", async () => {
+  const originalVercel = process.env.VERCEL;
+  const originalEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
+  process.env.VERCEL = "1";
+  process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
+
+  try {
+    const response = await getResponse(deleteAccountHandler, "POST", {
+      Authorization: "Bearer invalid-token",
+    });
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), {
+      success: false,
+      error:
+        "Firestore emulator configuration is set in this Vercel deployment. Remove FIRESTORE_EMULATOR_HOST and redeploy.",
+    });
+  } finally {
+    if (originalVercel === undefined) {
+      delete process.env.VERCEL;
+    } else {
+      process.env.VERCEL = originalVercel;
+    }
+    if (originalEmulatorHost === undefined) {
+      delete process.env.FIRESTORE_EMULATOR_HOST;
+    } else {
+      process.env.FIRESTORE_EMULATOR_HOST = originalEmulatorHost;
+    }
+  }
 });
 
 for (const [name, handler] of [
