@@ -12,49 +12,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTitle => 'Date Dawn';
 
   @override
-  String get language => '语言';
+  String get language => '語言';
 
   @override
-  String get followSystemLanguage => '遵循系统语言';
+  String get followSystemLanguage => '遵循系統語言';
 
   @override
-  String get languageChanged => '语言变了。';
+  String get languageChanged => '語言變了。';
 
   @override
-  String get languageSaveFailed => '无法保存您的语言首选项。';
+  String get languageSaveFailed => '無法儲存您的語言首選項。';
 
   @override
-  String get languageEnglish => '英语';
+  String get languageEnglish => '英語';
 
   @override
-  String get languageFrench => '法国人';
+  String get languageFrench => '法國人';
 
   @override
-  String get languageSpanish => '西班牙语';
+  String get languageSpanish => '西班牙語';
 
   @override
   String get languageUkrainian => 'Українська';
 
   @override
-  String get languageGerman => '德语';
+  String get languageGerman => '德語';
 
   @override
-  String get languageChinese => '中文（简体）';
+  String get languageChinese => '繁體中文（台灣）';
 
   @override
-  String get settings => '设置';
+  String get settings => '設定';
 
   @override
-  String get dateDawnUser => '日期黎明用户';
+  String get dateDawnUser => '日期黎明使用者';
 
   @override
-  String get guestAccount => '访客帐户';
+  String get guestAccount => '訪客帳戶';
 
   @override
-  String get notSignedIn => '您尚未登录';
+  String get notSignedIn => '您尚未登入';
 
   @override
-  String get syncAndShareDescription => '登录以在每台设备上同步您的倒计时并与其他人分享。';
+  String get syncAndShareDescription => '登入以在每臺裝置上同步您的倒計時並與其他人分享。';
 
   @override
   String get signIn => '登入';
@@ -69,23 +69,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lightTheme => '光';
 
   @override
-  String get systemTheme => '系统';
+  String get systemTheme => '系統';
 
   @override
-  String get time => '时间';
+  String get time => '時間';
 
   @override
   String get timeFormatDescription =>
-      '时钟时间是如何书写的。不管怎样，你的倒计时都会被存储为精确的时刻——这只会改变它们的读取方式。';
+      '時鐘時間是如何書寫的。不管怎樣，你的倒計時都會被儲存為精確的時刻——這隻會改變它們的讀取方式。';
 
   @override
-  String get twelveHourTime => '12 小时（上午/下午）';
+  String get twelveHourTime => '12 小時（上午/下午）';
 
   @override
-  String get twentyFourHourTime => '24小时';
+  String get twentyFourHourTime => '24小時';
 
   @override
-  String get about => '关于';
+  String get about => '關於';
 
   @override
   String get version => '版本';
@@ -97,19 +97,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get safety => '安全';
 
   @override
-  String get blockedPeople => '被屏蔽的人';
+  String get blockedPeople => '被遮蔽的人';
 
   @override
   String get legal => '合法的';
 
   @override
-  String get privacyPolicy => '隐私政策';
+  String get privacyPolicy => '隱私政策';
 
   @override
-  String get termsOfService => '服务条款';
+  String get termsOfService => '服務條款';
 
   @override
-  String get helpAndSupport => '帮助与支持';
+  String get helpAndSupport => '幫助與支援';
 
   @override
   String get signOut => '登出';
@@ -122,101 +122,101 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count倒计时',
-      one: '$count倒计时',
+      other: '$count倒計時',
+      one: '$count倒計時',
     );
     return '$_temp0';
   }
 
   @override
-  String get welcomeToDateDawn => '欢迎来到约会黎明';
+  String get welcomeToDateDawn => '歡迎來到約會黎明';
 
   @override
-  String get createYourAccount => '创建您的帐户';
+  String get createYourAccount => '建立您的帳戶';
 
   @override
-  String get countdownsSyncDescription => '您的倒计时会同步到您登录的每台设备。';
+  String get countdownsSyncDescription => '您的倒計時會同步到您登入的每臺裝置。';
 
   @override
-  String get welcomeDescription => '通过手机、平板电脑和网络倒计时重要时刻。';
+  String get welcomeDescription => '透過手機、平板電腦和網路倒計時重要時刻。';
 
   @override
   String get name => '姓名';
 
   @override
-  String get nameHint => '亚历克斯·里维拉';
+  String get nameHint => '亞歷克斯·里維拉';
 
   @override
-  String get nameRequired => '告诉我们该怎么称呼您。';
+  String get nameRequired => '告訴我們該怎麼稱呼您。';
 
   @override
-  String get email => '电子邮件';
+  String get email => '電子郵件';
 
   @override
   String get emailHint => '你@example.com';
 
   @override
-  String get emailRequired => '输入您的电子邮件。';
+  String get emailRequired => '輸入您的電子郵件。';
 
   @override
-  String get emailInvalid => '这看起来不像电子邮件。';
+  String get emailInvalid => '這看起來不像電子郵件。';
 
   @override
-  String get password => '密码';
+  String get password => '密碼';
 
   @override
-  String get passwordRequired => '输入您的密码。';
+  String get passwordRequired => '輸入您的密碼。';
 
   @override
-  String get passwordTooShort => '至少使用 6 个字符。';
+  String get passwordTooShort => '至少使用 6 個字元。';
 
   @override
-  String get forgotPassword => '忘记密码？';
+  String get forgotPassword => '忘記密碼？';
 
   @override
-  String get forgotPasswordPrompt => '首先输入您的电子邮件，然后点击“忘记密码”。';
+  String get forgotPasswordPrompt => '首先輸入您的電子郵件，然後點選“忘記密碼”。';
 
   @override
-  String get signInConnectionError => '无法访问登录服务。检查您的连接。';
+  String get signInConnectionError => '無法訪問登入服務。檢查您的連線。';
 
   @override
-  String get createAccount => '创建账户';
+  String get createAccount => '建立賬戶';
 
   @override
   String get or => '或者';
 
   @override
-  String get continueWithGoogle => '继续使用谷歌';
+  String get continueWithGoogle => '繼續使用谷歌';
 
   @override
-  String get alreadyHaveAccount => '已经有帐户？';
+  String get alreadyHaveAccount => '已經有帳戶？';
 
   @override
-  String get newHere => '新来的？';
+  String get newHere => '新來的？';
 
   @override
-  String get createOne => '创建一个';
+  String get createOne => '建立一個';
 
   @override
-  String get troubleSigningIn => '登录时遇到问题？获得帮助';
+  String get troubleSigningIn => '登入時遇到問題？獲得幫助';
 
   @override
-  String get accountCreated => '帐户已创建。';
+  String get accountCreated => '帳戶已建立。';
 
   @override
-  String get welcomeBack => '欢迎回来。';
+  String get welcomeBack => '歡迎回來。';
 
   @override
-  String get signInFailed => '无法完成登录。请重试。';
+  String get signInFailed => '無法完成登入。請重試。';
 
   @override
-  String get signedInWithGoogle => '已使用 Google 登录。';
+  String get signedInWithGoogle => '已使用 Google 登入。';
 
   @override
   String get home => '家';
 
   @override
-  String get invitations => '邀请函';
+  String get invitations => '邀請函';
 
   @override
   String get circles => '界';
@@ -225,77 +225,77 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notifications => '通知';
 
   @override
-  String get support => '支持';
+  String get support => '支援';
 
   @override
   String get homeEmptyTitle => '命名一天。';
 
   @override
   String get homeEmptyDescription =>
-      '选择一个未来的时刻——婚礼、发布会、回家之旅。黎明日期计算着剩余的年、月、日和小时，然后在它到来时庆祝。';
+      '選擇一個未來的時刻——婚禮、釋出會、回家之旅。黎明日期計算著剩餘的年、月、日和小時，然後在它到來時慶祝。';
 
   @override
-  String get homeLoadError => '无法达到您的倒计时。拉下来再试一次。';
+  String get homeLoadError => '無法達到您的倒計時。拉下來再試一次。';
 
   @override
-  String get getStarted => '开始使用';
+  String get getStarted => '開始使用';
 
   @override
-  String get homeSyncTitle => '让它们无处不在';
+  String get homeSyncTitle => '讓它們無處不在';
 
   @override
-  String get homeSyncDescription => '登录即可在手机、平板电脑和网络上同步您的倒计时，并与与您一起倒计时的人分享。';
+  String get homeSyncDescription => '登入即可在手機、平板電腦和網路上同步您的倒計時，並與與您一起倒計時的人分享。';
 
   @override
-  String get otherCountdowns => '其他倒计时';
+  String get otherCountdowns => '其他倒計時';
 
   @override
-  String get arrived => '到达的';
+  String get arrived => '到達的';
 
   @override
-  String get countingDown => '倒计时';
+  String get countingDown => '倒計時';
 
   @override
-  String get options => '选项';
+  String get options => '選項';
 
   @override
-  String get open => '打开';
+  String get open => '開啟';
 
   @override
-  String get openCountdown => '开放倒计时';
+  String get openCountdown => '開放倒計時';
 
   @override
-  String get newCountdown => '新倒计时';
+  String get newCountdown => '新倒計時';
 
   @override
-  String get editCountdown => '编辑倒计时';
+  String get editCountdown => '編輯倒計時';
 
   @override
-  String get countdownTitleLabel => '标题';
+  String get countdownTitleLabel => '標題';
 
   @override
   String get countdownDescriptionLabel => '描述';
 
   @override
-  String get whenLabel => '什么时候';
+  String get whenLabel => '什麼時候';
 
   @override
-  String get titleExampleHint => '婚礼、启动、团聚';
+  String get titleExampleHint => '婚禮、啟動、團聚';
 
   @override
-  String get descriptionExampleHint => '关于这一天的简短说明';
+  String get descriptionExampleHint => '關於這一天的簡短說明';
 
   @override
   String get dateLabel => '日期';
 
   @override
-  String get timeLabel => '时间';
+  String get timeLabel => '時間';
 
   @override
   String get presetWeek => '+1 周';
 
   @override
-  String get presetMonth => '+1 个月';
+  String get presetMonth => '+1 個月';
 
   @override
   String get presetYear => '+1 年';
@@ -304,115 +304,115 @@ class AppLocalizationsZh extends AppLocalizations {
   String get presetFiveYears => '+5 年';
 
   @override
-  String get createCountdown => '创建倒计时';
+  String get createCountdown => '建立倒計時';
 
   @override
-  String get saveChanges => '保存更改';
+  String get saveChanges => '儲存更改';
 
   @override
-  String get deleteCountdown => '删除倒计时';
+  String get deleteCountdown => '刪除倒計時';
 
   @override
-  String get countdownActions => '倒计时动作';
+  String get countdownActions => '倒計時動作';
 
   @override
-  String get deleteCountdownQuestion => '删除这个倒计时？';
+  String get deleteCountdownQuestion => '刪除這個倒計時？';
 
   @override
-  String get countdownCannotUndo => '倒计时无法撤消。';
+  String get countdownCannotUndo => '倒計時無法撤消。';
 
   @override
-  String get giveCountdownTitle => '给这个倒计时一个标题。';
+  String get giveCountdownTitle => '給這個倒計時一個標題。';
 
   @override
-  String get pickFutureMoment => '选一个还在你前面的时刻。';
+  String get pickFutureMoment => '選一個還在你前面的時刻。';
 
   @override
-  String get signInToSaveCountdown => '登录以保存倒计时。';
+  String get signInToSaveCountdown => '登入以儲存倒計時。';
 
   @override
-  String get countdownCreated => '已创建倒计时。';
+  String get countdownCreated => '已建立倒計時。';
 
   @override
-  String get changesSaved => '更改已保存。';
+  String get changesSaved => '更改已儲存。';
 
   @override
-  String get countdownDeleted => '倒计时已删除。';
+  String get countdownDeleted => '倒計時已刪除。';
 
   @override
-  String get partnerLabel => '你的伙伴';
+  String get partnerLabel => '你的夥伴';
 
   @override
   String partnerNotAdded(String partnerName) {
-    return '已创建倒计时，但未添加$partnerName。从倒计时手动邀请他们。';
+    return '已建立倒計時，但未新增$partnerName。從倒計時手動邀請他們。';
   }
 
   @override
   String partnerAdded(String partnerName) {
-    return '已创建倒计时。  添加了$partnerName。';
+    return '已建立倒計時。  新增了$partnerName。';
   }
 
   @override
-  String get noPartnerAdded => '已创建倒计时，但未添加合作伙伴。手动邀请他们。';
+  String get noPartnerAdded => '已建立倒計時，但未新增合作伙伴。手動邀請他們。';
 
   @override
-  String get chooseFutureDateHint => '选择未来的日期以查看倒计时。';
+  String get chooseFutureDateHint => '選擇未來的日期以檢視倒計時。';
 
   @override
   String countingDownRemaining(String remaining) {
-    return '倒计时$remaining';
+    return '倒計時$remaining';
   }
 
   @override
-  String get cannotEditCountdown => '您可以查看此倒计时，但不能更改它。';
+  String get cannotEditCountdown => '您可以檢視此倒計時，但不能更改它。';
 
   @override
-  String get shareWith => '分享给';
+  String get shareWith => '分享給';
 
   @override
-  String get circleShareDescription => '几个圈子立即分享。其他圈子收到邀请。';
+  String get circleShareDescription => '幾個圈子立即分享。其他圈子收到邀請。';
 
   @override
   String get collaborators => '合作者';
 
   @override
-  String get collaboratorsCanFollow => '您邀请的任何人都可以在自己的设备上关注此倒计时。';
+  String get collaboratorsCanFollow => '您邀請的任何人都可以在自己的裝置上關注此倒計時。';
 
   @override
-  String get peopleFollowing => '人们正在关注这个倒计时。';
+  String get peopleFollowing => '人們正在關注這個倒計時。';
 
   @override
-  String get noCollaboratorsYet => '还没有其他人。';
+  String get noCollaboratorsYet => '還沒有其他人。';
 
   @override
   String get nameEmailHint => '姓名@example.com';
 
   @override
-  String get recentContactsCouldNotLoad => '无法加载最近的联系人。检查您的连接或 Firestore 规则。';
+  String get recentContactsCouldNotLoad => '無法載入最近的聯絡人。檢查您的連線或 Firestore 規則。';
 
   @override
   String invitationSentTo(String email) {
-    return '邀请已发送至$email。';
+    return '邀請已傳送至$email。';
   }
 
   @override
   String sharedWithCircle(String circleName) {
-    return '与$circleName共享';
+    return '與$circleName共享';
   }
 
   @override
-  String get inviteAgain => '再次邀请';
+  String get inviteAgain => '再次邀請';
 
   @override
-  String get removePersonQuestion => '删除这个人？';
+  String get removePersonQuestion => '刪除這個人？';
 
   @override
   String collaboratorLosesAccess(String email) {
-    return '$email将失去对此倒计时的访问权限，并且将不再在其列表中看到它。';
+    return '$email將失去對此倒計時的訪問許可權，並且將不再在其列表中看到它。';
   }
 
   @override
-  String get changeRole => '改变角色';
+  String get changeRole => '改變角色';
 
   @override
   String changeRoleFor(String personName) {
@@ -421,7 +421,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String roleChangeDescription(String role) {
-    return '这改变了他们从现在开始的倒计时可以做的事情。他们目前拥有$role访问权限。';
+    return '這改變了他們從現在開始的倒計時可以做的事情。他們目前擁有$role訪問許可權。';
   }
 
   @override
@@ -430,26 +430,26 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get circlesDescriptionTitle => '与您一起倒数的群组';
+  String get circlesDescriptionTitle => '與您一起倒數的群組';
 
   @override
   String get circlesDescription =>
-      '邀请某人加入某个圈子一次，然后只需轻按一下即可与整个群组分享任何倒计时。几个圈子会自动共享——你们中的一个人创造的任何东西，另一个人都会看到。';
+      '邀請某人加入某個圈子一次，然後只需輕按一下即可與整個群組分享任何倒計時。幾個圈子會自動共享——你們中的一個人創造的任何東西，另一個人都會看到。';
 
   @override
-  String get circlesLoadError => '无法加载您的圈子。拉下来重试。';
+  String get circlesLoadError => '無法載入您的圈子。拉下來重試。';
 
   @override
-  String get noCircles => '还没有圈子';
+  String get noCircles => '還沒有圈子';
 
   @override
-  String get noCirclesDescription => '为与您一起倒计时的人（伴侣、家人或每年与您一起旅行的朋友）创建一个。';
+  String get noCirclesDescription => '為與您一起倒計時的人（伴侶、家人或每年與您一起旅行的朋友）建立一個。';
 
   @override
   String get newCircle => '新圈子';
 
   @override
-  String get sharesAutomatically => '自动分享';
+  String get sharesAutomatically => '自動分享';
 
   @override
   String peopleCount(int count) {
@@ -462,27 +462,27 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get inviteSomeone => '邀请某人';
+  String get inviteSomeone => '邀請某人';
 
   @override
   String get you => '你';
 
   @override
-  String get leaveCircle => '离开圈子';
+  String get leaveCircle => '離開圈子';
 
   @override
-  String get deleteCircle => '删除圈子';
+  String get deleteCircle => '刪除圈子';
 
   @override
-  String get removeFromCircle => '从圈子中删除';
+  String get removeFromCircle => '從圈子中刪除';
 
   @override
   String removeMemberQuestion(String personName) {
-    return '删除$personName？';
+    return '刪除$personName？';
   }
 
   @override
-  String get removeMemberExplanation => '他们将不再看到与此圈子共享的倒计时。他们创建的任何内容都不会被删除。';
+  String get removeMemberExplanation => '他們將不再看到與此圈子共享的倒計時。他們建立的任何內容都不會被刪除。';
 
   @override
   String leaveCircleQuestion(String circleName) {
@@ -490,87 +490,87 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get leaveCircleExplanation => '您将不再显示与此圈子共享的倒计时。您可以被邀请回来。';
+  String get leaveCircleExplanation => '您將不再顯示與此圈子共享的倒計時。您可以被邀請回來。';
 
   @override
   String deleteCircleQuestion(String circleName) {
-    return '删除“$circleName”？';
+    return '刪除“$circleName”？';
   }
 
   @override
   String get deleteCircleExplanation =>
-      '队伍消失了。与其共享的倒计时会被保留并保留在您的手中 - 只是不再与这些人共享。';
+      '隊伍消失了。與其共享的倒計時會被保留並保留在您的手中 - 只是不再與這些人共享。';
 
   @override
-  String get circleNameHint => '家庭，东京 2027，美国';
+  String get circleNameHint => '家庭，東京 2027，美國';
 
   @override
-  String get coupleCircleTitle => '这就是我们——一对情侣';
+  String get coupleCircleTitle => '這就是我們——一對情侶';
 
   @override
-  String get coupleCircleDescription => '倒计时会自动与您的合作伙伴共享，无需接受邀请。';
+  String get coupleCircleDescription => '倒計時會自動與您的合作伙伴共享，無需接受邀請。';
 
   @override
-  String get circleCreated => '圈子创建了。';
+  String get circleCreated => '圈子建立了。';
 
   @override
-  String get coupleCircleCreated => '创建。接下来邀请你的伙伴。';
+  String get coupleCircleCreated => '建立。接下來邀請你的夥伴。';
 
   @override
-  String get inviteYourPartner => '邀请你的伙伴';
+  String get inviteYourPartner => '邀請你的夥伴';
 
   @override
   String inviteToCircle(String circleName) {
-    return '邀请加入“$circleName”';
+    return '邀請加入“$circleName”';
   }
 
   @override
   String get coupleInviteExplanation =>
-      '如果他们已经有帐户，则会自动添加。否则，他们将在登录时添加。与此圈子共享的未来倒计时将自动显示。';
+      '如果他們已經有帳戶，則會自動新增。否則，他們將在登入時新增。與此圈子共享的未來倒計時將自動顯示。';
 
   @override
-  String get circleInviteExplanation => '他们将收到接受或拒绝的邀请。他们加入后，您可以一键与此圈子分享倒计时。';
+  String get circleInviteExplanation => '他們將收到接受或拒絕的邀請。他們加入後，您可以一鍵與此圈子分享倒計時。';
 
   @override
-  String get inviteEmailHint => '他们@example.com';
+  String get inviteEmailHint => '他們@example.com';
 
   @override
-  String get sendInvitation => '发送邀请';
+  String get sendInvitation => '傳送邀請';
 
   @override
-  String get partnerAddedAutomatically => '您的合作伙伴将自动添加。';
+  String get partnerAddedAutomatically => '您的合作伙伴將自動新增。';
 
   @override
-  String get signInToUseCircles => '登录才能使用圈子';
+  String get signInToUseCircles => '登入才能使用圈子';
 
   @override
-  String get circlesRequireAccounts => '圈子通过电子邮件邀请人们，因此他们需要一个被邀请的帐户。';
+  String get circlesRequireAccounts => '圈子透過電子郵件邀請人們，因此他們需要一個被邀請的帳戶。';
 
   @override
-  String get waitingOnYou => '等着你';
+  String get waitingOnYou => '等著你';
 
   @override
   String get invitationsEmptyDescription =>
-      '在您接受之前，不会与您分享任何内容。拒绝告诉邀请您的人，这样他们就不会猜测。';
+      '在您接受之前，不會與您分享任何內容。拒絕告訴邀請您的人，這樣他們就不會猜測。';
 
   @override
-  String get signInToSeeInvitations => '登录查看邀请';
+  String get signInToSeeInvitations => '登入檢視邀請';
 
   @override
-  String get invitationsEmailAccount => '邀请会发送到您的电子邮件，因此请使用某人邀请的地址登录。';
+  String get invitationsEmailAccount => '邀請會傳送到您的電子郵件，因此請使用某人邀請的地址登入。';
 
   @override
-  String get invitationsCouldNotLoad => '无法加载邀请。检查您的连接或 Firestore 规则。';
+  String get invitationsCouldNotLoad => '無法載入邀請。檢查您的連線或 Firestore 規則。';
 
   @override
-  String get nothingWaiting => '没什么等待';
+  String get nothingWaiting => '沒什麼等待';
 
   @override
   String get invitationInboxEmpty =>
-      '人们发送给您的邀请将显示在此处。倒计时和标准圈子邀请需要您的回复；情侣圈子自动加入。';
+      '人們傳送給您的邀請將顯示在此處。倒計時和標準圈子邀請需要您的回覆；情侶圈子自動加入。';
 
   @override
-  String get retryAddingYou => '重试添加您';
+  String get retryAddingYou => '重試新增您';
 
   @override
   String get decline => '衰退';
@@ -581,14 +581,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get joinInviteExplanation => '它将出现在您的列表中，并且您将在此设备上获得其倒计时。';
+  String get joinInviteExplanation => '它將出現在您的列表中，並且您將在此裝置上獲得其倒計時。';
 
   @override
   String get join => '加入';
 
   @override
   String alreadyMemberOf(String name) {
-    return '您已经是“$name”的会员。';
+    return '您已經是“$name”的會員。';
   }
 
   @override
@@ -598,146 +598,146 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String youWereAddedTo(String name) {
-    return '您已被添加到“$name”。';
+    return '您已被新增到“$name”。';
   }
 
   @override
-  String get invitationDeclined => '邀请被拒绝。';
+  String get invitationDeclined => '邀請被拒絕。';
 
   @override
-  String get countdownInvitation => '倒计时邀请';
+  String get countdownInvitation => '倒計時邀請';
 
   @override
-  String get aCountdown => '倒计时';
+  String get aCountdown => '倒計時';
 
   @override
   String invitedToFollowCountdown(String role) {
-    return '您已被邀请关注此倒计时。接受会将其作为$role添加到您的列表中。';
+    return '您已被邀請關注此倒計時。接受會將其作為$role新增到您的列表中。';
   }
 
   @override
   String get accept => '接受';
 
   @override
-  String get partnerInvitation => '合作伙伴邀请';
+  String get partnerInvitation => '合作伙伴邀請';
 
   @override
-  String get circleInvitation => '圈子邀请';
+  String get circleInvitation => '圈子邀請';
 
   @override
   String partnerCircleAddTitle(String personName) {
-    return '您将被添加到$personName的圈子中';
+    return '您將被新增到$personName的圈子中';
   }
 
   @override
-  String get partnerCircleAddExplanation => '您将被自动添加。与此圈子共享的倒计时活动将显示在您的列表中。';
+  String get partnerCircleAddExplanation => '您將被自動新增。與此圈子共享的倒計時活動將顯示在您的列表中。';
 
   @override
   String circleJoinExplanation(String circleName) {
-    return '加入“$circleName”意味着他们与此圈子分享的倒计时将显示在您的列表中。';
+    return '加入“$circleName”意味著他們與此圈子分享的倒計時將顯示在您的列表中。';
   }
 
   @override
-  String get becomePartners => '成为合作伙伴';
+  String get becomePartners => '成為合作伙伴';
 
   @override
   String get joinCircle => '加入圈子';
 
   @override
-  String get automaticJoinFailed => '自动加入无法完成。';
+  String get automaticJoinFailed => '自動加入無法完成。';
 
   @override
-  String get notNow => '现在不要';
+  String get notNow => '現在不要';
 
   @override
   String get notificationsTitle => '通知';
 
   @override
-  String get markAllRead => '标记全部已读';
+  String get markAllRead => '標記全部已讀';
 
   @override
-  String get markedAllRead => '标记为全部已读。';
+  String get markedAllRead => '標記為全部已讀。';
 
   @override
-  String get moreOptions => '更多选择';
+  String get moreOptions => '更多選擇';
 
   @override
-  String get noReadMessagesToDelete => '没有已读消息可删除。';
+  String get noReadMessagesToDelete => '沒有已讀訊息可刪除。';
 
   @override
-  String get deleteReadMessages => '删除已读消息';
+  String get deleteReadMessages => '刪除已讀訊息';
 
   @override
-  String get deletedReadMessages => '删除已读消息。';
+  String get deletedReadMessages => '刪除已讀訊息。';
 
   @override
-  String get notificationsSignInFirst => '首先登录';
+  String get notificationsSignInFirst => '首先登入';
 
   @override
-  String get notificationsAccountOnly => '通知与您的帐户绑定。';
+  String get notificationsAccountOnly => '通知與您的帳戶繫結。';
 
   @override
-  String get couldNotLoad => '无法加载';
+  String get couldNotLoad => '無法載入';
 
   @override
-  String get checkConnectionRetry => '检查您的连接并重试。';
+  String get checkConnectionRetry => '檢查您的連線並重試。';
 
   @override
-  String get nothingYet => '还没有什么';
+  String get nothingYet => '還沒有什麼';
 
   @override
-  String get notificationsEmptyDescription => '当您的倒计时或邀请发生某些情况时，它会显示在此处。';
+  String get notificationsEmptyDescription => '當您的倒計時或邀請發生某些情況時，它會顯示在此處。';
 
   @override
-  String get liveNotificationsCouldNotLoad => '无法加载实时通知。';
+  String get liveNotificationsCouldNotLoad => '無法載入實時通知。';
 
   @override
   String get inbox => '收件箱';
 
   @override
-  String get invitationResponses => '邀请回应';
+  String get invitationResponses => '邀請回應';
 
   @override
-  String get invitationResponsesCouldNotLoad => '无法加载邀请回复。';
+  String get invitationResponsesCouldNotLoad => '無法載入邀請回復。';
 
   @override
-  String get countdownUnavailable => '此倒计时不再可用。';
+  String get countdownUnavailable => '此倒計時不再可用。';
 
   @override
-  String get viewDetails => '查看详情';
+  String get viewDetails => '檢視詳情';
 
   @override
-  String get sharedWith => '分享给';
+  String get sharedWith => '分享給';
 
   @override
-  String get notes => '笔记';
+  String get notes => '筆記';
 
   @override
-  String get notesEmpty => '还什么都没有。给大家留下一个和你一起倒计时的想法。';
+  String get notesEmpty => '還什麼都沒有。給大家留下一個和你一起倒計時的想法。';
 
   @override
-  String get addNote => '添加注释';
+  String get addNote => '新增註釋';
 
   @override
   String get years => '年';
 
   @override
-  String get months => '几个月';
+  String get months => '幾個月';
 
   @override
   String get days => '天';
 
   @override
-  String get hours => '时间';
+  String get hours => '時間';
 
   @override
   String remainingMinutes(int count) {
-    return '$count分钟';
+    return '$count分鐘';
   }
 
   @override
   String remainingSeconds(int count) {
-    return '剩余$count秒';
+    return '剩餘$count秒';
   }
 
   @override
@@ -750,54 +750,54 @@ class AppLocalizationsZh extends AppLocalizations {
   String get stay => '停留';
 
   @override
-  String get leave => '离开';
+  String get leave => '離開';
 
   @override
   String get remove => '消除';
 
   @override
-  String get delete => '删除';
+  String get delete => '刪除';
 
   @override
-  String get create => '创造';
+  String get create => '創造';
 
   @override
-  String get tryAgain => '再试一次';
+  String get tryAgain => '再試一次';
 
   @override
   String get share => '分享';
 
   @override
-  String get passed => '通过';
+  String get passed => '透過';
 
   @override
-  String get upcoming => '即将推出';
+  String get upcoming => '即將推出';
 
   @override
-  String get accepted => '公认';
+  String get accepted => '公認';
 
   @override
-  String get declined => '拒绝';
+  String get declined => '拒絕';
 
   @override
-  String get removed => '已删除';
+  String get removed => '已刪除';
 
   @override
-  String get reopened => '重新开放';
+  String get reopened => '重新開放';
 
   @override
   String get waiting => '等待';
 
   @override
-  String get itHasArrived => '它已经到了。';
+  String get itHasArrived => '它已經到了。';
 
   @override
   String remainingToGo(String remaining) {
-    return '$remaining出发';
+    return '$remaining出發';
   }
 
   @override
-  String get momentHasPassed => '这一刻已经过去了';
+  String get momentHasPassed => '這一刻已經過去了';
 
   @override
   String remainingAnd(String first, String last) {
@@ -805,21 +805,21 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get dayHasCome => '这一天已经到来';
+  String get dayHasCome => '這一天已經到來';
 
   @override
   String eventArrivedWithDescription(String title, String description) {
-    return '$title在这里 —$description';
+    return '$title在這裡 —$description';
   }
 
   @override
   String eventArrivedTitleOnly(String title) {
-    return '$title就在这里——享受每一分钟。';
+    return '$title就在這裡——享受每一分鐘。';
   }
 
   @override
   String personRemovedFromCircle(String personName, String circleName) {
-    return '$personName已从“$circleName”中删除。';
+    return '$personName已從“$circleName”中刪除。';
   }
 
   @override
@@ -829,7 +829,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String circleDeleted(String circleName) {
-    return '删除了“$circleName”。';
+    return '刪除了“$circleName”。';
   }
 
   @override
@@ -837,26 +837,26 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String invitedYouToCircle(String personName, String circleName) {
-    return '$personName邀请您参加“$circleName”';
+    return '$personName邀請您參加“$circleName”';
   }
 
   @override
   String get roleAdmin => '行政';
 
   @override
-  String get roleEditor => '编辑';
+  String get roleEditor => '編輯';
 
   @override
-  String get roleViewer => '观众';
+  String get roleViewer => '觀眾';
 
   @override
-  String get roleAdminDescription => '可以管理倒计时及其参与者。';
+  String get roleAdminDescription => '可以管理倒計時及其參與者。';
 
   @override
-  String get roleEditorDescription => '可以编辑倒计时并邀请其他人。';
+  String get roleEditorDescription => '可以編輯倒計時並邀請其他人。';
 
   @override
-  String get roleViewerDescription => '可以查看倒计时并留下笔记。';
+  String get roleViewerDescription => '可以檢視倒計時並留下筆記。';
 
   @override
   String remainingYears(int count) {
@@ -893,7 +893,7 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count 小时',
+      other: '$count 小時',
     );
     return '$_temp0';
   }
@@ -903,7 +903,7 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count 分钟',
+      other: '$count 分鐘',
     );
     return '$_temp0';
   }
@@ -919,313 +919,313 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get moreActions => '更多行动';
+  String get moreActions => '更多行動';
 
   @override
   String get block => '堵塞';
 
   @override
   String roleChanged(String personName, String role) {
-    return '$personName现在是$role。';
+    return '$personName現在是$role。';
   }
 
   @override
   String personRemoved(String personName) {
-    return '$personName已被删除。';
+    return '$personName已被刪除。';
   }
 
   @override
-  String get signInToSaveIt => '登录以保存它';
+  String get signInToSaveIt => '登入以儲存它';
 
   @override
-  String get countdownsFollowYou => '倒计时存在于您的帐户中，因此它们会跟随您到每台设备，并可以与其他人共享。';
+  String get countdownsFollowYou => '倒計時存在於您的帳戶中，因此它們會跟隨您到每臺裝置，並可以與其他人共享。';
 
   @override
   String get savePermissionError =>
-      'Firestore 拒绝保存。如果这种情况持续发生，则部署的安全规则比应用程序旧 - 运行“firebase deploy --only firestore:rules”。';
+      'Firestore 拒絕儲存。如果這種情況持續發生，則部署的安全規則比應用程式舊 - 執行“firebase deploy --only firestore:rules”。';
 
   @override
-  String get saveNetworkError => '无法到达 Firestore。检查您的连接并重试。';
+  String get saveNetworkError => '無法到達 Firestore。檢查您的連線並重試。';
 
   @override
-  String get saveFailed => '无法保存。请再试一次。';
+  String get saveFailed => '無法儲存。請再試一次。';
 
   @override
-  String get momentPassed => '这一刻已经过去了';
+  String get momentPassed => '這一刻已經過去了';
 
   @override
   String get and => '和';
 
   @override
-  String get back => '后退';
+  String get back => '後退';
 
   @override
-  String get policyLastUpdated => '最后更新时间：2026 年 2 月 · 符合欧盟 GDPR 和加拿大 PIPEDA';
+  String get policyLastUpdated => '最後更新時間：2026 年 2 月 · 符合歐盟 GDPR 和加拿大 PIPEDA';
 
   @override
-  String get privacyIntroTitle => '1. 简介及数据控制者';
+  String get privacyIntroTitle => '1. 簡介及資料控制者';
 
   @override
   String privacyIntroBody(String supportEmail) {
-    return 'Date Dawn（“我们”或“我们的”）尊重您的隐私并致力于保护您的个人数据。本隐私政策解释了当您使用我们的移动和网络应用程序时我们如何收集、使用和保护您的信息，完全符合欧盟《通用数据保护条例》(GDPR) 和加拿大《个人信息保护和电子文件法》(PIPEDA)。\n\n数据控制者联系人：$supportEmail';
+    return 'Date Dawn（“我們”或“我們的”）尊重您的隱私並致力於保護您的個人資料。本隱私政策解釋了當您使用我們的移動和網路應用程式時我們如何收集、使用和保護您的資訊，完全符合歐盟《通用資料保護條例》(GDPR) 和加拿大《個人資訊保護和電子檔案法》(PIPEDA)。\n\n資料控制者聯絡人：$supportEmail';
   }
 
   @override
-  String get privacyCollectTitle => '2. 我们收集的信息';
+  String get privacyCollectTitle => '2. 我們收集的資訊';
 
   @override
   String get privacyCollectBody =>
-      '• 帐户数据：身份验证 (Firebase Auth) 期间提供的电子邮件地址和显示名称。\n• 用户内容：您明确创建或共享的倒计时、标题、日期、描述和圈子成员身份。\n• 设备和通知数据：推送通知令牌以提供倒计时提醒和邀请警报。\n\n我们不会收集浏览历史记录、广告标识符、位置数据，也不会将任何个人信息出售给第三方。';
+      '• 帳戶資料：身份驗證 (Firebase Auth) 期間提供的電子郵件地址和顯示名稱。\n• 使用者內容：您明確建立或共享的倒計時、標題、日期、描述和圈子成員身份。\n• 裝置和通知資料：推送通知令牌以提供倒計時提醒和邀請警報。\n\n我們不會收集瀏覽歷史記錄、廣告識別符號、位置資料，也不會將任何個人資訊出售給第三方。';
 
   @override
-  String get privacyBasisTitle => '3. 处理的法律依据 (EU GDPR)';
+  String get privacyBasisTitle => '3. 處理的法律依據 (EU GDPR)';
 
   @override
   String get privacyBasisBody =>
-      '我们根据以下合法依据处理您的数据：\n• 合同必要性：提供倒计时同步、圈子共享和邀请功能。\n• 同意：当您授予推送通知权限或选择加入共享圈子时。\n• 合法利益：确保应用程序安全性、可靠性并防止滥用。';
+      '我們根據以下合法依據處理您的資料：\n• 合同必要性：提供倒計時同步、圈子共享和邀請功能。\n• 同意：當您授予推送通知許可權或選擇加入共享圈子時。\n• 合法利益：確保應用程式安全性、可靠性並防止濫用。';
 
   @override
-  String get privacySharingTitle => '4. 分享与屏蔽';
+  String get privacySharingTitle => '4. 分享與遮蔽';
 
   @override
   String get privacySharingBody =>
-      'Date Dawn 允许人们进行一对一互动：您可以邀请某人进行倒计时，并且双方都可以在共享的人上留下笔记。该内容仅对倒计时的人可见——从不公开，也从未向其他任何人展示。\n\n您可以随时阻止其他人：打开与他们共享的倒计时，然后长按他们的名字（或在桌面上双击它）。屏蔽会将你们从彼此的倒计时中删除，取消你们之间的邀请，并阻止他们再次邀请您。这个人没有被告知。您已阻止的人员列表对您来说是私人的，您可以从“设置”→“已阻止的人员”中取消阻止任何人。';
+      'Date Dawn 允許人們進行一對一互動：您可以邀請某人進行倒計時，並且雙方都可以在共享的人上留下筆記。該內容僅對倒計時的人可見——從不公開，也從未向其他任何人展示。\n\n您可以隨時阻止其他人：開啟與他們共享的倒計時，然後長按他們的名字（或在桌面上雙擊它）。遮蔽會將你們從彼此的倒計時中刪除，取消你們之間的邀請，並阻止他們再次邀請您。這個人沒有被告知。您已阻止的人員列表對您來說是私人的，您可以從“設定”→“已阻止的人員”中取消阻止任何人。';
 
   @override
-  String get privacyStorageTitle => '5. 数据存储和安全';
+  String get privacyStorageTitle => '5. 資料儲存和安全';
 
   @override
   String get privacyStorageBody =>
-      '您的数据将使用符合高行业安全标准的 Firebase（Google Cloud Platform）基础设施安全地存储和处理。您的设备和我们的服务器之间传输的数据在传输过程中使用 TLS 进行加密。';
+      '您的資料將使用符合高行業安全標準的 Firebase（Google Cloud Platform）基礎設施安全地儲存和處理。您的裝置和我們的伺服器之間傳輸的資料在傳輸過程中使用 TLS 進行加密。';
 
   @override
-  String get privacyRightsTitle => '6. 您的权利（访问、更正和删除）';
+  String get privacyRightsTitle => '6. 您的權利（訪問、更正和刪除）';
 
   @override
   String privacyRightsBody(String supportEmail) {
-    return '根据 GDPR 和 PIPEDA，您有权：\n• 访问：索取我们持有的有关您的个人数据的副本。\n• 更正：更新或更正您在“设置”中的个人资料信息。\n• 删除（被遗忘的权利）：随时联系$supportEmail请求完全删除您的帐户以及所有相关倒计时和通知。';
+    return '根據 GDPR 和 PIPEDA，您有權：\n• 訪問：索取我們持有的有關您的個人資料的副本。\n• 更正：更新或更正您在“設定”中的個人資料資訊。\n• 刪除（被遺忘的權利）：隨時聯絡$supportEmail請求完全刪除您的帳戶以及所有相關倒計時和通知。';
   }
 
   @override
-  String get termsAcceptanceTitle => '1. 接受条款';
+  String get termsAcceptanceTitle => '1. 接受條款';
 
   @override
   String get termsAcceptanceBody =>
-      '通过访问或使用 Date Dawn，您同意受这些服务条款的约束。如果您不同意这些条款，请不要使用该应用程序。';
+      '透過訪問或使用 Date Dawn，您同意受這些服務條款的約束。如果您不同意這些條款，請不要使用該應用程式。';
 
   @override
-  String get termsUseTitle => '2. 服务的使用';
+  String get termsUseTitle => '2. 服務的使用';
 
   @override
   String get termsUseBody =>
-      'Date Dawn 提供个人、非商业倒计时和共享时刻跟踪。您同意不滥用服务、上传恶意内容、通过共享圈子或邀请骚扰其他用户，或尝试绕过安全控制。';
+      'Date Dawn 提供個人、非商業倒計時和共享時刻跟蹤。您同意不濫用服務、上傳惡意內容、透過共享圈子或邀請騷擾其他使用者，或嘗試繞過安全控制。';
 
   @override
-  String get termsOwnershipTitle => '3. 用户内容和所有权';
+  String get termsOwnershipTitle => '3. 使用者內容和所有權';
 
   @override
   String get termsOwnershipBody =>
-      '您保留对您创建的倒计时活动、标题和内容的所有所有权。您授予 Date Dawn 有限许可，仅用于在经过身份验证的设备和共享圈子成员之间存储和同步您的内容。';
+      '您保留對您建立的倒計時活動、標題和內容的所有所有權。您授予 Date Dawn 有限許可，僅用於在經過身份驗證的裝置和共享圈子成員之間儲存和同步您的內容。';
 
   @override
-  String get termsTerminationTitle => '4. 终止和帐户删除';
+  String get termsTerminationTitle => '4. 終止和帳戶刪除';
 
   @override
   String get termsTerminationBody =>
-      '您可以随时停止使用 Date Dawn，并通过向支持人员发送电子邮件请求删除帐户。我们保留暂停或终止违反这些条款或滥用平台基础设施的帐户的权利。';
+      '您可以隨時停止使用 Date Dawn，並透過向支援人員傳送電子郵件請求刪除帳戶。我們保留暫停或終止違反這些條款或濫用平臺基礎設施的帳戶的權利。';
 
   @override
-  String get termsLiabilityTitle => '5. 责任限制';
+  String get termsLiabilityTitle => '5. 責任限制';
 
   @override
   String get termsLiabilityBody =>
-      'Date Dawn 按“原样”提供，不提供任何形式的保证。对于因您使用该应用程序而造成的任何间接、偶然或后果性损害，我们不承担任何责任。';
+      'Date Dawn 按“原樣”提供，不提供任何形式的保證。對於因您使用該應用程式而造成的任何間接、偶然或後果性損害，我們不承擔任何責任。';
 
   @override
-  String get privacyPolicyTitle => '隐私政策';
+  String get privacyPolicyTitle => '隱私政策';
 
   @override
-  String get termsOfServiceTitle => '服务条款';
+  String get termsOfServiceTitle => '服務條款';
 
   @override
-  String get supportHeading => '我们阅读每条消息';
+  String get supportHeading => '我們閱讀每條訊息';
 
   @override
   String supportIntro(String responseTime) {
-    return 'Date Dawn 是一个小型的独立应用程序。电子邮件是联系构建者的最快方式——中间没有支持台。我们通常回复$responseTime。';
+    return 'Date Dawn 是一個小型的獨立應用程式。電子郵件是聯絡構建者的最快方式——中間沒有支援臺。我們通常回復$responseTime。';
   }
 
   @override
-  String get supportResponseTime => '2个工作日内';
+  String get supportResponseTime => '2個工作日內';
 
   @override
-  String get supportCommonQuestions => '常见问题';
+  String get supportCommonQuestions => '常見問題';
 
   @override
-  String get supportFaqGoogleQuestion => '我用 Google 登录，但倒计时不见了。';
+  String get supportFaqGoogleQuestion => '我用 Google 登入，但倒計時不見了。';
 
   @override
   String get supportFaqGoogleAnswer =>
-      '使用与创建帐户时相同的方法。 Google 和电子邮件/密码不会自动链接。如果您需要切换方法或认为您在两个帐户中拥有数据，请在创建另一个帐户之前联系我们。';
+      '使用與建立帳戶時相同的方法。 Google 和電子郵件/密碼不會自動連結。如果您需要切換方法或認為您在兩個帳戶中擁有資料，請在建立另一個帳戶之前聯絡我們。';
 
   @override
-  String get supportFaqSharingQuestion => '与我共享的人看不到倒计时。';
+  String get supportFaqSharingQuestion => '與我共享的人看不到倒計時。';
 
   @override
   String get supportFaqSharingAnswer =>
-      '与圈子共享倒计时会发送邀请 - 它不会自动添加人员。他们需要在应用程序中打开邀请并接受它。情侣圈是一个例外：它们会立即分享。';
+      '與圈子共享倒計時會傳送邀請 - 它不會自動新增人員。他們需要在應用程式中開啟邀請並接受它。情侶圈是一個例外：它們會立即分享。';
 
   @override
-  String get supportFaqDeclinedQuestion => '我错误地拒绝了邀请。';
+  String get supportFaqDeclinedQuestion => '我錯誤地拒絕了邀請。';
 
   @override
   String get supportFaqDeclinedAnswer =>
-      '让邀请你的人再次邀请你——他们可以通过点击你名字旁边的刷新图标从倒计时开始邀请你。在此期间，什么也没有丢失。';
+      '讓邀請你的人再次邀請你——他們可以透過點選你名字旁邊的重新整理圖示從倒計時開始邀請你。在此期間，什麼也沒有丟失。';
 
   @override
-  String get supportFaqDeleteQuestion => '如何删除我的帐户和数据？';
+  String get supportFaqDeleteQuestion => '如何刪除我的帳戶和資料？';
 
   @override
   String get supportFaqDeleteAnswer =>
-      '从您注册时使用的地址给我们发送电子邮件并要求删除。与该帐户相关的所有倒计时、邀请和通知都会被删除，我们会在完成后进行确认。';
+      '從您註冊時使用的地址給我們傳送電子郵件並要求刪除。與該帳戶相關的所有倒計時、邀請和通知都會被刪除，我們會在完成後進行確認。';
 
   @override
   String get supportFaqBlockQuestion => '我如何阻止某人？';
 
   @override
   String get supportFaqBlockAnswer =>
-      '打开与他们共享的倒计时，然后在人员列表中长按他们的名字（在计算机上双击）。他们已从您的共享倒计时中删除，并且无法再次邀请您。要撤消它，请转到“设置”→“阻止的人”。';
+      '開啟與他們共享的倒計時，然後在人員列表中長按他們的名字（在計算機上雙擊）。他們已從您的共享倒計時中刪除，並且無法再次邀請您。要撤消它，請轉到“設定”→“阻止的人”。';
 
   @override
-  String get supportFaqAdsQuestion => '你们会出售我的数据或展示广告吗？';
+  String get supportFaqAdsQuestion => '你們會出售我的資料或展示廣告嗎？';
 
   @override
   String get supportFaqAdsAnswer =>
-      '不会。没有广告，没有分析配置文件，也没有第三方跟踪。您倒计时的内容与您无关，因此它存储在您自己的帐户下，其他人无法阅读。';
+      '不會。沒有廣告，沒有分析配置檔案，也沒有第三方跟蹤。您倒計時的內容與您無關，因此它儲存在您自己的帳戶下，其他人無法閱讀。';
 
   @override
   String get supportLegal => '合法的';
 
   @override
   String get supportNotice =>
-      '退款、账单问题或崩溃报告都属于同一地址。如果应用程序出现问题，请告诉我们您的设备以及发生问题时您正在做什么，这是您可以包含的最有用的内容。';
+      '退款、賬單問題或崩潰報告都屬於同一地址。如果應用程式出現問題，請告訴我們您的裝置以及發生問題時您正在做什麼，這是您可以包含的最有用的內容。';
 
   @override
-  String get supportEmailLabel => '电子邮件支持';
+  String get supportEmailLabel => '電子郵件支援';
 
   @override
   String supportEmailCopied(String email) {
-    return '$email已复制';
+    return '$email已複製';
   }
 
   @override
-  String get openMail => '打开邮件';
+  String get openMail => '開啟郵件';
 
   @override
-  String get linkCopiedClipboard => '链接已复制到剪贴板。';
+  String get linkCopiedClipboard => '連結已複製到剪貼簿。';
 
   @override
-  String get verifyEmailTitle => '验证您的电子邮件';
+  String get verifyEmailTitle => '驗證您的電子郵件';
 
   @override
   String verifyEmailInstructions(String email) {
-    return '我们向$email发送了验证链接。请验证以继续。';
+    return '我們向$email傳送了驗證連結。請驗證以繼續。';
   }
 
   @override
-  String get yourEmailAddress => '您的电子邮件地址';
+  String get yourEmailAddress => '您的電子郵件地址';
 
   @override
   String resetLinkSent(String email) {
-    return '重置发送到$email的链接。使用最新的电子邮件。';
+    return '重置傳送到$email的連結。使用最新的電子郵件。';
   }
 
   @override
-  String get verificationEmailSent => '验证电子邮件已发送。';
+  String get verificationEmailSent => '驗證電子郵件已傳送。';
 
   @override
-  String get verificationNotComplete => '尚未验证。检查您的收件箱。';
+  String get verificationNotComplete => '尚未驗證。檢查您的收件箱。';
 
   @override
-  String get verifiedSignInToContinue => '您的电子邮件已验证。如果需要，请登录以继续。';
+  String get verifiedSignInToContinue => '您的電子郵件已驗證。如果需要，請登入以繼續。';
 
   @override
-  String get checkSpamFolder => '找不到电子邮件？请检查您的垃圾邮件或垃圾邮件文件夹。';
+  String get checkSpamFolder => '找不到電子郵件？請檢查您的垃圾郵件或垃圾郵件資料夾。';
 
   @override
-  String get confirmEmailVerified => '我已验证我的电子邮件';
+  String get confirmEmailVerified => '我已驗證我的電子郵件';
 
   @override
-  String get sendingEmail => '正在发送...';
+  String get sendingEmail => '正在傳送...';
 
   @override
-  String get resendEmail => '重新发送电子邮件';
+  String get resendEmail => '重新傳送電子郵件';
 
   @override
-  String get waitBeforeResending => '请等待 60 秒，然后再请求另一封电子邮件。';
+  String get waitBeforeResending => '請等待 60 秒，然後再請求另一封電子郵件。';
 
   @override
-  String get resetCodeMissing => '此重置链接缺少安全代码。';
+  String get resetCodeMissing => '此重置連結缺少安全程式碼。';
 
   @override
-  String get passwordUpdatedSignIn => '密码已更新。再次登录。';
+  String get passwordUpdatedSignIn => '密碼已更新。再次登入。';
 
   @override
-  String get resetLinkInvalidTitle => '无法使用此重置链接';
+  String get resetLinkInvalidTitle => '無法使用此重置連結';
 
   @override
-  String get resetLinkInvalidBody => '该链接可能已过期或已被使用。返回登录并请求新的密码重置电子邮件。';
+  String get resetLinkInvalidBody => '該連結可能已過期或已被使用。返回登入並請求新的密碼重置電子郵件。';
 
   @override
-  String get backToSignIn => '返回登录';
+  String get backToSignIn => '返回登入';
 
   @override
-  String get chooseNewPassword => '选择新密码';
+  String get chooseNewPassword => '選擇新密碼';
 
   @override
-  String get newPassword => '新密码';
+  String get newPassword => '新密碼';
 
   @override
-  String get confirmNewPassword => '确认新密码';
+  String get confirmNewPassword => '確認新密碼';
 
   @override
-  String get passwordMinLength => '至少使用 6 个字符。';
+  String get passwordMinLength => '至少使用 6 個字元。';
 
   @override
-  String get passwordsDoNotMatch => '密码不匹配。';
+  String get passwordsDoNotMatch => '密碼不匹配。';
 
   @override
-  String get updatePassword => '更新密码';
+  String get updatePassword => '更新密碼';
 
   @override
-  String get editCountdownAction => '编辑';
+  String get editCountdownAction => '編輯';
 
   @override
-  String get duplicateYearLater => '一年后重复';
+  String get duplicateYearLater => '一年後重複';
 
   @override
-  String get countdownDuplicated => '重复 — 打开它来调整日期。';
+  String get countdownDuplicated => '重複 — 開啟它來調整日期。';
 
   @override
-  String get onlyOwnerCanDelete => '只有所有者才能删除此倒计时。';
+  String get onlyOwnerCanDelete => '只有所有者才能刪除此倒計時。';
 
   @override
-  String get countdownDeleteFailed => '无法删除。再试一次。';
+  String get countdownDeleteFailed => '無法刪除。再試一次。';
 
   @override
-  String get countdownDeleteWarning => '倒计时无法撤消。';
+  String get countdownDeleteWarning => '倒計時無法撤消。';
 
   @override
   String blockPersonQuestion(String personName) {
-    return '块$personName？';
+    return '塊$personName？';
   }
 
   @override
   String get blockExplanation =>
-      '你们将不再见面。他们将从您分享的每个倒计时中删除，你们之间的邀请被取消，并且他们无法再次邀请您。他们没有被告知。';
+      '你們將不再見面。他們將從您分享的每個倒計時中刪除，你們之間的邀請被取消，並且他們無法再次邀請您。他們沒有被告知。';
 
   @override
-  String get undoBlockInSettings => '您可以随时在“设置”→“阻止的人”中撤消此操作。';
+  String get undoBlockInSettings => '您可以隨時在“設定”→“阻止的人”中撤消此操作。';
 
   @override
   String get blocking => '阻塞…';
@@ -1243,85 +1243,85 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String personUnblocked(String personName) {
-    return '$personName已解锁。';
+    return '$personName已解鎖。';
   }
 
   @override
-  String get blockAccessNotRestored => '倒计时访问未恢复。';
+  String get blockAccessNotRestored => '倒計時訪問未恢復。';
 
   @override
-  String get undoBlockFailed => '无法撤消阻止。请再试一次。';
+  String get undoBlockFailed => '無法撤消阻止。請再試一次。';
 
   @override
-  String get blockSaveFailed => '无法保存您的区块。重新登录并重试。';
+  String get blockSaveFailed => '無法儲存您的區塊。重新登入並重試。';
 
   @override
-  String get noConnectionRetry => '没有连接。检查您的网络并重试。';
+  String get noConnectionRetry => '沒有連線。檢查您的網路並重試。';
 
   @override
   String blockPersonFailed(String personName) {
-    return '无法阻止$personName。请再试一次。';
+    return '無法阻止$personName。請再試一次。';
   }
 
   @override
-  String get blockedPeopleTitle => '被屏蔽的人';
+  String get blockedPeopleTitle => '被遮蔽的人';
 
   @override
-  String get nobodyBlocked => '没有人被阻止';
+  String get nobodyBlocked => '沒有人被阻止';
 
   @override
-  String get howToBlockPerson => '要阻止某人，请打开与他们共享的倒计时，打开其所在行的 ⋮ 菜单，然后点击“阻止”。';
+  String get howToBlockPerson => '要阻止某人，請開啟與他們共享的倒計時，開啟其所在行的 ⋮ 選單，然後點選“阻止”。';
 
   @override
   String get blockedPeopleDescription =>
-      '这些人无法邀请您，您也不会与他们分享任何倒计时。他们没有被告知他们被封锁了。';
+      '這些人無法邀請您，您也不會與他們分享任何倒計時。他們沒有被告知他們被封鎖了。';
 
   @override
-  String get unblock => '解锁';
+  String get unblock => '解鎖';
 
   @override
-  String get blockedListLoadFailed => '无法加载您的阻止列表';
+  String get blockedListLoadFailed => '無法載入您的阻止列表';
 
   @override
-  String get blockedListPermissionError => '您的帐户无权阅读此列表。如果这种情况持续发生，请更新应用程序。';
+  String get blockedListPermissionError => '您的帳戶無權閱讀此列表。如果這種情況持續發生，請更新應用程式。';
 
   @override
-  String get deleteAccount => '关于如何删除帐户的说明';
+  String get deleteAccount => '關於如何刪除帳戶的說明';
 
   @override
-  String get deleteAccountWarning => '此操作是永久性的。您的所有活动、圈子和数据都将被永久删除。';
+  String get deleteAccountWarning => '此操作是永久性的。您的所有活動、圈子和資料都將被永久刪除。';
 
   @override
-  String get deleteAccountConfirmationPrompt => '输入您的确切帐户电子邮件以继续。';
+  String get deleteAccountConfirmationPrompt => '輸入您的確切帳戶電子郵件以繼續。';
 
   @override
-  String get deleteAccountConfirmationLabel => '账户邮箱';
+  String get deleteAccountConfirmationLabel => '賬戶郵箱';
 
   @override
-  String get permanentlyDeleteAccount => '永久删除帐户';
+  String get permanentlyDeleteAccount => '永久刪除帳戶';
 
   @override
-  String get deleteAccountProfileConsequence => '您的个人资料将被永久删除。';
+  String get deleteAccountProfileConsequence => '您的個人資料將被永久刪除。';
 
   @override
-  String get deleteAccountAccessConsequence => '您将无法访问所有活动和圈子。';
+  String get deleteAccountAccessConsequence => '您將無法訪問所有活動和圈子。';
 
   @override
-  String get deleteAccountIrreversibleConsequence => '此操作无法撤消。';
+  String get deleteAccountIrreversibleConsequence => '此操作無法撤消。';
 
   @override
-  String get deleteAccountPermanentlyAction => '永久删除帐户';
+  String get deleteAccountPermanentlyAction => '永久刪除帳戶';
 
   @override
-  String get accountDeleted => '帐号删除成功';
+  String get accountDeleted => '帳號刪除成功';
 
   @override
-  String get serverTimedOutTryAgain => '服务器超时。请稍后重试。';
+  String get serverTimedOutTryAgain => '伺服器超時。請稍後重試。';
 
   @override
-  String get accountDeletionFailed => '无法完成帐户删除。请再试一次。';
+  String get accountDeletionFailed => '無法完成帳戶刪除。請再試一次。';
 
   @override
   String get accountDeletedCleanupWarning =>
-      '帐户已删除，但无法清除某些本地设置。使用其他帐户之前重新启动应用程序。';
+      '帳戶已刪除，但無法清除某些本地設定。使用其他帳戶之前重新啟動應用程式。';
 }

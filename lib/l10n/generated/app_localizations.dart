@@ -166,10 +166,10 @@ abstract class AppLocalizations {
   /// **'Deutsch'**
   String get languageGerman;
 
-  /// Display name of Simplified Chinese in the language picker.
+  /// Display name of Traditional Chinese (Taiwan) in the language picker.
   ///
   /// In en, this message translates to:
-  /// **'中文（简体）'**
+  /// **'Traditional Chinese (Taiwan)'**
   String get languageChinese;
 
   /// Settings screen title.

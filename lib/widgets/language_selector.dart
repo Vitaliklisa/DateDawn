@@ -146,8 +146,8 @@ class LanguageSelector extends ConsumerWidget {
       'es' => '🇪🇸',
       'uk' => '🇺🇦',
       'de' => '🇩🇪',
-      'zh' => '🇨🇳',
-      _ => '🇺🇸',
+      'zh' => '🇹🇼',
+      _ => '🇬🇧',
     };
   }
 }

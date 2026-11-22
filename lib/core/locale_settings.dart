@@ -9,7 +9,7 @@ const supportedAppLocales = <Locale>[
   Locale('es'),
   Locale('uk'),
   Locale('de'),
-  Locale('zh'),
+  Locale('zh', 'TW'),
 ];
 
 class LocalePreference {

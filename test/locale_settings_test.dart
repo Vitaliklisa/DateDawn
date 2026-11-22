@@ -65,7 +65,8 @@ void main() {
       expect(deviceLanguage.selectedLocale, isNull);
     });
 
-    test('supports Simplified Chinese as a saved and device language', () {
+    test('supports Taiwan Traditional Chinese as a saved and device language',
+        () {
       final savedLanguage = resolveLocalePreference(
         savedLanguageCode: 'zh',
         deviceLocale: const Locale('en'),
@@ -75,9 +76,9 @@ void main() {
         deviceLocale: const Locale('zh', 'CN'),
       );
 
-      expect(savedLanguage.activeLocale, const Locale('zh'));
-      expect(savedLanguage.selectedLocale, const Locale('zh'));
-      expect(deviceLanguage.activeLocale, const Locale('zh'));
+      expect(savedLanguage.activeLocale, const Locale('zh', 'TW'));
+      expect(savedLanguage.selectedLocale, const Locale('zh', 'TW'));
+      expect(deviceLanguage.activeLocale, const Locale('zh', 'TW'));
       expect(deviceLanguage.selectedLocale, isNull);
     });
 
@@ -168,7 +169,7 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('language-selector')));
     await tester.pumpAndSettle();
-    for (final flag in ['🇺🇸', '🇫🇷', '🇪🇸', '🇺🇦', '🇩🇪']) {
+    for (final flag in ['🇬🇧', '🇫🇷', '🇪🇸', '🇺🇦', '🇩🇪']) {
       expect(find.text(flag), findsOneWidget);
     }
     await tester.tap(find.byKey(const ValueKey('locale-option-fr')));
@@ -179,6 +180,43 @@ void main() {
     expect(find.text('🇫🇷 Français'), findsOneWidget);
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.getString(localePreferenceKey), 'fr');
+  });
+
+  testWidgets('Taiwan Traditional Chinese can be selected in Settings',
+      (tester) async {
+    final initialPreference = resolveLocalePreference(
+      savedLanguageCode: null,
+      deviceLocale: const Locale('en'),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          localePreferenceProvider.overrideWith(
+            () => LocalePreferenceController(
+              initialPreference: initialPreference,
+            ),
+          ),
+          currentUserProvider.overrideWith((ref) => null),
+          eventsProvider.overrideWith((ref) => Stream.value(const [])),
+        ],
+        child: const _SettingsTestApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('language-selector')));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -500));
+    await tester.pumpAndSettle();
+    final taiwanChinese = find.byKey(const ValueKey('locale-option-zh'));
+    expect(find.text('🇹🇼'), findsOneWidget);
+    await tester.tap(taiwanChinese);
+    await tester.pumpAndSettle();
+
+    expect(find.text('設定'), findsOneWidget);
+    expect(find.text('語言'), findsNWidgets(2));
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getString(localePreferenceKey), 'zh');
   });
 
   testWidgets('mobile login shows the language selector', (tester) async {

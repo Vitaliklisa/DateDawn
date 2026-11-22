@@ -40,7 +40,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get languageGerman => 'Deutsch';
 
   @override
-  String get languageChinese => 'Chino simplificado';
+  String get languageChinese => 'Chino tradicional (Taiwán)';
 
   @override
   String get settings => 'Ajustes';

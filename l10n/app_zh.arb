@@ -4,31 +4,31 @@
   "@appTitle": {
     "description": "The app's display name."
   },
-  "language": "语言",
+  "language": "語言",
   "@language": {
     "description": "Settings label for choosing the app language."
   },
-  "followSystemLanguage": "遵循系统语言",
+  "followSystemLanguage": "遵循系統語言",
   "@followSystemLanguage": {
     "description": "Choice that follows the device language and clears a saved language preference."
   },
-  "languageChanged": "语言变了。",
+  "languageChanged": "語言變了。",
   "@languageChanged": {
     "description": "Confirmation after the user changes the app language."
   },
-  "languageSaveFailed": "无法保存您的语言首选项。",
+  "languageSaveFailed": "無法儲存您的語言首選項。",
   "@languageSaveFailed": {
     "description": "Error shown when saving the selected language fails."
   },
-  "languageEnglish": "英语",
+  "languageEnglish": "英語",
   "@languageEnglish": {
     "description": "Display name of English in the language picker."
   },
-  "languageFrench": "法国人",
+  "languageFrench": "法國人",
   "@languageFrench": {
     "description": "Display name of French in the language picker."
   },
-  "languageSpanish": "西班牙语",
+  "languageSpanish": "西班牙語",
   "@languageSpanish": {
     "description": "Display name of Spanish in the language picker."
   },
@@ -36,31 +36,31 @@
   "@languageUkrainian": {
     "description": "Display name of Ukrainian in the language picker."
   },
-  "languageGerman": "德语",
+  "languageGerman": "德語",
   "@languageGerman": {
     "description": "Display name of German in the language picker."
   },
-  "languageChinese": "中文（简体）",
+  "languageChinese": "繁體中文（台灣）",
   "@languageChinese": {
-    "description": "Display name of Simplified Chinese in the language picker."
+    "description": "Display name of Traditional Chinese (Taiwan) in the language picker."
   },
-  "settings": "设置",
+  "settings": "設定",
   "@settings": {
     "description": "Settings screen title."
   },
-  "dateDawnUser": "日期黎明用户",
+  "dateDawnUser": "日期黎明使用者",
   "@dateDawnUser": {
     "description": "Fallback display name for an account with no name."
   },
-  "guestAccount": "访客帐户",
+  "guestAccount": "訪客帳戶",
   "@guestAccount": {
     "description": "Account type label for a guest."
   },
-  "notSignedIn": "您尚未登录",
+  "notSignedIn": "您尚未登入",
   "@notSignedIn": {
     "description": "Message shown in Settings to signed-out users."
   },
-  "syncAndShareDescription": "登录以在每台设备上同步您的倒计时并与其他人分享。",
+  "syncAndShareDescription": "登入以在每臺裝置上同步您的倒計時並與其他人分享。",
   "@syncAndShareDescription": {
     "description": "Explains the benefits of signing in."
   },
@@ -80,27 +80,27 @@
   "@lightTheme": {
     "description": "Light theme option."
   },
-  "systemTheme": "系统",
+  "systemTheme": "系統",
   "@systemTheme": {
     "description": "Theme option that follows the device."
   },
-  "time": "时间",
+  "time": "時間",
   "@time": {
     "description": "Settings section heading for clock display."
   },
-  "timeFormatDescription": "时钟时间是如何书写的。不管怎样，你的倒计时都会被存储为精确的时刻——这只会改变它们的读取方式。",
+  "timeFormatDescription": "時鐘時間是如何書寫的。不管怎樣，你的倒計時都會被儲存為精確的時刻——這隻會改變它們的讀取方式。",
   "@timeFormatDescription": {
     "description": "Explains the time format preference."
   },
-  "twelveHourTime": "12 小时（上午/下午）",
+  "twelveHourTime": "12 小時（上午/下午）",
   "@twelveHourTime": {
     "description": "Twelve-hour clock display option."
   },
-  "twentyFourHourTime": "24小时",
+  "twentyFourHourTime": "24小時",
   "@twentyFourHourTime": {
     "description": "Twenty-four-hour clock display option."
   },
-  "about": "关于",
+  "about": "關於",
   "@about": {
     "description": "Settings section heading for app information."
   },
@@ -116,7 +116,7 @@
   "@safety": {
     "description": "Settings section heading for safety controls."
   },
-  "blockedPeople": "被屏蔽的人",
+  "blockedPeople": "被遮蔽的人",
   "@blockedPeople": {
     "description": "Link to the list of blocked people."
   },
@@ -124,15 +124,15 @@
   "@legal": {
     "description": "Settings section heading for legal documents."
   },
-  "privacyPolicy": "隐私政策",
+  "privacyPolicy": "隱私政策",
   "@privacyPolicy": {
     "description": "Link to the privacy policy."
   },
-  "termsOfService": "服务条款",
+  "termsOfService": "服務條款",
   "@termsOfService": {
     "description": "Link to the terms of service."
   },
-  "helpAndSupport": "帮助与支持",
+  "helpAndSupport": "幫助與支援",
   "@helpAndSupport": {
     "description": "Link to help and support."
   },
@@ -144,7 +144,7 @@
   "@signedOut": {
     "description": "Confirmation after signing out."
   },
-  "countdownsCount": "{count,plural,one{{count}倒计时} other{{count}倒计时}}",
+  "countdownsCount": "{count,plural,one{{count}倒計時} other{{count}倒計時}}",
   "@countdownsCount": {
     "description": "Number of countdowns associated with the account.",
     "placeholders": {
@@ -153,19 +153,19 @@
       }
     }
   },
-  "welcomeToDateDawn": "欢迎来到约会黎明",
+  "welcomeToDateDawn": "歡迎來到約會黎明",
   "@welcomeToDateDawn": {
     "description": "Login headline."
   },
-  "createYourAccount": "创建您的帐户",
+  "createYourAccount": "建立您的帳戶",
   "@createYourAccount": {
     "description": "Registration headline."
   },
-  "countdownsSyncDescription": "您的倒计时会同步到您登录的每台设备。",
+  "countdownsSyncDescription": "您的倒計時會同步到您登入的每臺裝置。",
   "@countdownsSyncDescription": {
     "description": "Registration description."
   },
-  "welcomeDescription": "通过手机、平板电脑和网络倒计时重要时刻。",
+  "welcomeDescription": "透過手機、平板電腦和網路倒計時重要時刻。",
   "@welcomeDescription": {
     "description": "Login description."
   },
@@ -173,15 +173,15 @@
   "@name": {
     "description": "Name field label."
   },
-  "nameHint": "亚历克斯·里维拉",
+  "nameHint": "亞歷克斯·里維拉",
   "@nameHint": {
     "description": "Example name in the registration field."
   },
-  "nameRequired": "告诉我们该怎么称呼您。",
+  "nameRequired": "告訴我們該怎麼稱呼您。",
   "@nameRequired": {
     "description": "Validation shown when a name is missing."
   },
-  "email": "电子邮件",
+  "email": "電子郵件",
   "@email": {
     "description": "Email address field label."
   },
@@ -189,39 +189,39 @@
   "@emailHint": {
     "description": "Example email address in the email field."
   },
-  "emailRequired": "输入您的电子邮件。",
+  "emailRequired": "輸入您的電子郵件。",
   "@emailRequired": {
     "description": "Validation shown when email is missing."
   },
-  "emailInvalid": "这看起来不像电子邮件。",
+  "emailInvalid": "這看起來不像電子郵件。",
   "@emailInvalid": {
     "description": "Validation shown when email is malformed."
   },
-  "password": "密码",
+  "password": "密碼",
   "@password": {
     "description": "Password field label."
   },
-  "passwordRequired": "输入您的密码。",
+  "passwordRequired": "輸入您的密碼。",
   "@passwordRequired": {
     "description": "Validation shown when password is missing."
   },
-  "passwordTooShort": "至少使用 6 个字符。",
+  "passwordTooShort": "至少使用 6 個字元。",
   "@passwordTooShort": {
     "description": "Validation shown when password is too short."
   },
-  "forgotPassword": "忘记密码？",
+  "forgotPassword": "忘記密碼？",
   "@forgotPassword": {
     "description": "Action to request a password reset."
   },
-  "forgotPasswordPrompt": "首先输入您的电子邮件，然后点击“忘记密码”。",
+  "forgotPasswordPrompt": "首先輸入您的電子郵件，然後點選“忘記密碼”。",
   "@forgotPasswordPrompt": {
     "description": "Prompt shown when password reset is tapped without an email."
   },
-  "signInConnectionError": "无法访问登录服务。检查您的连接。",
+  "signInConnectionError": "無法訪問登入服務。檢查您的連線。",
   "@signInConnectionError": {
     "description": "Message shown when authentication cannot be reached."
   },
-  "createAccount": "创建账户",
+  "createAccount": "建立賬戶",
   "@createAccount": {
     "description": "Action that creates a new account."
   },
@@ -229,39 +229,39 @@
   "@or": {
     "description": "Divider between sign-in methods."
   },
-  "continueWithGoogle": "继续使用谷歌",
+  "continueWithGoogle": "繼續使用谷歌",
   "@continueWithGoogle": {
     "description": "Google sign-in action."
   },
-  "alreadyHaveAccount": "已经有帐户？",
+  "alreadyHaveAccount": "已經有帳戶？",
   "@alreadyHaveAccount": {
     "description": "Prefix for switching from registration to sign-in."
   },
-  "newHere": "新来的？",
+  "newHere": "新來的？",
   "@newHere": {
     "description": "Prefix for switching from sign-in to registration."
   },
-  "createOne": "创建一个",
+  "createOne": "建立一個",
   "@createOne": {
     "description": "Action to switch from sign-in to registration."
   },
-  "troubleSigningIn": "登录时遇到问题？获得帮助",
+  "troubleSigningIn": "登入時遇到問題？獲得幫助",
   "@troubleSigningIn": {
     "description": "Link to support from the sign-in screen."
   },
-  "accountCreated": "帐户已创建。",
+  "accountCreated": "帳戶已建立。",
   "@accountCreated": {
     "description": "Confirmation after account creation."
   },
-  "welcomeBack": "欢迎回来。",
+  "welcomeBack": "歡迎回來。",
   "@welcomeBack": {
     "description": "Confirmation after signing in."
   },
-  "signInFailed": "无法完成登录。请重试。",
+  "signInFailed": "無法完成登入。請重試。",
   "@signInFailed": {
     "description": "Generic sign-in failure message."
   },
-  "signedInWithGoogle": "已使用 Google 登录。",
+  "signedInWithGoogle": "已使用 Google 登入。",
   "@signedInWithGoogle": {
     "description": "Confirmation after Google sign-in."
   },
@@ -269,7 +269,7 @@
   "@home": {
     "description": "Home navigation destination."
   },
-  "invitations": "邀请函",
+  "invitations": "邀請函",
   "@invitations": {
     "description": "Invitations navigation destination."
   },
@@ -281,7 +281,7 @@
   "@notifications": {
     "description": "Notifications navigation destination."
   },
-  "support": "支持",
+  "support": "支援",
   "@support": {
     "description": "Support navigation destination."
   },
@@ -289,59 +289,59 @@
   "@homeEmptyTitle": {
     "description": "Empty home screen headline."
   },
-  "homeEmptyDescription": "选择一个未来的时刻——婚礼、发布会、回家之旅。黎明日期计算着剩余的年、月、日和小时，然后在它到来时庆祝。",
+  "homeEmptyDescription": "選擇一個未來的時刻——婚禮、釋出會、回家之旅。黎明日期計算著剩餘的年、月、日和小時，然後在它到來時慶祝。",
   "@homeEmptyDescription": {
     "description": "Empty home screen introduction."
   },
-  "homeLoadError": "无法达到您的倒计时。拉下来再试一次。",
+  "homeLoadError": "無法達到您的倒計時。拉下來再試一次。",
   "@homeLoadError": {
     "description": "Error when the home countdown list cannot be loaded."
   },
-  "getStarted": "开始使用",
+  "getStarted": "開始使用",
   "@getStarted": {
     "description": "Action for a signed-out user to begin creating a countdown."
   },
-  "homeSyncTitle": "让它们无处不在",
+  "homeSyncTitle": "讓它們無處不在",
   "@homeSyncTitle": {
     "description": "Home screen title for countdown syncing."
   },
-  "homeSyncDescription": "登录即可在手机、平板电脑和网络上同步您的倒计时，并与与您一起倒计时的人分享。",
+  "homeSyncDescription": "登入即可在手機、平板電腦和網路上同步您的倒計時，並與與您一起倒計時的人分享。",
   "@homeSyncDescription": {
     "description": "Home screen explanation of syncing and sharing."
   },
-  "otherCountdowns": "其他倒计时",
+  "otherCountdowns": "其他倒計時",
   "@otherCountdowns": {
     "description": "Heading for the secondary countdown list."
   },
-  "arrived": "到达的",
+  "arrived": "到達的",
   "@arrived": {
     "description": "Status shown when a countdown moment has arrived."
   },
-  "countingDown": "倒计时",
+  "countingDown": "倒計時",
   "@countingDown": {
     "description": "Status shown while a countdown is active."
   },
-  "options": "选项",
+  "options": "選項",
   "@options": {
     "description": "Button and tooltip for more countdown actions."
   },
-  "open": "打开",
+  "open": "開啟",
   "@open": {
     "description": "Action to open a countdown."
   },
-  "openCountdown": "开放倒计时",
+  "openCountdown": "開放倒計時",
   "@openCountdown": {
     "description": "Action to open a countdown detail page."
   },
-  "newCountdown": "新倒计时",
+  "newCountdown": "新倒計時",
   "@newCountdown": {
     "description": "Title for the new countdown screen."
   },
-  "editCountdown": "编辑倒计时",
+  "editCountdown": "編輯倒計時",
   "@editCountdown": {
     "description": "Title for editing a countdown."
   },
-  "countdownTitleLabel": "标题",
+  "countdownTitleLabel": "標題",
   "@countdownTitleLabel": {
     "description": "Countdown title field label."
   },
@@ -349,15 +349,15 @@
   "@countdownDescriptionLabel": {
     "description": "Countdown description field label."
   },
-  "whenLabel": "什么时候",
+  "whenLabel": "什麼時候",
   "@whenLabel": {
     "description": "Heading for the countdown date and time."
   },
-  "titleExampleHint": "婚礼、启动、团聚",
+  "titleExampleHint": "婚禮、啟動、團聚",
   "@titleExampleHint": {
     "description": "Example countdown title shown in the title field."
   },
-  "descriptionExampleHint": "关于这一天的简短说明",
+  "descriptionExampleHint": "關於這一天的簡短說明",
   "@descriptionExampleHint": {
     "description": "Hint for the optional countdown description."
   },
@@ -365,7 +365,7 @@
   "@dateLabel": {
     "description": "Date picker label."
   },
-  "timeLabel": "时间",
+  "timeLabel": "時間",
   "@timeLabel": {
     "description": "Time picker label."
   },
@@ -373,7 +373,7 @@
   "@presetWeek": {
     "description": "Quick date preset for one week from now."
   },
-  "presetMonth": "+1 个月",
+  "presetMonth": "+1 個月",
   "@presetMonth": {
     "description": "Quick date preset for one month from now."
   },
@@ -385,59 +385,59 @@
   "@presetFiveYears": {
     "description": "Quick date preset for five years from now."
   },
-  "createCountdown": "创建倒计时",
+  "createCountdown": "建立倒計時",
   "@createCountdown": {
     "description": "Action to create a countdown."
   },
-  "saveChanges": "保存更改",
+  "saveChanges": "儲存更改",
   "@saveChanges": {
     "description": "Action to save edits to a countdown."
   },
-  "deleteCountdown": "删除倒计时",
+  "deleteCountdown": "刪除倒計時",
   "@deleteCountdown": {
     "description": "Action to delete a countdown."
   },
-  "countdownActions": "倒计时动作",
+  "countdownActions": "倒計時動作",
   "@countdownActions": {
     "description": "Tooltip for the countdown action menu."
   },
-  "deleteCountdownQuestion": "删除这个倒计时？",
+  "deleteCountdownQuestion": "刪除這個倒計時？",
   "@deleteCountdownQuestion": {
     "description": "Confirmation title before deleting a countdown."
   },
-  "countdownCannotUndo": "倒计时无法撤消。",
+  "countdownCannotUndo": "倒計時無法撤消。",
   "@countdownCannotUndo": {
     "description": "Warning that deleting a countdown cannot be undone."
   },
-  "giveCountdownTitle": "给这个倒计时一个标题。",
+  "giveCountdownTitle": "給這個倒計時一個標題。",
   "@giveCountdownTitle": {
     "description": "Validation when the countdown title is empty."
   },
-  "pickFutureMoment": "选一个还在你前面的时刻。",
+  "pickFutureMoment": "選一個還在你前面的時刻。",
   "@pickFutureMoment": {
     "description": "Validation when the selected countdown moment has passed."
   },
-  "signInToSaveCountdown": "登录以保存倒计时。",
+  "signInToSaveCountdown": "登入以儲存倒計時。",
   "@signInToSaveCountdown": {
     "description": "Message shown when a signed-out user tries to save."
   },
-  "countdownCreated": "已创建倒计时。",
+  "countdownCreated": "已建立倒計時。",
   "@countdownCreated": {
     "description": "Confirmation after creating a countdown."
   },
-  "changesSaved": "更改已保存。",
+  "changesSaved": "更改已儲存。",
   "@changesSaved": {
     "description": "Confirmation after editing a countdown."
   },
-  "countdownDeleted": "倒计时已删除。",
+  "countdownDeleted": "倒計時已刪除。",
   "@countdownDeleted": {
     "description": "Confirmation after deleting a countdown."
   },
-  "partnerLabel": "你的伙伴",
+  "partnerLabel": "你的夥伴",
   "@partnerLabel": {
     "description": "Fallback name for a user's partner."
   },
-  "partnerNotAdded": "已创建倒计时，但未添加{partnerName}。从倒计时手动邀请他们。",
+  "partnerNotAdded": "已建立倒計時，但未新增{partnerName}。從倒計時手動邀請他們。",
   "@partnerNotAdded": {
     "description": "Warning when a partner could not be automatically added.",
     "placeholders": {
@@ -446,7 +446,7 @@
       }
     }
   },
-  "partnerAdded": "已创建倒计时。  添加了{partnerName}。",
+  "partnerAdded": "已建立倒計時。  新增了{partnerName}。",
   "@partnerAdded": {
     "description": "Confirmation when a partner is automatically added.",
     "placeholders": {
@@ -455,15 +455,15 @@
       }
     }
   },
-  "noPartnerAdded": "已创建倒计时，但未添加合作伙伴。手动邀请他们。",
+  "noPartnerAdded": "已建立倒計時，但未新增合作伙伴。手動邀請他們。",
   "@noPartnerAdded": {
     "description": "Warning when automatic partner sharing did not add anyone."
   },
-  "chooseFutureDateHint": "选择未来的日期以查看倒计时。",
+  "chooseFutureDateHint": "選擇未來的日期以檢視倒計時。",
   "@chooseFutureDateHint": {
     "description": "Preview shown when the selected date is in the past."
   },
-  "countingDownRemaining": "倒计时{remaining}",
+  "countingDownRemaining": "倒計時{remaining}",
   "@countingDownRemaining": {
     "description": "Countdown preview followed by the remaining time.",
     "placeholders": {
@@ -472,15 +472,15 @@
       }
     }
   },
-  "cannotEditCountdown": "您可以查看此倒计时，但不能更改它。",
+  "cannotEditCountdown": "您可以檢視此倒計時，但不能更改它。",
   "@cannotEditCountdown": {
     "description": "Notice shown to a user without edit permission."
   },
-  "shareWith": "分享给",
+  "shareWith": "分享給",
   "@shareWith": {
     "description": "Heading for selecting circles to share a countdown with."
   },
-  "circleShareDescription": "几个圈子立即分享。其他圈子收到邀请。",
+  "circleShareDescription": "幾個圈子立即分享。其他圈子收到邀請。",
   "@circleShareDescription": {
     "description": "Explains how circle sharing works in the countdown editor."
   },
@@ -488,15 +488,15 @@
   "@collaborators": {
     "description": "Heading for people on a countdown."
   },
-  "collaboratorsCanFollow": "您邀请的任何人都可以在自己的设备上关注此倒计时。",
+  "collaboratorsCanFollow": "您邀請的任何人都可以在自己的裝置上關注此倒計時。",
   "@collaboratorsCanFollow": {
     "description": "Description of collaborator access."
   },
-  "peopleFollowing": "人们正在关注这个倒计时。",
+  "peopleFollowing": "人們正在關注這個倒計時。",
   "@peopleFollowing": {
     "description": "Description of the countdown collaborators list."
   },
-  "noCollaboratorsYet": "还没有其他人。",
+  "noCollaboratorsYet": "還沒有其他人。",
   "@noCollaboratorsYet": {
     "description": "Empty state for countdown collaborators."
   },
@@ -504,11 +504,11 @@
   "@nameEmailHint": {
     "description": "Example email address in an invitation field."
   },
-  "recentContactsCouldNotLoad": "无法加载最近的联系人。检查您的连接或 Firestore 规则。",
+  "recentContactsCouldNotLoad": "無法載入最近的聯絡人。檢查您的連線或 Firestore 規則。",
   "@recentContactsCouldNotLoad": {
     "description": "Error loading recent invite suggestions."
   },
-  "invitationSentTo": "邀请已发送至{email}。",
+  "invitationSentTo": "邀請已傳送至{email}。",
   "@invitationSentTo": {
     "description": "Confirmation after sending an invitation.",
     "placeholders": {
@@ -517,7 +517,7 @@
       }
     }
   },
-  "sharedWithCircle": "与{circleName}共享",
+  "sharedWithCircle": "與{circleName}共享",
   "@sharedWithCircle": {
     "description": "Countdown collaborator row representing a shared circle.",
     "placeholders": {
@@ -526,15 +526,15 @@
       }
     }
   },
-  "inviteAgain": "再次邀请",
+  "inviteAgain": "再次邀請",
   "@inviteAgain": {
     "description": "Action to resend a declined invitation."
   },
-  "removePersonQuestion": "删除这个人？",
+  "removePersonQuestion": "刪除這個人？",
   "@removePersonQuestion": {
     "description": "Confirmation title before removing a countdown collaborator."
   },
-  "collaboratorLosesAccess": "{email}将失去对此倒计时的访问权限，并且将不再在其列表中看到它。",
+  "collaboratorLosesAccess": "{email}將失去對此倒計時的訪問許可權，並且將不再在其列表中看到它。",
   "@collaboratorLosesAccess": {
     "description": "Explains the effect of removing a collaborator.",
     "placeholders": {
@@ -543,7 +543,7 @@
       }
     }
   },
-  "changeRole": "改变角色",
+  "changeRole": "改變角色",
   "@changeRole": {
     "description": "Action to change a collaborator's role."
   },
@@ -556,7 +556,7 @@
       }
     }
   },
-  "roleChangeDescription": "这改变了他们从现在开始的倒计时可以做的事情。他们目前拥有{role}访问权限。",
+  "roleChangeDescription": "這改變了他們從現在開始的倒計時可以做的事情。他們目前擁有{role}訪問許可權。",
   "@roleChangeDescription": {
     "description": "Explains collaborator role changes.",
     "placeholders": {
@@ -577,23 +577,23 @@
       }
     }
   },
-  "circlesDescriptionTitle": "与您一起倒数的群组",
+  "circlesDescriptionTitle": "與您一起倒數的群組",
   "@circlesDescriptionTitle": {
     "description": "Introductory heading on the circles page."
   },
-  "circlesDescription": "邀请某人加入某个圈子一次，然后只需轻按一下即可与整个群组分享任何倒计时。几个圈子会自动共享——你们中的一个人创造的任何东西，另一个人都会看到。",
+  "circlesDescription": "邀請某人加入某個圈子一次，然後只需輕按一下即可與整個群組分享任何倒計時。幾個圈子會自動共享——你們中的一個人創造的任何東西，另一個人都會看到。",
   "@circlesDescription": {
     "description": "Explains circles and automatic couple sharing."
   },
-  "circlesLoadError": "无法加载您的圈子。拉下来重试。",
+  "circlesLoadError": "無法載入您的圈子。拉下來重試。",
   "@circlesLoadError": {
     "description": "Error loading the user's circles."
   },
-  "noCircles": "还没有圈子",
+  "noCircles": "還沒有圈子",
   "@noCircles": {
     "description": "Empty state title for the circles page."
   },
-  "noCirclesDescription": "为与您一起倒计时的人（伴侣、家人或每年与您一起旅行的朋友）创建一个。",
+  "noCirclesDescription": "為與您一起倒計時的人（伴侶、家人或每年與您一起旅行的朋友）建立一個。",
   "@noCirclesDescription": {
     "description": "Empty state explanation for circles."
   },
@@ -601,7 +601,7 @@
   "@newCircle": {
     "description": "Action and title for creating a circle."
   },
-  "sharesAutomatically": "自动分享",
+  "sharesAutomatically": "自動分享",
   "@sharesAutomatically": {
     "description": "Label for a couple circle that automatically shares countdowns."
   },
@@ -614,7 +614,7 @@
       }
     }
   },
-  "inviteSomeone": "邀请某人",
+  "inviteSomeone": "邀請某人",
   "@inviteSomeone": {
     "description": "Tooltip for inviting a circle member."
   },
@@ -622,19 +622,19 @@
   "@you": {
     "description": "Label for the current user in a member list."
   },
-  "leaveCircle": "离开圈子",
+  "leaveCircle": "離開圈子",
   "@leaveCircle": {
     "description": "Action to leave a circle."
   },
-  "deleteCircle": "删除圈子",
+  "deleteCircle": "刪除圈子",
   "@deleteCircle": {
     "description": "Action to delete a circle."
   },
-  "removeFromCircle": "从圈子中删除",
+  "removeFromCircle": "從圈子中刪除",
   "@removeFromCircle": {
     "description": "Tooltip for removing a circle member."
   },
-  "removeMemberQuestion": "删除{personName}？",
+  "removeMemberQuestion": "刪除{personName}？",
   "@removeMemberQuestion": {
     "description": "Confirmation title for removing a member from a circle.",
     "placeholders": {
@@ -643,7 +643,7 @@
       }
     }
   },
-  "removeMemberExplanation": "他们将不再看到与此圈子共享的倒计时。他们创建的任何内容都不会被删除。",
+  "removeMemberExplanation": "他們將不再看到與此圈子共享的倒計時。他們建立的任何內容都不會被刪除。",
   "@removeMemberExplanation": {
     "description": "Explains the effect of removing a circle member."
   },
@@ -656,11 +656,11 @@
       }
     }
   },
-  "leaveCircleExplanation": "您将不再显示与此圈子共享的倒计时。您可以被邀请回来。",
+  "leaveCircleExplanation": "您將不再顯示與此圈子共享的倒計時。您可以被邀請回來。",
   "@leaveCircleExplanation": {
     "description": "Explains the effect of leaving a circle."
   },
-  "deleteCircleQuestion": "删除“{circleName}”？",
+  "deleteCircleQuestion": "刪除“{circleName}”？",
   "@deleteCircleQuestion": {
     "description": "Confirmation title for deleting a circle.",
     "placeholders": {
@@ -669,35 +669,35 @@
       }
     }
   },
-  "deleteCircleExplanation": "队伍消失了。与其共享的倒计时会被保留并保留在您的手中 - 只是不再与这些人共享。",
+  "deleteCircleExplanation": "隊伍消失了。與其共享的倒計時會被保留並保留在您的手中 - 只是不再與這些人共享。",
   "@deleteCircleExplanation": {
     "description": "Explains the effect of deleting a circle."
   },
-  "circleNameHint": "家庭，东京 2027，美国",
+  "circleNameHint": "家庭，東京 2027，美國",
   "@circleNameHint": {
     "description": "Example name for a circle."
   },
-  "coupleCircleTitle": "这就是我们——一对情侣",
+  "coupleCircleTitle": "這就是我們——一對情侶",
   "@coupleCircleTitle": {
     "description": "Title for the automatic couple-sharing option."
   },
-  "coupleCircleDescription": "倒计时会自动与您的合作伙伴共享，无需接受邀请。",
+  "coupleCircleDescription": "倒計時會自動與您的合作伙伴共享，無需接受邀請。",
   "@coupleCircleDescription": {
     "description": "Explains automatic sharing in a couple circle."
   },
-  "circleCreated": "圈子创建了。",
+  "circleCreated": "圈子建立了。",
   "@circleCreated": {
     "description": "Confirmation after creating a circle."
   },
-  "coupleCircleCreated": "创建。接下来邀请你的伙伴。",
+  "coupleCircleCreated": "建立。接下來邀請你的夥伴。",
   "@coupleCircleCreated": {
     "description": "Confirmation after creating a couple circle."
   },
-  "inviteYourPartner": "邀请你的伙伴",
+  "inviteYourPartner": "邀請你的夥伴",
   "@inviteYourPartner": {
     "description": "Title for inviting someone to a couple circle."
   },
-  "inviteToCircle": "邀请加入“{circleName}”",
+  "inviteToCircle": "邀請加入“{circleName}”",
   "@inviteToCircle": {
     "description": "Title for inviting someone to a circle.",
     "placeholders": {
@@ -706,63 +706,63 @@
       }
     }
   },
-  "coupleInviteExplanation": "如果他们已经有帐户，则会自动添加。否则，他们将在登录时添加。与此圈子共享的未来倒计时将自动显示。",
+  "coupleInviteExplanation": "如果他們已經有帳戶，則會自動新增。否則，他們將在登入時新增。與此圈子共享的未來倒計時將自動顯示。",
   "@coupleInviteExplanation": {
     "description": "Explains how invitations to a couple circle work."
   },
-  "circleInviteExplanation": "他们将收到接受或拒绝的邀请。他们加入后，您可以一键与此圈子分享倒计时。",
+  "circleInviteExplanation": "他們將收到接受或拒絕的邀請。他們加入後，您可以一鍵與此圈子分享倒計時。",
   "@circleInviteExplanation": {
     "description": "Explains invitations to a regular circle."
   },
-  "inviteEmailHint": "他们@example.com",
+  "inviteEmailHint": "他們@example.com",
   "@inviteEmailHint": {
     "description": "Example email address for inviting a circle member."
   },
-  "sendInvitation": "发送邀请",
+  "sendInvitation": "傳送邀請",
   "@sendInvitation": {
     "description": "Action to send an invitation."
   },
-  "partnerAddedAutomatically": "您的合作伙伴将自动添加。",
+  "partnerAddedAutomatically": "您的合作伙伴將自動新增。",
   "@partnerAddedAutomatically": {
     "description": "Confirmation that a partner will be added automatically."
   },
-  "signInToUseCircles": "登录才能使用圈子",
+  "signInToUseCircles": "登入才能使用圈子",
   "@signInToUseCircles": {
     "description": "Message shown when signed-out users open circles."
   },
-  "circlesRequireAccounts": "圈子通过电子邮件邀请人们，因此他们需要一个被邀请的帐户。",
+  "circlesRequireAccounts": "圈子透過電子郵件邀請人們，因此他們需要一個被邀請的帳戶。",
   "@circlesRequireAccounts": {
     "description": "Explains why a circle invitation requires an account."
   },
-  "waitingOnYou": "等着你",
+  "waitingOnYou": "等著你",
   "@waitingOnYou": {
     "description": "Invitations page heading for invitations awaiting a response."
   },
-  "invitationsEmptyDescription": "在您接受之前，不会与您分享任何内容。拒绝告诉邀请您的人，这样他们就不会猜测。",
+  "invitationsEmptyDescription": "在您接受之前，不會與您分享任何內容。拒絕告訴邀請您的人，這樣他們就不會猜測。",
   "@invitationsEmptyDescription": {
     "description": "Explains how invitations work when none are waiting."
   },
-  "signInToSeeInvitations": "登录查看邀请",
+  "signInToSeeInvitations": "登入檢視邀請",
   "@signInToSeeInvitations": {
     "description": "Message shown when signed-out users open invitations."
   },
-  "invitationsEmailAccount": "邀请会发送到您的电子邮件，因此请使用某人邀请的地址登录。",
+  "invitationsEmailAccount": "邀請會傳送到您的電子郵件，因此請使用某人邀請的地址登入。",
   "@invitationsEmailAccount": {
     "description": "Explains which account to use to see invitations."
   },
-  "invitationsCouldNotLoad": "无法加载邀请。检查您的连接或 Firestore 规则。",
+  "invitationsCouldNotLoad": "無法載入邀請。檢查您的連線或 Firestore 規則。",
   "@invitationsCouldNotLoad": {
     "description": "Error loading invitations."
   },
-  "nothingWaiting": "没什么等待",
+  "nothingWaiting": "沒什麼等待",
   "@nothingWaiting": {
     "description": "Empty invitation inbox heading."
   },
-  "invitationInboxEmpty": "人们发送给您的邀请将显示在此处。倒计时和标准圈子邀请需要您的回复；情侣圈子自动加入。",
+  "invitationInboxEmpty": "人們傳送給您的邀請將顯示在此處。倒計時和標準圈子邀請需要您的回覆；情侶圈子自動加入。",
   "@invitationInboxEmpty": {
     "description": "Empty invitation inbox explanation."
   },
-  "retryAddingYou": "重试添加您",
+  "retryAddingYou": "重試新增您",
   "@retryAddingYou": {
     "description": "Action to retry automatically adding a user to a circle."
   },
@@ -779,7 +779,7 @@
       }
     }
   },
-  "joinInviteExplanation": "它将出现在您的列表中，并且您将在此设备上获得其倒计时。",
+  "joinInviteExplanation": "它將出現在您的列表中，並且您將在此裝置上獲得其倒計時。",
   "@joinInviteExplanation": {
     "description": "Explains the effect of accepting a countdown invitation."
   },
@@ -787,7 +787,7 @@
   "@join": {
     "description": "Action to join a shared countdown or circle."
   },
-  "alreadyMemberOf": "您已经是“{name}”的会员。",
+  "alreadyMemberOf": "您已經是“{name}”的會員。",
   "@alreadyMemberOf": {
     "description": "Notice shown when the user already belongs to an invited circle.",
     "placeholders": {
@@ -805,7 +805,7 @@
       }
     }
   },
-  "youWereAddedTo": "您已被添加到“{name}”。",
+  "youWereAddedTo": "您已被新增到“{name}”。",
   "@youWereAddedTo": {
     "description": "Confirmation after being added to a circle.",
     "placeholders": {
@@ -814,19 +814,19 @@
       }
     }
   },
-  "invitationDeclined": "邀请被拒绝。",
+  "invitationDeclined": "邀請被拒絕。",
   "@invitationDeclined": {
     "description": "Confirmation after declining an invitation."
   },
-  "countdownInvitation": "倒计时邀请",
+  "countdownInvitation": "倒計時邀請",
   "@countdownInvitation": {
     "description": "Invitation type label for a shared countdown."
   },
-  "aCountdown": "倒计时",
+  "aCountdown": "倒計時",
   "@aCountdown": {
     "description": "Fallback title for an unnamed countdown."
   },
-  "invitedToFollowCountdown": "您已被邀请关注此倒计时。接受会将其作为{role}添加到您的列表中。",
+  "invitedToFollowCountdown": "您已被邀請關注此倒計時。接受會將其作為{role}新增到您的列表中。",
   "@invitedToFollowCountdown": {
     "description": "Explanation of a countdown invitation.",
     "placeholders": {
@@ -839,15 +839,15 @@
   "@accept": {
     "description": "Action to accept an invitation."
   },
-  "partnerInvitation": "合作伙伴邀请",
+  "partnerInvitation": "合作伙伴邀請",
   "@partnerInvitation": {
     "description": "Invitation type label for a couple circle."
   },
-  "circleInvitation": "圈子邀请",
+  "circleInvitation": "圈子邀請",
   "@circleInvitation": {
     "description": "Invitation type label for a circle."
   },
-  "partnerCircleAddTitle": "您将被添加到{personName}的圈子中",
+  "partnerCircleAddTitle": "您將被新增到{personName}的圈子中",
   "@partnerCircleAddTitle": {
     "description": "Title shown for an automatic couple circle invitation.",
     "placeholders": {
@@ -856,11 +856,11 @@
       }
     }
   },
-  "partnerCircleAddExplanation": "您将被自动添加。与此圈子共享的倒计时活动将显示在您的列表中。",
+  "partnerCircleAddExplanation": "您將被自動新增。與此圈子共享的倒計時活動將顯示在您的列表中。",
   "@partnerCircleAddExplanation": {
     "description": "Explains automatic joining of a couple circle."
   },
-  "circleJoinExplanation": "加入“{circleName}”意味着他们与此圈子分享的倒计时将显示在您的列表中。",
+  "circleJoinExplanation": "加入“{circleName}”意味著他們與此圈子分享的倒計時將顯示在您的列表中。",
   "@circleJoinExplanation": {
     "description": "Explains what happens when joining a regular circle.",
     "placeholders": {
@@ -869,7 +869,7 @@
       }
     }
   },
-  "becomePartners": "成为合作伙伴",
+  "becomePartners": "成為合作伙伴",
   "@becomePartners": {
     "description": "Action to join a couple circle."
   },
@@ -877,11 +877,11 @@
   "@joinCircle": {
     "description": "Action to join a circle."
   },
-  "automaticJoinFailed": "自动加入无法完成。",
+  "automaticJoinFailed": "自動加入無法完成。",
   "@automaticJoinFailed": {
     "description": "Error when automatically joining a couple circle fails."
   },
-  "notNow": "现在不要",
+  "notNow": "現在不要",
   "@notNow": {
     "description": "Action to dismiss a prompt."
   },
@@ -889,55 +889,55 @@
   "@notificationsTitle": {
     "description": "Notifications screen title."
   },
-  "markAllRead": "标记全部已读",
+  "markAllRead": "標記全部已讀",
   "@markAllRead": {
     "description": "Action to mark all notifications as read."
   },
-  "markedAllRead": "标记为全部已读。",
+  "markedAllRead": "標記為全部已讀。",
   "@markedAllRead": {
     "description": "Confirmation after marking notifications as read."
   },
-  "moreOptions": "更多选择",
+  "moreOptions": "更多選擇",
   "@moreOptions": {
     "description": "Tooltip for a menu containing more options."
   },
-  "noReadMessagesToDelete": "没有已读消息可删除。",
+  "noReadMessagesToDelete": "沒有已讀訊息可刪除。",
   "@noReadMessagesToDelete": {
     "description": "Notice when there are no read notifications to delete."
   },
-  "deleteReadMessages": "删除已读消息",
+  "deleteReadMessages": "刪除已讀訊息",
   "@deleteReadMessages": {
     "description": "Action to delete read notifications."
   },
-  "deletedReadMessages": "删除已读消息。",
+  "deletedReadMessages": "刪除已讀訊息。",
   "@deletedReadMessages": {
     "description": "Confirmation after deleting read notifications."
   },
-  "notificationsSignInFirst": "首先登录",
+  "notificationsSignInFirst": "首先登入",
   "@notificationsSignInFirst": {
     "description": "Empty notification state title for signed-out users."
   },
-  "notificationsAccountOnly": "通知与您的帐户绑定。",
+  "notificationsAccountOnly": "通知與您的帳戶繫結。",
   "@notificationsAccountOnly": {
     "description": "Explains that notifications require an account."
   },
-  "couldNotLoad": "无法加载",
+  "couldNotLoad": "無法載入",
   "@couldNotLoad": {
     "description": "Generic title when content cannot be loaded."
   },
-  "checkConnectionRetry": "检查您的连接并重试。",
+  "checkConnectionRetry": "檢查您的連線並重試。",
   "@checkConnectionRetry": {
     "description": "Network retry guidance."
   },
-  "nothingYet": "还没有什么",
+  "nothingYet": "還沒有什麼",
   "@nothingYet": {
     "description": "Empty notifications screen title."
   },
-  "notificationsEmptyDescription": "当您的倒计时或邀请发生某些情况时，它会显示在此处。",
+  "notificationsEmptyDescription": "當您的倒計時或邀請發生某些情況時，它會顯示在此處。",
   "@notificationsEmptyDescription": {
     "description": "Empty notifications screen explanation."
   },
-  "liveNotificationsCouldNotLoad": "无法加载实时通知。",
+  "liveNotificationsCouldNotLoad": "無法載入實時通知。",
   "@liveNotificationsCouldNotLoad": {
     "description": "Warning when live notifications cannot be loaded."
   },
@@ -945,35 +945,35 @@
   "@inbox": {
     "description": "Heading for the notifications inbox."
   },
-  "invitationResponses": "邀请回应",
+  "invitationResponses": "邀請回應",
   "@invitationResponses": {
     "description": "Heading for invitation response notifications."
   },
-  "invitationResponsesCouldNotLoad": "无法加载邀请回复。",
+  "invitationResponsesCouldNotLoad": "無法載入邀請回復。",
   "@invitationResponsesCouldNotLoad": {
     "description": "Warning when invitation responses cannot be loaded."
   },
-  "countdownUnavailable": "此倒计时不再可用。",
+  "countdownUnavailable": "此倒計時不再可用。",
   "@countdownUnavailable": {
     "description": "Message shown when a countdown cannot be found."
   },
-  "viewDetails": "查看详情",
+  "viewDetails": "檢視詳情",
   "@viewDetails": {
     "description": "Action to view countdown details without editing."
   },
-  "sharedWith": "分享给",
+  "sharedWith": "分享給",
   "@sharedWith": {
     "description": "Heading for people who can see a countdown."
   },
-  "notes": "笔记",
+  "notes": "筆記",
   "@notes": {
     "description": "Heading for countdown notes."
   },
-  "notesEmpty": "还什么都没有。给大家留下一个和你一起倒计时的想法。",
+  "notesEmpty": "還什麼都沒有。給大家留下一個和你一起倒計時的想法。",
   "@notesEmpty": {
     "description": "Empty state for countdown notes."
   },
-  "addNote": "添加注释",
+  "addNote": "新增註釋",
   "@addNote": {
     "description": "Hint for adding a note to a countdown."
   },
@@ -981,7 +981,7 @@
   "@years": {
     "description": "Countdown unit label for years."
   },
-  "months": "几个月",
+  "months": "幾個月",
   "@months": {
     "description": "Countdown unit label for months."
   },
@@ -989,11 +989,11 @@
   "@days": {
     "description": "Countdown unit label for days."
   },
-  "hours": "时间",
+  "hours": "時間",
   "@hours": {
     "description": "Countdown unit label for hours."
   },
-  "remainingMinutes": "{count}分钟",
+  "remainingMinutes": "{count}分鐘",
   "@remainingMinutes": {
     "description": "Short minute unit shown in the live countdown.",
     "placeholders": {
@@ -1002,7 +1002,7 @@
       }
     }
   },
-  "remainingSeconds": "剩余{count}秒",
+  "remainingSeconds": "剩餘{count}秒",
   "@remainingSeconds": {
     "description": "Short second unit shown in the live countdown.",
     "placeholders": {
@@ -1023,7 +1023,7 @@
   "@stay": {
     "description": "Action to stay in a circle."
   },
-  "leave": "离开",
+  "leave": "離開",
   "@leave": {
     "description": "Action to leave a circle."
   },
@@ -1031,15 +1031,15 @@
   "@remove": {
     "description": "Action to remove a person or item."
   },
-  "delete": "删除",
+  "delete": "刪除",
   "@delete": {
     "description": "Destructive action to delete an item."
   },
-  "create": "创造",
+  "create": "創造",
   "@create": {
     "description": "Action to create an item."
   },
-  "tryAgain": "再试一次",
+  "tryAgain": "再試一次",
   "@tryAgain": {
     "description": "Action to retry after an error."
   },
@@ -1047,27 +1047,27 @@
   "@share": {
     "description": "Action to share a countdown."
   },
-  "passed": "通过",
+  "passed": "透過",
   "@passed": {
     "description": "Status for a countdown whose moment has passed."
   },
-  "upcoming": "即将推出",
+  "upcoming": "即將推出",
   "@upcoming": {
     "description": "Status for a future countdown."
   },
-  "accepted": "公认",
+  "accepted": "公認",
   "@accepted": {
     "description": "Invitation status after acceptance."
   },
-  "declined": "拒绝",
+  "declined": "拒絕",
   "@declined": {
     "description": "Invitation status after decline."
   },
-  "removed": "已删除",
+  "removed": "已刪除",
   "@removed": {
     "description": "Invitation status after removal."
   },
-  "reopened": "重新开放",
+  "reopened": "重新開放",
   "@reopened": {
     "description": "Invitation status after it is sent again."
   },
@@ -1075,11 +1075,11 @@
   "@waiting": {
     "description": "Invitation status while awaiting a response."
   },
-  "itHasArrived": "它已经到了。",
+  "itHasArrived": "它已經到了。",
   "@itHasArrived": {
     "description": "Countdown summary for a moment that has arrived."
   },
-  "remainingToGo": "{remaining}出发",
+  "remainingToGo": "{remaining}出發",
   "@remainingToGo": {
     "description": "Countdown summary for the time left until an event.",
     "placeholders": {
@@ -1088,7 +1088,7 @@
       }
     }
   },
-  "momentHasPassed": "这一刻已经过去了",
+  "momentHasPassed": "這一刻已經過去了",
   "@momentHasPassed": {
     "description": "Countdown summary after a moment has passed."
   },
@@ -1104,11 +1104,11 @@
       }
     }
   },
-  "dayHasCome": "这一天已经到来",
+  "dayHasCome": "這一天已經到來",
   "@dayHasCome": {
     "description": "Celebration heading when a countdown reaches its date."
   },
-  "eventArrivedWithDescription": "{title}在这里 —{description}",
+  "eventArrivedWithDescription": "{title}在這裡 —{description}",
   "@eventArrivedWithDescription": {
     "description": "Celebration message with an event description.",
     "placeholders": {
@@ -1120,7 +1120,7 @@
       }
     }
   },
-  "eventArrivedTitleOnly": "{title}就在这里——享受每一分钟。",
+  "eventArrivedTitleOnly": "{title}就在這裡——享受每一分鐘。",
   "@eventArrivedTitleOnly": {
     "description": "Celebration message without an event description.",
     "placeholders": {
@@ -1129,7 +1129,7 @@
       }
     }
   },
-  "personRemovedFromCircle": "{personName}已从“{circleName}”中删除。",
+  "personRemovedFromCircle": "{personName}已從“{circleName}”中刪除。",
   "@personRemovedFromCircle": {
     "description": "Confirmation after removing a circle member.",
     "placeholders": {
@@ -1150,7 +1150,7 @@
       }
     }
   },
-  "circleDeleted": "删除了“{circleName}”。",
+  "circleDeleted": "刪除了“{circleName}”。",
   "@circleDeleted": {
     "description": "Confirmation after deleting a circle.",
     "placeholders": {
@@ -1163,7 +1163,7 @@
   "@someone": {
     "description": "Fallback name for an inviter whose name is unavailable."
   },
-  "invitedYouToCircle": "{personName}邀请您参加“{circleName}”",
+  "invitedYouToCircle": "{personName}邀請您參加“{circleName}”",
   "@invitedYouToCircle": {
     "description": "Title for a circle invitation.",
     "placeholders": {
@@ -1179,23 +1179,23 @@
   "@roleAdmin": {
     "description": "Administrator role label."
   },
-  "roleEditor": "编辑",
+  "roleEditor": "編輯",
   "@roleEditor": {
     "description": "Editor role label."
   },
-  "roleViewer": "观众",
+  "roleViewer": "觀眾",
   "@roleViewer": {
     "description": "Viewer role label."
   },
-  "roleAdminDescription": "可以管理倒计时及其参与者。",
+  "roleAdminDescription": "可以管理倒計時及其參與者。",
   "@roleAdminDescription": {
     "description": "Description of administrator countdown access."
   },
-  "roleEditorDescription": "可以编辑倒计时并邀请其他人。",
+  "roleEditorDescription": "可以編輯倒計時並邀請其他人。",
   "@roleEditorDescription": {
     "description": "Description of editor countdown access."
   },
-  "roleViewerDescription": "可以查看倒计时并留下笔记。",
+  "roleViewerDescription": "可以檢視倒計時並留下筆記。",
   "@roleViewerDescription": {
     "description": "Description of viewer countdown access."
   },
@@ -1226,7 +1226,7 @@
       }
     }
   },
-  "remainingHours": "{count, plural, other{{count} 小时}}",
+  "remainingHours": "{count, plural, other{{count} 小時}}",
   "@remainingHours": {
     "description": "Long-form pluralized hours in the remaining-time summary.",
     "placeholders": {
@@ -1235,7 +1235,7 @@
       }
     }
   },
-  "remainingMinuteUnit": "{count, plural, other{{count} 分钟}}",
+  "remainingMinuteUnit": "{count, plural, other{{count} 分鐘}}",
   "@remainingMinuteUnit": {
     "description": "Long-form pluralized minutes in the remaining-time summary.",
     "placeholders": {
@@ -1253,7 +1253,7 @@
       }
     }
   },
-  "moreActions": "更多行动",
+  "moreActions": "更多行動",
   "@moreActions": {
     "description": "Tooltip for additional item actions."
   },
@@ -1261,7 +1261,7 @@
   "@block": {
     "description": "Action to block a person."
   },
-  "roleChanged": "{personName}现在是{role}。",
+  "roleChanged": "{personName}現在是{role}。",
   "@roleChanged": {
     "description": "Confirmation after changing a collaborator's role.",
     "placeholders": {
@@ -1273,7 +1273,7 @@
       }
     }
   },
-  "personRemoved": "{personName}已被删除。",
+  "personRemoved": "{personName}已被刪除。",
   "@personRemoved": {
     "description": "Confirmation after removing a collaborator.",
     "placeholders": {
@@ -1282,27 +1282,27 @@
       }
     }
   },
-  "signInToSaveIt": "登录以保存它",
+  "signInToSaveIt": "登入以儲存它",
   "@signInToSaveIt": {
     "description": "Title shown when sign-in is required to save a countdown."
   },
-  "countdownsFollowYou": "倒计时存在于您的帐户中，因此它们会跟随您到每台设备，并可以与其他人共享。",
+  "countdownsFollowYou": "倒計時存在於您的帳戶中，因此它們會跟隨您到每臺裝置，並可以與其他人共享。",
   "@countdownsFollowYou": {
     "description": "Explains why countdowns are saved to an account."
   },
-  "savePermissionError": "Firestore 拒绝保存。如果这种情况持续发生，则部署的安全规则比应用程序旧 - 运行“firebase deploy --only firestore:rules”。",
+  "savePermissionError": "Firestore 拒絕儲存。如果這種情況持續發生，則部署的安全規則比應用程式舊 - 執行“firebase deploy --only firestore:rules”。",
   "@savePermissionError": {
     "description": "Actionable message for a Firestore permission error while saving."
   },
-  "saveNetworkError": "无法到达 Firestore。检查您的连接并重试。",
+  "saveNetworkError": "無法到達 Firestore。檢查您的連線並重試。",
   "@saveNetworkError": {
     "description": "Message for a network failure while saving."
   },
-  "saveFailed": "无法保存。请再试一次。",
+  "saveFailed": "無法儲存。請再試一次。",
   "@saveFailed": {
     "description": "Generic message for an unexpected save failure."
   },
-  "momentPassed": "这一刻已经过去了",
+  "momentPassed": "這一刻已經過去了",
   "@momentPassed": {
     "description": "Remaining-time text when a countdown has passed."
   },
@@ -1310,19 +1310,19 @@
   "@and": {
     "description": "Conjunction between the final two units in a remaining-time summary."
   },
-  "back": "后退",
+  "back": "後退",
   "@back": {
     "description": "Back navigation tooltip."
   },
-  "policyLastUpdated": "最后更新时间：2026 年 2 月 · 符合欧盟 GDPR 和加拿大 PIPEDA",
+  "policyLastUpdated": "最後更新時間：2026 年 2 月 · 符合歐盟 GDPR 和加拿大 PIPEDA",
   "@policyLastUpdated": {
     "description": "Last-updated note at the top of the legal policy."
   },
-  "privacyIntroTitle": "1. 简介及数据控制者",
+  "privacyIntroTitle": "1. 簡介及資料控制者",
   "@privacyIntroTitle": {
     "description": "First privacy policy section heading."
   },
-  "privacyIntroBody": "Date Dawn（“我们”或“我们的”）尊重您的隐私并致力于保护您的个人数据。本隐私政策解释了当您使用我们的移动和网络应用程序时我们如何收集、使用和保护您的信息，完全符合欧盟《通用数据保护条例》(GDPR) 和加拿大《个人信息保护和电子文件法》(PIPEDA)。\n\n数据控制者联系人：{supportEmail}",
+  "privacyIntroBody": "Date Dawn（“我們”或“我們的”）尊重您的隱私並致力於保護您的個人資料。本隱私政策解釋了當您使用我們的移動和網路應用程式時我們如何收集、使用和保護您的資訊，完全符合歐盟《通用資料保護條例》(GDPR) 和加拿大《個人資訊保護和電子檔案法》(PIPEDA)。\n\n資料控制者聯絡人：{supportEmail}",
   "@privacyIntroBody": {
     "description": "Introduction and data controller contact in the privacy policy.",
     "placeholders": {
@@ -1331,43 +1331,43 @@
       }
     }
   },
-  "privacyCollectTitle": "2. 我们收集的信息",
+  "privacyCollectTitle": "2. 我們收集的資訊",
   "@privacyCollectTitle": {
     "description": "Second privacy policy section heading."
   },
-  "privacyCollectBody": "• 帐户数据：身份验证 (Firebase Auth) 期间提供的电子邮件地址和显示名称。\n• 用户内容：您明确创建或共享的倒计时、标题、日期、描述和圈子成员身份。\n• 设备和通知数据：推送通知令牌以提供倒计时提醒和邀请警报。\n\n我们不会收集浏览历史记录、广告标识符、位置数据，也不会将任何个人信息出售给第三方。",
+  "privacyCollectBody": "• 帳戶資料：身份驗證 (Firebase Auth) 期間提供的電子郵件地址和顯示名稱。\n• 使用者內容：您明確建立或共享的倒計時、標題、日期、描述和圈子成員身份。\n• 裝置和通知資料：推送通知令牌以提供倒計時提醒和邀請警報。\n\n我們不會收集瀏覽歷史記錄、廣告識別符號、位置資料，也不會將任何個人資訊出售給第三方。",
   "@privacyCollectBody": {
     "description": "Information collected and not collected, as described in the privacy policy."
   },
-  "privacyBasisTitle": "3. 处理的法律依据 (EU GDPR)",
+  "privacyBasisTitle": "3. 處理的法律依據 (EU GDPR)",
   "@privacyBasisTitle": {
     "description": "Third privacy policy section heading."
   },
-  "privacyBasisBody": "我们根据以下合法依据处理您的数据：\n• 合同必要性：提供倒计时同步、圈子共享和邀请功能。\n• 同意：当您授予推送通知权限或选择加入共享圈子时。\n• 合法利益：确保应用程序安全性、可靠性并防止滥用。",
+  "privacyBasisBody": "我們根據以下合法依據處理您的資料：\n• 合同必要性：提供倒計時同步、圈子共享和邀請功能。\n• 同意：當您授予推送通知許可權或選擇加入共享圈子時。\n• 合法利益：確保應用程式安全性、可靠性並防止濫用。",
   "@privacyBasisBody": {
     "description": "Legal bases for processing personal data."
   },
-  "privacySharingTitle": "4. 分享与屏蔽",
+  "privacySharingTitle": "4. 分享與遮蔽",
   "@privacySharingTitle": {
     "description": "Fourth privacy policy section heading."
   },
-  "privacySharingBody": "Date Dawn 允许人们进行一对一互动：您可以邀请某人进行倒计时，并且双方都可以在共享的人上留下笔记。该内容仅对倒计时的人可见——从不公开，也从未向其他任何人展示。\n\n您可以随时阻止其他人：打开与他们共享的倒计时，然后长按他们的名字（或在桌面上双击它）。屏蔽会将你们从彼此的倒计时中删除，取消你们之间的邀请，并阻止他们再次邀请您。这个人没有被告知。您已阻止的人员列表对您来说是私人的，您可以从“设置”→“已阻止的人员”中取消阻止任何人。",
+  "privacySharingBody": "Date Dawn 允許人們進行一對一互動：您可以邀請某人進行倒計時，並且雙方都可以在共享的人上留下筆記。該內容僅對倒計時的人可見——從不公開，也從未向其他任何人展示。\n\n您可以隨時阻止其他人：開啟與他們共享的倒計時，然後長按他們的名字（或在桌面上雙擊它）。遮蔽會將你們從彼此的倒計時中刪除，取消你們之間的邀請，並阻止他們再次邀請您。這個人沒有被告知。您已阻止的人員列表對您來說是私人的，您可以從“設定”→“已阻止的人員”中取消阻止任何人。",
   "@privacySharingBody": {
     "description": "Privacy policy explanation of sharing and blocking."
   },
-  "privacyStorageTitle": "5. 数据存储和安全",
+  "privacyStorageTitle": "5. 資料儲存和安全",
   "@privacyStorageTitle": {
     "description": "Fifth privacy policy section heading."
   },
-  "privacyStorageBody": "您的数据将使用符合高行业安全标准的 Firebase（Google Cloud Platform）基础设施安全地存储和处理。您的设备和我们的服务器之间传输的数据在传输过程中使用 TLS 进行加密。",
+  "privacyStorageBody": "您的資料將使用符合高行業安全標準的 Firebase（Google Cloud Platform）基礎設施安全地儲存和處理。您的裝置和我們的伺服器之間傳輸的資料在傳輸過程中使用 TLS 進行加密。",
   "@privacyStorageBody": {
     "description": "Privacy policy explanation of data storage and security."
   },
-  "privacyRightsTitle": "6. 您的权利（访问、更正和删除）",
+  "privacyRightsTitle": "6. 您的權利（訪問、更正和刪除）",
   "@privacyRightsTitle": {
     "description": "Sixth privacy policy section heading."
   },
-  "privacyRightsBody": "根据 GDPR 和 PIPEDA，您有权：\n• 访问：索取我们持有的有关您的个人数据的副本。\n• 更正：更新或更正您在“设置”中的个人资料信息。\n• 删除（被遗忘的权利）：随时联系{supportEmail}请求完全删除您的帐户以及所有相关倒计时和通知。",
+  "privacyRightsBody": "根據 GDPR 和 PIPEDA，您有權：\n• 訪問：索取我們持有的有關您的個人資料的副本。\n• 更正：更新或更正您在“設定”中的個人資料資訊。\n• 刪除（被遺忘的權利）：隨時聯絡{supportEmail}請求完全刪除您的帳戶以及所有相關倒計時和通知。",
   "@privacyRightsBody": {
     "description": "User rights to access, correct, and erase personal data.",
     "placeholders": {
@@ -1376,59 +1376,59 @@
       }
     }
   },
-  "termsAcceptanceTitle": "1. 接受条款",
+  "termsAcceptanceTitle": "1. 接受條款",
   "@termsAcceptanceTitle": {
     "description": "First terms of service section heading."
   },
-  "termsAcceptanceBody": "通过访问或使用 Date Dawn，您同意受这些服务条款的约束。如果您不同意这些条款，请不要使用该应用程序。",
+  "termsAcceptanceBody": "透過訪問或使用 Date Dawn，您同意受這些服務條款的約束。如果您不同意這些條款，請不要使用該應用程式。",
   "@termsAcceptanceBody": {
     "description": "Terms of service acceptance section."
   },
-  "termsUseTitle": "2. 服务的使用",
+  "termsUseTitle": "2. 服務的使用",
   "@termsUseTitle": {
     "description": "Second terms of service section heading."
   },
-  "termsUseBody": "Date Dawn 提供个人、非商业倒计时和共享时刻跟踪。您同意不滥用服务、上传恶意内容、通过共享圈子或邀请骚扰其他用户，或尝试绕过安全控制。",
+  "termsUseBody": "Date Dawn 提供個人、非商業倒計時和共享時刻跟蹤。您同意不濫用服務、上傳惡意內容、透過共享圈子或邀請騷擾其他使用者，或嘗試繞過安全控制。",
   "@termsUseBody": {
     "description": "Terms of service acceptable-use section."
   },
-  "termsOwnershipTitle": "3. 用户内容和所有权",
+  "termsOwnershipTitle": "3. 使用者內容和所有權",
   "@termsOwnershipTitle": {
     "description": "Third terms of service section heading."
   },
-  "termsOwnershipBody": "您保留对您创建的倒计时活动、标题和内容的所有所有权。您授予 Date Dawn 有限许可，仅用于在经过身份验证的设备和共享圈子成员之间存储和同步您的内容。",
+  "termsOwnershipBody": "您保留對您建立的倒計時活動、標題和內容的所有所有權。您授予 Date Dawn 有限許可，僅用於在經過身份驗證的裝置和共享圈子成員之間儲存和同步您的內容。",
   "@termsOwnershipBody": {
     "description": "Terms of service explanation of user content ownership."
   },
-  "termsTerminationTitle": "4. 终止和帐户删除",
+  "termsTerminationTitle": "4. 終止和帳戶刪除",
   "@termsTerminationTitle": {
     "description": "Fourth terms of service section heading."
   },
-  "termsTerminationBody": "您可以随时停止使用 Date Dawn，并通过向支持人员发送电子邮件请求删除帐户。我们保留暂停或终止违反这些条款或滥用平台基础设施的帐户的权利。",
+  "termsTerminationBody": "您可以隨時停止使用 Date Dawn，並透過向支援人員傳送電子郵件請求刪除帳戶。我們保留暫停或終止違反這些條款或濫用平臺基礎設施的帳戶的權利。",
   "@termsTerminationBody": {
     "description": "Terms of service account termination and deletion section."
   },
-  "termsLiabilityTitle": "5. 责任限制",
+  "termsLiabilityTitle": "5. 責任限制",
   "@termsLiabilityTitle": {
     "description": "Fifth terms of service section heading."
   },
-  "termsLiabilityBody": "Date Dawn 按“原样”提供，不提供任何形式的保证。对于因您使用该应用程序而造成的任何间接、偶然或后果性损害，我们不承担任何责任。",
+  "termsLiabilityBody": "Date Dawn 按“原樣”提供，不提供任何形式的保證。對於因您使用該應用程式而造成的任何間接、偶然或後果性損害，我們不承擔任何責任。",
   "@termsLiabilityBody": {
     "description": "Terms of service limitation of liability section."
   },
-  "privacyPolicyTitle": "隐私政策",
+  "privacyPolicyTitle": "隱私政策",
   "@privacyPolicyTitle": {
     "description": "Title displayed on the privacy policy page."
   },
-  "termsOfServiceTitle": "服务条款",
+  "termsOfServiceTitle": "服務條款",
   "@termsOfServiceTitle": {
     "description": "Title displayed on the terms of service page."
   },
-  "supportHeading": "我们阅读每条消息",
+  "supportHeading": "我們閱讀每條訊息",
   "@supportHeading": {
     "description": "Heading on the help and support page."
   },
-  "supportIntro": "Date Dawn 是一个小型的独立应用程序。电子邮件是联系构建者的最快方式——中间没有支持台。我们通常回复{responseTime}。",
+  "supportIntro": "Date Dawn 是一個小型的獨立應用程式。電子郵件是聯絡構建者的最快方式——中間沒有支援臺。我們通常回復{responseTime}。",
   "@supportIntro": {
     "description": "Introduction and expected response time on support page.",
     "placeholders": {
@@ -1437,43 +1437,43 @@
       }
     }
   },
-  "supportResponseTime": "2个工作日内",
+  "supportResponseTime": "2個工作日內",
   "@supportResponseTime": {
     "description": "Typical support email response time."
   },
-  "supportCommonQuestions": "常见问题",
+  "supportCommonQuestions": "常見問題",
   "@supportCommonQuestions": {
     "description": "FAQ section heading on the support page."
   },
-  "supportFaqGoogleQuestion": "我用 Google 登录，但倒计时不见了。",
+  "supportFaqGoogleQuestion": "我用 Google 登入，但倒計時不見了。",
   "@supportFaqGoogleQuestion": {
     "description": "Support FAQ question about missing countdowns after Google sign-in."
   },
-  "supportFaqGoogleAnswer": "使用与创建帐户时相同的方法。 Google 和电子邮件/密码不会自动链接。如果您需要切换方法或认为您在两个帐户中拥有数据，请在创建另一个帐户之前联系我们。",
+  "supportFaqGoogleAnswer": "使用與建立帳戶時相同的方法。 Google 和電子郵件/密碼不會自動連結。如果您需要切換方法或認為您在兩個帳戶中擁有資料，請在建立另一個帳戶之前聯絡我們。",
   "@supportFaqGoogleAnswer": {
     "description": "Support FAQ answer about account sign-in methods."
   },
-  "supportFaqSharingQuestion": "与我共享的人看不到倒计时。",
+  "supportFaqSharingQuestion": "與我共享的人看不到倒計時。",
   "@supportFaqSharingQuestion": {
     "description": "Support FAQ question about a shared countdown."
   },
-  "supportFaqSharingAnswer": "与圈子共享倒计时会发送邀请 - 它不会自动添加人员。他们需要在应用程序中打开邀请并接受它。情侣圈是一个例外：它们会立即分享。",
+  "supportFaqSharingAnswer": "與圈子共享倒計時會傳送邀請 - 它不會自動新增人員。他們需要在應用程式中開啟邀請並接受它。情侶圈是一個例外：它們會立即分享。",
   "@supportFaqSharingAnswer": {
     "description": "Support FAQ answer about accepting countdown invitations."
   },
-  "supportFaqDeclinedQuestion": "我错误地拒绝了邀请。",
+  "supportFaqDeclinedQuestion": "我錯誤地拒絕了邀請。",
   "@supportFaqDeclinedQuestion": {
     "description": "Support FAQ question about a declined invitation."
   },
-  "supportFaqDeclinedAnswer": "让邀请你的人再次邀请你——他们可以通过点击你名字旁边的刷新图标从倒计时开始邀请你。在此期间，什么也没有丢失。",
+  "supportFaqDeclinedAnswer": "讓邀請你的人再次邀請你——他們可以透過點選你名字旁邊的重新整理圖示從倒計時開始邀請你。在此期間，什麼也沒有丟失。",
   "@supportFaqDeclinedAnswer": {
     "description": "Support FAQ answer about reopening an invitation."
   },
-  "supportFaqDeleteQuestion": "如何删除我的帐户和数据？",
+  "supportFaqDeleteQuestion": "如何刪除我的帳戶和資料？",
   "@supportFaqDeleteQuestion": {
     "description": "Support FAQ question about deleting an account."
   },
-  "supportFaqDeleteAnswer": "从您注册时使用的地址给我们发送电子邮件并要求删除。与该帐户相关的所有倒计时、邀请和通知都会被删除，我们会在完成后进行确认。",
+  "supportFaqDeleteAnswer": "從您註冊時使用的地址給我們傳送電子郵件並要求刪除。與該帳戶相關的所有倒計時、邀請和通知都會被刪除，我們會在完成後進行確認。",
   "@supportFaqDeleteAnswer": {
     "description": "Support FAQ answer about account deletion."
   },
@@ -1481,15 +1481,15 @@
   "@supportFaqBlockQuestion": {
     "description": "Support FAQ question about blocking a person."
   },
-  "supportFaqBlockAnswer": "打开与他们共享的倒计时，然后在人员列表中长按他们的名字（在计算机上双击）。他们已从您的共享倒计时中删除，并且无法再次邀请您。要撤消它，请转到“设置”→“阻止的人”。",
+  "supportFaqBlockAnswer": "開啟與他們共享的倒計時，然後在人員列表中長按他們的名字（在計算機上雙擊）。他們已從您的共享倒計時中刪除，並且無法再次邀請您。要撤消它，請轉到“設定”→“阻止的人”。",
   "@supportFaqBlockAnswer": {
     "description": "Support FAQ answer about blocking and unblocking."
   },
-  "supportFaqAdsQuestion": "你们会出售我的数据或展示广告吗？",
+  "supportFaqAdsQuestion": "你們會出售我的資料或展示廣告嗎？",
   "@supportFaqAdsQuestion": {
     "description": "Support FAQ question about advertising and data."
   },
-  "supportFaqAdsAnswer": "不会。没有广告，没有分析配置文件，也没有第三方跟踪。您倒计时的内容与您无关，因此它存储在您自己的帐户下，其他人无法阅读。",
+  "supportFaqAdsAnswer": "不會。沒有廣告，沒有分析配置檔案，也沒有第三方跟蹤。您倒計時的內容與您無關，因此它儲存在您自己的帳戶下，其他人無法閱讀。",
   "@supportFaqAdsAnswer": {
     "description": "Support FAQ answer about ads and data privacy."
   },
@@ -1497,15 +1497,15 @@
   "@supportLegal": {
     "description": "Legal links section heading on support page."
   },
-  "supportNotice": "退款、账单问题或崩溃报告都属于同一地址。如果应用程序出现问题，请告诉我们您的设备以及发生问题时您正在做什么，这是您可以包含的最有用的内容。",
+  "supportNotice": "退款、賬單問題或崩潰報告都屬於同一地址。如果應用程式出現問題，請告訴我們您的裝置以及發生問題時您正在做什麼，這是您可以包含的最有用的內容。",
   "@supportNotice": {
     "description": "Support contact guidance at the bottom of the support page."
   },
-  "supportEmailLabel": "电子邮件支持",
+  "supportEmailLabel": "電子郵件支援",
   "@supportEmailLabel": {
     "description": "Label for the support email contact card."
   },
-  "supportEmailCopied": "{email}已复制",
+  "supportEmailCopied": "{email}已複製",
   "@supportEmailCopied": {
     "description": "Confirmation that the support email was copied.",
     "placeholders": {
@@ -1514,19 +1514,19 @@
       }
     }
   },
-  "openMail": "打开邮件",
+  "openMail": "開啟郵件",
   "@openMail": {
     "description": "Action to open a mail app."
   },
-  "linkCopiedClipboard": "链接已复制到剪贴板。",
+  "linkCopiedClipboard": "連結已複製到剪貼簿。",
   "@linkCopiedClipboard": {
     "description": "Notice shown when a link is copied."
   },
-  "verifyEmailTitle": "验证您的电子邮件",
+  "verifyEmailTitle": "驗證您的電子郵件",
   "@verifyEmailTitle": {
     "description": "Title on the email verification screen."
   },
-  "verifyEmailInstructions": "我们向{email}发送了验证链接。请验证以继续。",
+  "verifyEmailInstructions": "我們向{email}傳送了驗證連結。請驗證以繼續。",
   "@verifyEmailInstructions": {
     "description": "Email verification instructions.",
     "placeholders": {
@@ -1535,11 +1535,11 @@
       }
     }
   },
-  "yourEmailAddress": "您的电子邮件地址",
+  "yourEmailAddress": "您的電子郵件地址",
   "@yourEmailAddress": {
     "description": "Fallback when the user's email address is not available."
   },
-  "resetLinkSent": "重置发送到{email}的链接。使用最新的电子邮件。",
+  "resetLinkSent": "重置傳送到{email}的連結。使用最新的電子郵件。",
   "@resetLinkSent": {
     "description": "Confirmation that a password reset email was sent.",
     "placeholders": {
@@ -1548,107 +1548,107 @@
       }
     }
   },
-  "verificationEmailSent": "验证电子邮件已发送。",
+  "verificationEmailSent": "驗證電子郵件已傳送。",
   "@verificationEmailSent": {
     "description": "Confirmation after resending a verification email."
   },
-  "verificationNotComplete": "尚未验证。检查您的收件箱。",
+  "verificationNotComplete": "尚未驗證。檢查您的收件箱。",
   "@verificationNotComplete": {
     "description": "Notice when email verification is not complete."
   },
-  "verifiedSignInToContinue": "您的电子邮件已验证。如果需要，请登录以继续。",
+  "verifiedSignInToContinue": "您的電子郵件已驗證。如果需要，請登入以繼續。",
   "@verifiedSignInToContinue": {
     "description": "Message after verifying an email for a signed-out user."
   },
-  "checkSpamFolder": "找不到电子邮件？请检查您的垃圾邮件或垃圾邮件文件夹。",
+  "checkSpamFolder": "找不到電子郵件？請檢查您的垃圾郵件或垃圾郵件資料夾。",
   "@checkSpamFolder": {
     "description": "Reminder to check spam for the verification email."
   },
-  "confirmEmailVerified": "我已验证我的电子邮件",
+  "confirmEmailVerified": "我已驗證我的電子郵件",
   "@confirmEmailVerified": {
     "description": "Action to confirm email verification."
   },
-  "sendingEmail": "正在发送...",
+  "sendingEmail": "正在傳送...",
   "@sendingEmail": {
     "description": "Progress label while an email is being sent."
   },
-  "resendEmail": "重新发送电子邮件",
+  "resendEmail": "重新傳送電子郵件",
   "@resendEmail": {
     "description": "Action to resend a verification email."
   },
-  "waitBeforeResending": "请等待 60 秒，然后再请求另一封电子邮件。",
+  "waitBeforeResending": "請等待 60 秒，然後再請求另一封電子郵件。",
   "@waitBeforeResending": {
     "description": "Cooldown notice between verification email requests."
   },
-  "resetCodeMissing": "此重置链接缺少安全代码。",
+  "resetCodeMissing": "此重置連結缺少安全程式碼。",
   "@resetCodeMissing": {
     "description": "Error when a password reset link lacks its action code."
   },
-  "passwordUpdatedSignIn": "密码已更新。再次登录。",
+  "passwordUpdatedSignIn": "密碼已更新。再次登入。",
   "@passwordUpdatedSignIn": {
     "description": "Confirmation after a password reset."
   },
-  "resetLinkInvalidTitle": "无法使用此重置链接",
+  "resetLinkInvalidTitle": "無法使用此重置連結",
   "@resetLinkInvalidTitle": {
     "description": "Title for an invalid password reset link."
   },
-  "resetLinkInvalidBody": "该链接可能已过期或已被使用。返回登录并请求新的密码重置电子邮件。",
+  "resetLinkInvalidBody": "該連結可能已過期或已被使用。返回登入並請求新的密碼重置電子郵件。",
   "@resetLinkInvalidBody": {
     "description": "Explanation for an expired or used password reset link."
   },
-  "backToSignIn": "返回登录",
+  "backToSignIn": "返回登入",
   "@backToSignIn": {
     "description": "Navigation action back to sign in."
   },
-  "chooseNewPassword": "选择新密码",
+  "chooseNewPassword": "選擇新密碼",
   "@chooseNewPassword": {
     "description": "Heading for the new password form."
   },
-  "newPassword": "新密码",
+  "newPassword": "新密碼",
   "@newPassword": {
     "description": "Label for the new password field."
   },
-  "confirmNewPassword": "确认新密码",
+  "confirmNewPassword": "確認新密碼",
   "@confirmNewPassword": {
     "description": "Label for the confirm password field."
   },
-  "passwordMinLength": "至少使用 6 个字符。",
+  "passwordMinLength": "至少使用 6 個字元。",
   "@passwordMinLength": {
     "description": "Validation message for a short password."
   },
-  "passwordsDoNotMatch": "密码不匹配。",
+  "passwordsDoNotMatch": "密碼不匹配。",
   "@passwordsDoNotMatch": {
     "description": "Validation message when password fields differ."
   },
-  "updatePassword": "更新密码",
+  "updatePassword": "更新密碼",
   "@updatePassword": {
     "description": "Action to save a new password."
   },
-  "editCountdownAction": "编辑",
+  "editCountdownAction": "編輯",
   "@editCountdownAction": {
     "description": "Action to edit a countdown."
   },
-  "duplicateYearLater": "一年后重复",
+  "duplicateYearLater": "一年後重複",
   "@duplicateYearLater": {
     "description": "Action to duplicate a countdown one year later."
   },
-  "countdownDuplicated": "重复 — 打开它来调整日期。",
+  "countdownDuplicated": "重複 — 開啟它來調整日期。",
   "@countdownDuplicated": {
     "description": "Confirmation after duplicating a countdown."
   },
-  "onlyOwnerCanDelete": "只有所有者才能删除此倒计时。",
+  "onlyOwnerCanDelete": "只有所有者才能刪除此倒計時。",
   "@onlyOwnerCanDelete": {
     "description": "Permission notice when a non-owner tries to delete."
   },
-  "countdownDeleteFailed": "无法删除。再试一次。",
+  "countdownDeleteFailed": "無法刪除。再試一次。",
   "@countdownDeleteFailed": {
     "description": "Error shown when deleting a countdown fails."
   },
-  "countdownDeleteWarning": "倒计时无法撤消。",
+  "countdownDeleteWarning": "倒計時無法撤消。",
   "@countdownDeleteWarning": {
     "description": "Confirmation dialog warning about deleting a countdown."
   },
-  "blockPersonQuestion": "块{personName}？",
+  "blockPersonQuestion": "塊{personName}？",
   "@blockPersonQuestion": {
     "description": "Confirmation heading for blocking a person.",
     "placeholders": {
@@ -1657,11 +1657,11 @@
       }
     }
   },
-  "blockExplanation": "你们将不再见面。他们将从您分享的每个倒计时中删除，你们之间的邀请被取消，并且他们无法再次邀请您。他们没有被告知。",
+  "blockExplanation": "你們將不再見面。他們將從您分享的每個倒計時中刪除，你們之間的邀請被取消，並且他們無法再次邀請您。他們沒有被告知。",
   "@blockExplanation": {
     "description": "Explains what happens when another person is blocked."
   },
-  "undoBlockInSettings": "您可以随时在“设置”→“阻止的人”中撤消此操作。",
+  "undoBlockInSettings": "您可以隨時在“設定”→“阻止的人”中撤消此操作。",
   "@undoBlockInSettings": {
     "description": "Explains where to undo a block."
   },
@@ -1686,7 +1686,7 @@
   "@undo": {
     "description": "Action to undo a recent change."
   },
-  "personUnblocked": "{personName}已解锁。",
+  "personUnblocked": "{personName}已解鎖。",
   "@personUnblocked": {
     "description": "Confirmation after unblocking a person.",
     "placeholders": {
@@ -1695,23 +1695,23 @@
       }
     }
   },
-  "blockAccessNotRestored": "倒计时访问未恢复。",
+  "blockAccessNotRestored": "倒計時訪問未恢復。",
   "@blockAccessNotRestored": {
     "description": "Clarifies that unblocking does not restore prior countdown access."
   },
-  "undoBlockFailed": "无法撤消阻止。请再试一次。",
+  "undoBlockFailed": "無法撤消阻止。請再試一次。",
   "@undoBlockFailed": {
     "description": "Error when undoing a block fails."
   },
-  "blockSaveFailed": "无法保存您的区块。重新登录并重试。",
+  "blockSaveFailed": "無法儲存您的區塊。重新登入並重試。",
   "@blockSaveFailed": {
     "description": "Error when saving a block is refused."
   },
-  "noConnectionRetry": "没有连接。检查您的网络并重试。",
+  "noConnectionRetry": "沒有連線。檢查您的網路並重試。",
   "@noConnectionRetry": {
     "description": "Network error with retry guidance."
   },
-  "blockPersonFailed": "无法阻止{personName}。请再试一次。",
+  "blockPersonFailed": "無法阻止{personName}。請再試一次。",
   "@blockPersonFailed": {
     "description": "Error when blocking a person fails.",
     "placeholders": {
@@ -1720,83 +1720,83 @@
       }
     }
   },
-  "blockedPeopleTitle": "被屏蔽的人",
+  "blockedPeopleTitle": "被遮蔽的人",
   "@blockedPeopleTitle": {
     "description": "Title of the blocked people screen."
   },
-  "nobodyBlocked": "没有人被阻止",
+  "nobodyBlocked": "沒有人被阻止",
   "@nobodyBlocked": {
     "description": "Empty state title for the blocked people screen."
   },
-  "howToBlockPerson": "要阻止某人，请打开与他们共享的倒计时，打开其所在行的 ⋮ 菜单，然后点击“阻止”。",
+  "howToBlockPerson": "要阻止某人，請開啟與他們共享的倒計時，開啟其所在行的 ⋮ 選單，然後點選“阻止”。",
   "@howToBlockPerson": {
     "description": "Instructions for blocking someone from a countdown."
   },
-  "blockedPeopleDescription": "这些人无法邀请您，您也不会与他们分享任何倒计时。他们没有被告知他们被封锁了。",
+  "blockedPeopleDescription": "這些人無法邀請您，您也不會與他們分享任何倒計時。他們沒有被告知他們被封鎖了。",
   "@blockedPeopleDescription": {
     "description": "Explanation of the blocked people list."
   },
-  "unblock": "解锁",
+  "unblock": "解鎖",
   "@unblock": {
     "description": "Action to unblock a person."
   },
-  "blockedListLoadFailed": "无法加载您的阻止列表",
+  "blockedListLoadFailed": "無法載入您的阻止列表",
   "@blockedListLoadFailed": {
     "description": "Title for a blocked people list loading error."
   },
-  "blockedListPermissionError": "您的帐户无权阅读此列表。如果这种情况持续发生，请更新应用程序。",
+  "blockedListPermissionError": "您的帳戶無權閱讀此列表。如果這種情況持續發生，請更新應用程式。",
   "@blockedListPermissionError": {
     "description": "Permission error when reading the blocked people list."
   },
-  "deleteAccount": "关于如何删除帐户的说明",
+  "deleteAccount": "關於如何刪除帳戶的說明",
   "@deleteAccount": {
     "description": "Destructive account deletion action in Settings."
   },
-  "deleteAccountWarning": "此操作是永久性的。您的所有活动、圈子和数据都将被永久删除。",
+  "deleteAccountWarning": "此操作是永久性的。您的所有活動、圈子和資料都將被永久刪除。",
   "@deleteAccountWarning": {
     "description": "Permanent account deletion warning."
   },
-  "deleteAccountConfirmationPrompt": "输入您的确切帐户电子邮件以继续。",
+  "deleteAccountConfirmationPrompt": "輸入您的確切帳戶電子郵件以繼續。",
   "@deleteAccountConfirmationPrompt": {
     "description": "Instructions for confirming account deletion."
   },
-  "deleteAccountConfirmationLabel": "账户邮箱",
+  "deleteAccountConfirmationLabel": "賬戶郵箱",
   "@deleteAccountConfirmationLabel": {
     "description": "Account deletion confirmation input label."
   },
-  "permanentlyDeleteAccount": "永久删除帐户",
+  "permanentlyDeleteAccount": "永久刪除帳戶",
   "@permanentlyDeleteAccount": {
     "description": "Final account deletion confirmation button."
   },
-  "deleteAccountProfileConsequence": "您的个人资料将被永久删除。",
+  "deleteAccountProfileConsequence": "您的個人資料將被永久刪除。",
   "@deleteAccountProfileConsequence": {
     "description": "Account deletion consequence about the profile."
   },
-  "deleteAccountAccessConsequence": "您将无法访问所有活动和圈子。",
+  "deleteAccountAccessConsequence": "您將無法訪問所有活動和圈子。",
   "@deleteAccountAccessConsequence": {
     "description": "Account deletion consequence about events and circles."
   },
-  "deleteAccountIrreversibleConsequence": "此操作无法撤消。",
+  "deleteAccountIrreversibleConsequence": "此操作無法撤消。",
   "@deleteAccountIrreversibleConsequence": {
     "description": "Account deletion consequence about irreversibility."
   },
-  "deleteAccountPermanentlyAction": "永久删除帐户",
+  "deleteAccountPermanentlyAction": "永久刪除帳戶",
   "@deleteAccountPermanentlyAction": {
     "description": "Final account deletion screen button."
   },
-  "accountDeleted": "帐号删除成功",
+  "accountDeleted": "帳號刪除成功",
   "@accountDeleted": {
     "description": "Success message after account deletion."
   },
-  "serverTimedOutTryAgain": "服务器超时。请稍后重试。",
+  "serverTimedOutTryAgain": "伺服器超時。請稍後重試。",
   "@serverTimedOutTryAgain": {
     "description": "Error shown when account deletion returns a server timeout."
   },
-  "accountDeletionFailed": "无法完成帐户删除。请再试一次。",
+  "accountDeletionFailed": "無法完成帳戶刪除。請再試一次。",
   "@accountDeletionFailed": {
     "description": "Unexpected account deletion failure."
   },
-  "accountDeletedCleanupWarning": "帐户已删除，但无法清除某些本地设置。使用其他帐户之前重新启动应用程序。",
+  "accountDeletedCleanupWarning": "帳戶已刪除，但無法清除某些本地設定。使用其他帳戶之前重新啟動應用程式。",
   "@accountDeletedCleanupWarning": {
     "description": "Warning shown when local settings could not be cleared after account deletion."
   }

@@ -39,7 +39,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get languageGerman => 'Deutsch';
 
   @override
-  String get languageChinese => 'Китайська (спрощена)';
+  String get languageChinese => 'Традиційна китайська (Тайвань)';
 
   @override
   String get settings => 'Налаштування';

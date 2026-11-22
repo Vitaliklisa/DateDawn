@@ -27,6 +27,7 @@ void main() {
         'en-GB',
         'uk',
         'zh',
+        'zh-TW',
         'de',
         'de-DE',
         'fr-FR',
@@ -46,7 +47,8 @@ void main() {
       expect(
           defaultTimeFormatFor(const Locale('uk')), TimeFormat.twentyFourHour);
       expect(
-          defaultTimeFormatFor(const Locale('zh')), TimeFormat.twentyFourHour);
+          defaultTimeFormatFor(const Locale('zh', 'TW')),
+          TimeFormat.twentyFourHour);
       expect(defaultTimeFormatFor(const Locale('de-DE')),
           TimeFormat.twentyFourHour);
       expect(defaultTimeFormatFor(const Locale('fr-FR')),
