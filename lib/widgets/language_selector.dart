@@ -135,6 +135,7 @@ class LanguageSelector extends ConsumerWidget {
       'es' => l10n.languageSpanish,
       'uk' => l10n.languageUkrainian,
       'de' => l10n.languageGerman,
+      'zh' => l10n.languageChinese,
       _ => l10n.languageEnglish,
     };
   }
@@ -145,6 +146,7 @@ class LanguageSelector extends ConsumerWidget {
       'es' => '🇪🇸',
       'uk' => '🇺🇦',
       'de' => '🇩🇪',
+      'zh' => '🇨🇳',
       _ => '🇺🇸',
     };
   }

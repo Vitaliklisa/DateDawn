@@ -10,6 +10,7 @@ import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
 import 'app_localizations_fr.dart';
 import 'app_localizations_uk.dart';
+import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
 
@@ -101,7 +102,8 @@ abstract class AppLocalizations {
     Locale('en'),
     Locale('es'),
     Locale('fr'),
-    Locale('uk')
+    Locale('uk'),
+    Locale('zh')
   ];
 
   /// The app's display name.
@@ -163,6 +165,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deutsch'**
   String get languageGerman;
+
+  /// Display name of Simplified Chinese in the language picker.
+  ///
+  /// In en, this message translates to:
+  /// **'中文（简体）'**
+  String get languageChinese;
 
   /// Settings screen title.
   ///
@@ -2407,8 +2415,14 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['de', 'en', 'es', 'fr', 'uk'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>[
+        'de',
+        'en',
+        'es',
+        'fr',
+        'uk',
+        'zh'
+      ].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -2427,6 +2441,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsFr();
     case 'uk':
       return AppLocalizationsUk();
+    case 'zh':
+      return AppLocalizationsZh();
   }
 
   throw FlutterError(

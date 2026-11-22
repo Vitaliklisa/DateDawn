@@ -26,6 +26,7 @@ void main() {
         'en-US',
         'en-GB',
         'uk',
+        'zh',
         'de',
         'de-DE',
         'fr-FR',
@@ -44,6 +45,8 @@ void main() {
     test('reads a 24-hour region as 24-hour', () {
       expect(
           defaultTimeFormatFor(const Locale('uk')), TimeFormat.twentyFourHour);
+      expect(
+          defaultTimeFormatFor(const Locale('zh')), TimeFormat.twentyFourHour);
       expect(defaultTimeFormatFor(const Locale('de-DE')),
           TimeFormat.twentyFourHour);
       expect(defaultTimeFormatFor(const Locale('fr-FR')),

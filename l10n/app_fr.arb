@@ -40,6 +40,10 @@
   "@languageGerman": {
     "description": "Nom allemand affiché dans le sélecteur."
   },
+  "languageChinese": "Chinois simplifié",
+  "@languageChinese": {
+    "description": "Nom chinois simplifié affiché dans le sélecteur."
+  },
   "settings": "Réglages",
   "@settings": {
     "description": "Titre de l’écran des réglages."

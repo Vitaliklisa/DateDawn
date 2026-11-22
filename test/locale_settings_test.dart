@@ -65,6 +65,22 @@ void main() {
       expect(deviceLanguage.selectedLocale, isNull);
     });
 
+    test('supports Simplified Chinese as a saved and device language', () {
+      final savedLanguage = resolveLocalePreference(
+        savedLanguageCode: 'zh',
+        deviceLocale: const Locale('en'),
+      );
+      final deviceLanguage = resolveLocalePreference(
+        savedLanguageCode: 'pt',
+        deviceLocale: const Locale('zh', 'CN'),
+      );
+
+      expect(savedLanguage.activeLocale, const Locale('zh'));
+      expect(savedLanguage.selectedLocale, const Locale('zh'));
+      expect(deviceLanguage.activeLocale, const Locale('zh'));
+      expect(deviceLanguage.selectedLocale, isNull);
+    });
+
     test('supports German as a saved and device language', () {
       final savedLanguage = resolveLocalePreference(
         savedLanguageCode: 'de',

@@ -40,6 +40,10 @@
   "@languageGerman": {
     "description": "Display name of German in the language picker."
   },
+  "languageChinese": "Vereinfacht-Chinesisch",
+  "@languageChinese": {
+    "description": "Display name of Simplified Chinese in the language picker."
+  },
   "settings": "Einstellungen",
   "@settings": {
     "description": "Settings screen title."

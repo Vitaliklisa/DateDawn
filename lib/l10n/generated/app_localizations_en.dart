@@ -39,6 +39,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageGerman => 'Deutsch';
 
   @override
+  String get languageChinese => '中文（简体）';
+
+  @override
   String get settings => 'Settings';
 
   @override

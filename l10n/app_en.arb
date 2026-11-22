@@ -20,6 +20,8 @@
   "@languageUkrainian": { "description": "Display name of Ukrainian in the language picker." },
   "languageGerman": "Deutsch",
   "@languageGerman": { "description": "Display name of German in the language picker." },
+  "languageChinese": "中文（简体）",
+  "@languageChinese": { "description": "Display name of Simplified Chinese in the language picker." },
   "settings": "Settings",
   "@settings": { "description": "Settings screen title." },
   "dateDawnUser": "Date Dawn user",

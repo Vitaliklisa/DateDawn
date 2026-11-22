@@ -20,6 +20,8 @@
   "@languageUkrainian": { "description": "Назва української мови в списку мов." },
   "languageGerman": "Deutsch",
   "@languageGerman": { "description": "Назва німецької мови в списку мов." },
+  "languageChinese": "Китайська (спрощена)",
+  "@languageChinese": { "description": "Назва спрощеної китайської мови в списку мов." },
   "settings": "Налаштування",
   "@settings": { "description": "Заголовок екрана налаштувань." },
   "dateDawnUser": "Користувач Date Dawn",
