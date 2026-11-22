@@ -290,7 +290,8 @@ void main() {
     expect(preferences.getString(localePreferenceKey), 'zh');
   });
 
-  testWidgets('mobile login shows the language selector', (tester) async {
+  testWidgets('mobile login anchors the language selector at the top right',
+      (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -312,7 +313,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Welcome to Date Dawn'), findsOneWidget);
-    expect(find.byKey(const ValueKey('language-selector')), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget);
+    final selector = find.byKey(const ValueKey('language-selector'));
+    expect(selector, findsOneWidget);
+    final selectorRect = tester.getRect(selector);
+    final screenWidth =
+        tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    expect(selectorRect.top, lessThan(80));
+    expect(selectorRect.right, greaterThan(screenWidth - 64));
   });
 
   testWidgets('Ukrainian can be selected and updates settings strings',
