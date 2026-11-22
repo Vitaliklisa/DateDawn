@@ -20,7 +20,7 @@
   "@languageSaveFailed": {
     "description": "Erreur lors de l’enregistrement de la langue."
   },
-  "languageEnglish": "English",
+  "languageEnglish": "Anglais",
   "@languageEnglish": {
     "description": "Nom anglais affiché dans le sélecteur."
   },
@@ -28,15 +28,15 @@
   "@languageFrench": {
     "description": "Nom français affiché dans le sélecteur."
   },
-  "languageSpanish": "Español",
+  "languageSpanish": "Espagnol",
   "@languageSpanish": {
     "description": "Nom espagnol affiché dans le sélecteur."
   },
-  "languageUkrainian": "Українська",
+  "languageUkrainian": "Ukrainien",
   "@languageUkrainian": {
     "description": "Nom ukrainien affiché dans le sélecteur."
   },
-  "languageGerman": "Deutsch",
+  "languageGerman": "Allemand",
   "@languageGerman": {
     "description": "Nom allemand affiché dans le sélecteur."
   },

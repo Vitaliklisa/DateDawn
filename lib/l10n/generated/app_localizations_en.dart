@@ -27,16 +27,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
-  String get languageFrench => 'Français';
+  String get languageFrench => 'French';
 
   @override
-  String get languageSpanish => 'Español';
+  String get languageSpanish => 'Spanish';
 
   @override
-  String get languageUkrainian => 'Українська';
+  String get languageUkrainian => 'Ukrainian';
 
   @override
-  String get languageGerman => 'Deutsch';
+  String get languageGerman => 'German';
 
   @override
   String get languageChinese => 'Traditional Chinese (Taiwan)';

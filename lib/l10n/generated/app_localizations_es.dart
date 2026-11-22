@@ -25,19 +25,19 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se pudo guardar la preferencia de idioma.';
 
   @override
-  String get languageEnglish => 'English';
+  String get languageEnglish => 'Inglés';
 
   @override
-  String get languageFrench => 'Français';
+  String get languageFrench => 'Francés';
 
   @override
   String get languageSpanish => 'Español';
 
   @override
-  String get languageUkrainian => 'Українська';
+  String get languageUkrainian => 'Ucraniano';
 
   @override
-  String get languageGerman => 'Deutsch';
+  String get languageGerman => 'Alemán';
 
   @override
   String get languageChinese => 'Chino tradicional (Taiwán)';

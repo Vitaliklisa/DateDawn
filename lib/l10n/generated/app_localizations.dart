@@ -145,25 +145,25 @@ abstract class AppLocalizations {
   /// Display name of French in the language picker.
   ///
   /// In en, this message translates to:
-  /// **'Français'**
+  /// **'French'**
   String get languageFrench;
 
   /// Display name of Spanish in the language picker.
   ///
   /// In en, this message translates to:
-  /// **'Español'**
+  /// **'Spanish'**
   String get languageSpanish;
 
   /// Display name of Ukrainian in the language picker.
   ///
   /// In en, this message translates to:
-  /// **'Українська'**
+  /// **'Ukrainian'**
   String get languageUkrainian;
 
   /// Display name of German in the language picker.
   ///
   /// In en, this message translates to:
-  /// **'Deutsch'**
+  /// **'German'**
   String get languageGerman;
 
   /// Display name of Traditional Chinese (Taiwan) in the language picker.

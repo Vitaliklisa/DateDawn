@@ -38,6 +38,77 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  test('translates language names in every supported locale', () async {
+    const expectations = [
+      (
+        locale: Locale('en'),
+        english: 'English',
+        french: 'French',
+        spanish: 'Spanish',
+        ukrainian: 'Ukrainian',
+        german: 'German',
+        chinese: 'Traditional Chinese (Taiwan)',
+      ),
+      (
+        locale: Locale('es'),
+        english: 'Inglés',
+        french: 'Francés',
+        spanish: 'Español',
+        ukrainian: 'Ucraniano',
+        german: 'Alemán',
+        chinese: 'Chino tradicional (Taiwán)',
+      ),
+      (
+        locale: Locale('fr'),
+        english: 'Anglais',
+        french: 'Français',
+        spanish: 'Espagnol',
+        ukrainian: 'Ukrainien',
+        german: 'Allemand',
+        chinese: 'Chinois traditionnel (Taïwan)',
+      ),
+      (
+        locale: Locale('uk'),
+        english: 'Англійська',
+        french: 'Французька',
+        spanish: 'Іспанська',
+        ukrainian: 'Українська',
+        german: 'Німецька',
+        chinese: 'Традиційна китайська (Тайвань)',
+      ),
+      (
+        locale: Locale('de'),
+        english: 'Englisch',
+        french: 'Französisch',
+        spanish: 'Spanisch',
+        ukrainian: 'Ukrainisch',
+        german: 'Deutsch',
+        chinese: 'Traditionelles Chinesisch (Taiwan)',
+      ),
+      (
+        locale: Locale('zh', 'TW'),
+        english: '英語',
+        french: '法語',
+        spanish: '西班牙語',
+        ukrainian: '烏克蘭語',
+        german: '德語',
+        chinese: '繁體中文（台灣）',
+      ),
+    ];
+
+    for (final expected in expectations) {
+      final localizations = await AppLocalizations.delegate.load(
+        expected.locale,
+      );
+      expect(localizations.languageEnglish, expected.english);
+      expect(localizations.languageFrench, expected.french);
+      expect(localizations.languageSpanish, expected.spanish);
+      expect(localizations.languageUkrainian, expected.ukrainian);
+      expect(localizations.languageGerman, expected.german);
+      expect(localizations.languageChinese, expected.chinese);
+    }
+  });
+
   group('locale fallback', () {
     test('uses a supported saved language before the device language', () {
       final result = resolveLocalePreference(
@@ -268,7 +339,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('language-selector')));
     await tester.pumpAndSettle();
-    expect(find.text('Українська'), findsOneWidget);
+    expect(find.text('Ukrainian'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('locale-option-uk')));
     await tester.pumpAndSettle();
 
@@ -413,7 +484,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('language-selector')));
     await tester.pumpAndSettle();
-    expect(find.text('Deutsch'), findsOneWidget);
+    expect(find.text('German'), findsOneWidget);
     final germanOption = find.byKey(const ValueKey('locale-option-de'));
     await tester.ensureVisible(germanOption);
     await tester.pumpAndSettle();

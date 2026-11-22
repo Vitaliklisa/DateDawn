@@ -25,19 +25,19 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’enregistrer votre préférence de langue.';
 
   @override
-  String get languageEnglish => 'English';
+  String get languageEnglish => 'Anglais';
 
   @override
   String get languageFrench => 'Français';
 
   @override
-  String get languageSpanish => 'Español';
+  String get languageSpanish => 'Espagnol';
 
   @override
-  String get languageUkrainian => 'Українська';
+  String get languageUkrainian => 'Ukrainien';
 
   @override
-  String get languageGerman => 'Deutsch';
+  String get languageGerman => 'Allemand';
 
   @override
   String get languageChinese => 'Chinois traditionnel (Taïwan)';

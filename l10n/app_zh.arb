@@ -24,7 +24,7 @@
   "@languageEnglish": {
     "description": "Display name of English in the language picker."
   },
-  "languageFrench": "法國人",
+  "languageFrench": "法語",
   "@languageFrench": {
     "description": "Display name of French in the language picker."
   },
@@ -32,7 +32,7 @@
   "@languageSpanish": {
     "description": "Display name of Spanish in the language picker."
   },
-  "languageUkrainian": "Українська",
+  "languageUkrainian": "烏克蘭語",
   "@languageUkrainian": {
     "description": "Display name of Ukrainian in the language picker."
   },

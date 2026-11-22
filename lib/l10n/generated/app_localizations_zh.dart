@@ -27,13 +27,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get languageEnglish => '英語';
 
   @override
-  String get languageFrench => '法國人';
+  String get languageFrench => '法語';
 
   @override
   String get languageSpanish => '西班牙語';
 
   @override
-  String get languageUkrainian => 'Українська';
+  String get languageUkrainian => '烏克蘭語';
 
   @override
   String get languageGerman => '德語';
