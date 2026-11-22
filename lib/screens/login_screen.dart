@@ -189,6 +189,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (!kIsWeb)
+                      const Align(
+                        alignment: Alignment.centerRight,
+                        child: LanguageSelector(iconOnly: true),
+                      ),
                     const SizedBox(height: 18),
                     Text(
                       _creating

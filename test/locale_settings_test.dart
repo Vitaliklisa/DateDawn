@@ -181,8 +181,7 @@ void main() {
     expect(preferences.getString(localePreferenceKey), 'fr');
   });
 
-  testWidgets('mobile login keeps language selection out of the form',
-      (tester) async {
+  testWidgets('mobile login shows the language selector', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -204,7 +203,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Welcome to Date Dawn'), findsOneWidget);
-    expect(find.byKey(const ValueKey('language-selector')), findsNothing);
+    expect(find.byKey(const ValueKey('language-selector')), findsOneWidget);
   });
 
   testWidgets('Ukrainian can be selected and updates settings strings',
